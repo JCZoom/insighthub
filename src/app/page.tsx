@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User } from 'lucide-react';
+import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import Link from 'next/link';
 
@@ -191,26 +191,35 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Quick actions */}
-          <p className="fade-up stagger-4 text-xs text-[var(--text-muted)] mb-2">
-            You can also choose a common request
-          </p>
-          <p className="fade-up stagger-4 text-xs mb-4">
-            <Link href="/dashboards" className="text-accent-blue hover:underline">
-              Search existing dashboards
-            </Link>
-          </p>
-          <div className="fade-up stagger-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Quick start templates */}
+          <div className="fade-up stagger-4 flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-[var(--border-color)]" />
+            <span className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-widest">or start from a template</span>
+            <div className="flex-1 h-px bg-[var(--border-color)]" />
+          </div>
+          <div className="fade-up stagger-5 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {QUICK_ACTIONS.map(action => (
               <button
                 key={action.label}
                 onClick={() => handleSubmit(action.prompt)}
-                className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border bg-gradient-to-b ${action.color} hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer`}
+                className={`group flex flex-col items-center gap-2.5 p-4 rounded-xl border bg-gradient-to-b ${action.color} hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer`}
               >
                 <action.icon size={22} className={action.iconColor} />
                 <span className="text-xs font-medium text-[var(--text-primary)]">{action.label}</span>
               </button>
             ))}
+          </div>
+
+          {/* Browse existing */}
+          <div className="fade-up stagger-5">
+            <Link
+              href="/dashboards"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-accent-blue/30 hover:bg-accent-blue/5 transition-all group"
+            >
+              <LayoutGrid size={14} className="text-[var(--text-muted)] group-hover:text-accent-blue transition-colors" />
+              Browse saved dashboards
+              <ArrowRight size={12} className="text-[var(--text-muted)] group-hover:text-accent-blue group-hover:translate-x-0.5 transition-all" />
+            </Link>
           </div>
         </div>
       </main>

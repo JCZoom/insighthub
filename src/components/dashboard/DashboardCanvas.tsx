@@ -484,12 +484,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
           <WidgetDetailOverlay config={detailWidget} onClose={() => setDetailWidget(null)} />
         )}
 
-        {/* Shortcut help overlay */}
-        {showHelp && <ShortcutHelpOverlay onClose={() => setShowHelp(false)} />}
-
-        {/* Share modal */}
-        {showShare && <ShareModal onClose={() => setShowShare(false)} />}
       </div>
+
+      {/* Modals — rendered outside the scroll container so fixed positioning works */}
+      {showHelp && <ShortcutHelpOverlay onClose={() => setShowHelp(false)} />}
+      {showShare && <ShareModal onClose={() => setShowShare(false)} />}
     </div>
   );
 }
