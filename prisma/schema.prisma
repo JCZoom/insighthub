@@ -24,7 +24,7 @@ model User {
   publishedWidgets WidgetTemplate[] @relation("publishedWidgets")
 }
 
-// Role values: VIEWER, CREATOR, POWER_USER, ADMIN (stored as String for SQLite)
+// Role values: VIEWER, CREATOR, POWER_USER, ADMIN (plain String — not a Prisma enum)
 
 model Dashboard {
   id             String             @id @default(cuid())
@@ -161,4 +161,97 @@ model AuditLog {
 
   @@index([userId])
   @@index([resourceType, resourceId])
+}
+
+// Sample Data Tables for Demo (Phase 1)
+model SampleCustomer {
+  id              Int                    @id @default(autoincrement())
+  name            String
+  email           String
+  company         String
+  plan            String                 // 'starter', 'professional', 'enterprise'
+  region          String                 // 'Northeast', 'Southeast', 'Midwest', 'West', 'International'
+  signupDate      DateTime               @map("signup_date")
+  cancelledDate   DateTime?              @map("cancelled_date")
+  monthlyRevenue  Float                  @map("monthly_revenue")
+  accountManager  String?                @map("account_manager")
+  subscriptions   SampleSubscription[]
+  tickets         SampleTicket[]
+  revenue         SampleRevenue[]
+  usage           SampleUsage[]
+
+  @@map("sample_customers")
+}
+
+model SampleSubscription {
+  id            Int             @id @default(autoincrement())
+  customerId    Int             @map("customer_id")
+  customer      SampleCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  plan          String
+  status        String          // 'active', 'cancelled', 'paused', 'trial'
+  startDate     DateTime        @map("start_date")
+  endDate       DateTime?       @map("end_date")
+  monthlyAmount Float           @map("monthly_amount")
+  addOns        String?         @map("add_ons") // JSON string: [{"name": "Premium Support", "amount": 49.99}]
+
+  @@map("sample_subscriptions")
+}
+
+model SampleTicket {
+  id                      Int             @id @default(autoincrement())
+  customerId              Int             @map("customer_id")
+  customer                SampleCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subject                 String
+  category                String          // 'billing', 'technical', 'onboarding', 'feature_request', 'cancellation'
+  priority                String          // 'low', 'medium', 'high', 'urgent'
+  status                  String          // 'open', 'pending', 'resolved', 'closed'
+  channel                 String          // 'email', 'chat', 'phone', 'portal'
+  createdAt               DateTime        @map("created_at")
+  resolvedAt              DateTime?       @map("resolved_at")
+  firstResponseMinutes    Int?            @map("first_response_minutes")
+  satisfactionScore       Int?            @map("satisfaction_score") // 1-5 CSAT
+  agent                   String?
+  team                    String?         // 'Recipient Support', 'Form 1583', 'Sales', 'Mail Centers', 'Partner AI'
+
+  @@map("sample_tickets")
+}
+
+model SampleRevenue {
+  id         Int             @id @default(autoincrement())
+  customerId Int             @map("customer_id")
+  customer   SampleCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  eventType  String          @map("event_type") // 'new', 'expansion', 'contraction', 'churn', 'reactivation'
+  amount     Float
+  eventDate  DateTime        @map("event_date")
+  planFrom   String?         @map("plan_from")
+  planTo     String?         @map("plan_to")
+
+  @@map("sample_revenue")
+}
+
+model SampleUsage {
+  id         Int             @id @default(autoincrement())
+  customerId Int             @map("customer_id")
+  customer   SampleCustomer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  feature    String          // 'mail_scan', 'package_forward', 'check_deposit', 'address_use'
+  usageCount Int             @map("usage_count")
+  usageDate  DateTime        @map("usage_date")
+
+  @@map("sample_usage")
+}
+
+model SampleDeal {
+  id          Int       @id @default(autoincrement())
+  company     String
+  contact     String
+  stage       String    // 'prospect', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost'
+  amount      Float
+  probability Int       // 0-100
+  source      String    // 'inbound', 'outbound', 'referral', 'partner'
+  region      String
+  createdAt   DateTime  @map("created_at")
+  closedAt    DateTime? @map("closed_at")
+  owner       String
+
+  @@map("sample_deals")
 }

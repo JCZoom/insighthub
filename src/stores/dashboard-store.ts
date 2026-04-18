@@ -58,6 +58,7 @@ interface DashboardState {
   setTitle: (title: string) => void;
   setAiWorking: (working: boolean) => void;
   selectWidget: (id: string | null) => void;
+  jumpToHistory: (index: number) => void;
   undo: () => void;
   redo: () => void;
   markSaved: () => void;
@@ -203,6 +204,18 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setAiWorking: (working) => set({ isAiWorking: working }),
 
   selectWidget: (id) => set({ selectedWidgetId: id }),
+
+  jumpToHistory: (index) => {
+    const { history } = get();
+    if (index < 0 || index >= history.length) return;
+    set({
+      schema: history[index].schema,
+      historyIndex: index,
+      canUndo: index > 0,
+      canRedo: index < history.length - 1,
+      isDirty: true,
+    });
+  },
 
   undo: () => {
     const { historyIndex, history } = get();

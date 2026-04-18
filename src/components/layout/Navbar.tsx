@@ -31,7 +31,7 @@ export function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6">
+      <div className="px-4 sm:px-6">
         <div className="flex h-14 items-center justify-between">
           {/* Logo + nav */}
           <div className="flex items-center gap-6">

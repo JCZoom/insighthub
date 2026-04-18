@@ -2,15 +2,16 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import type { WidgetConfig } from '@/types';
+import { getColorPalette, getAnimationDuration, TOOLTIP_STYLE } from './widget-utils';
 
 interface PieChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
 }
 
-const COLORS = ['#6baaff', '#56c47a', '#b48eff', '#dba644', '#4dcec2', '#f47670'];
-
 export function PieChartWidget({ config, data }: PieChartWidgetProps) {
+  const COLORS = getColorPalette(config.visualConfig.colorScheme);
+  const animDuration = getAnimationDuration(config);
   if (!data.length) {
     return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
   }
@@ -38,23 +39,13 @@ export function PieChartWidget({ config, data }: PieChartWidgetProps) {
               dataKey={valueKey}
               nameKey={nameKey}
               paddingAngle={2}
-              animationDuration={800}
+              animationDuration={animDuration}
             >
               {data.map((_, index) => (
                 <Cell key={index} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '12px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-              }}
-              labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
-              itemStyle={{ color: 'var(--text-secondary)' }}
-            />
+            <Tooltip {...TOOLTIP_STYLE} />
             {config.visualConfig.showLegend !== false && (
               <Legend wrapperStyle={{ fontSize: '11px' }} />
             )}

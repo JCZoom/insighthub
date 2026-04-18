@@ -284,6 +284,9 @@ function getCachedData(key: string, generator: () => Record<string, unknown>[]):
 }
 
 export function queryData(source: string, _groupBy?: string[]): SampleDataResult {
+  if (!source || typeof source !== 'string') {
+    return { data: [], columns: [] };
+  }
   const generator = DATA_GENERATORS[source];
   if (!generator) {
     // Fallback: try to match partial source names

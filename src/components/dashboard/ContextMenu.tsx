@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import {
   Copy, Trash2, GripVertical, Maximize2, Minimize2,
-  PlusCircle, BarChart3, Table2, Gauge, Type, Library,
+  PlusCircle, BarChart3, Table2, Gauge, Type, Library, Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -96,9 +96,11 @@ export function getWidgetActions(callbacks: {
   delete: () => void;
   widen: () => void;
   narrow: () => void;
+  editConfig?: () => void;
 }): ContextMenuAction[] {
   return [
-    { label: 'Duplicate Widget', icon: Copy, onClick: callbacks.duplicate },
+    ...(callbacks.editConfig ? [{ label: 'Edit Config', icon: Settings2, onClick: callbacks.editConfig }] : []),
+    { label: 'Duplicate Widget', icon: Copy, onClick: callbacks.duplicate, separator: !!callbacks.editConfig },
     { label: 'Make Wider', icon: Maximize2, onClick: callbacks.widen, separator: true },
     { label: 'Make Narrower', icon: Minimize2, onClick: callbacks.narrow },
     { label: 'Drag to Reposition', icon: GripVertical, onClick: () => {}, separator: true },

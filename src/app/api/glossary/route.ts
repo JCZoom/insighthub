@@ -4,6 +4,7 @@ import path from 'path';
 import YAML from 'yaml';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser, canEditGlossary } from '@/lib/auth/session';
+import { logGlossaryAction, AuditAction } from '@/lib/audit';
 
 interface GlossaryEntry {
   term: string;
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
 // POST /api/glossary — create a new glossary term (Admin only)
 export async function POST(request: NextRequest) {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!canEditGlossary(user)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
@@ -82,6 +83,18 @@ export async function POST(request: NextRequest) {
         lastReviewedAt: new Date(),
       },
     });
+
+    // Log glossary creation for audit
+    await logGlossaryAction(
+      user.id,
+      AuditAction.GLOSSARY_CREATE,
+      created.id,
+      {
+        term: created.term,
+        category: created.category,
+        definition: created.definition.substring(0, 100) + (created.definition.length > 100 ? '...' : ''),
+      }
+    );
 
     return NextResponse.json({ term: created }, { status: 201 });
   } catch (error) {

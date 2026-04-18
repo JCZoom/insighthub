@@ -9,3 +9,4 @@ export { TextBlockWidget } from './TextBlockWidget';
 export { FunnelWidget } from './FunnelWidget';
 export { MetricRowWidget } from './MetricRowWidget';
 export { ScatterPlotWidget } from './ScatterPlotWidget';
+export { HeatmapWidget } from './HeatmapWidget';

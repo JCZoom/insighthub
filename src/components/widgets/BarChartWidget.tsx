@@ -2,15 +2,18 @@
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { WidgetConfig } from '@/types';
+import { getColorPalette, getAnimationDuration, TOOLTIP_STYLE } from './widget-utils';
 
 interface BarChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
 }
 
-const COLORS = ['#6baaff', '#56c47a', '#b48eff', '#dba644', '#4dcec2', '#f47670'];
-
 export function BarChartWidget({ config, data }: BarChartWidgetProps) {
+  const COLORS = getColorPalette(config.visualConfig.colorScheme);
+  const animDuration = getAnimationDuration(config);
+  const showGrid = config.visualConfig.showGrid !== false;
+  const showLabels = config.visualConfig.showLabels !== false;
   if (!data.length) {
     return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
   }
@@ -39,29 +42,21 @@ export function BarChartWidget({ config, data }: BarChartWidgetProps) {
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} />
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} />}
             <XAxis
               dataKey={xKey}
-              tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+              tick={showLabels ? { fontSize: 11, fill: 'var(--text-secondary)' } : false}
               axisLine={{ stroke: 'var(--border-color)' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+              tick={showLabels ? { fontSize: 11, fill: 'var(--text-secondary)' } : false}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-              contentStyle={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                fontSize: '12px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-              }}
-              labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
-              itemStyle={{ color: 'var(--text-secondary)' }}
+              {...TOOLTIP_STYLE}
             />
             {config.visualConfig.showLegend !== false && barKeys.length > 1 && (
               <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -72,7 +67,7 @@ export function BarChartWidget({ config, data }: BarChartWidgetProps) {
                 dataKey={key}
                 fill={COLORS[i % COLORS.length]}
                 radius={[4, 4, 0, 0]}
-                animationDuration={800}
+                animationDuration={animDuration}
                 stackId={config.visualConfig.stacked ? 'stack' : undefined}
               />
             ))}

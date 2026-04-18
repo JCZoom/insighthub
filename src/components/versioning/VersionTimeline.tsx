@@ -15,7 +15,7 @@ interface SavedVersion {
 }
 
 export function VersionTimeline() {
-  const { dashboardId, history, historyIndex, initialize, schema, title } = useDashboardStore();
+  const { dashboardId, history, historyIndex, initialize, jumpToHistory, title } = useDashboardStore();
   const [savedVersions, setSavedVersions] = useState<SavedVersion[]>([]);
   const [loading, setLoading] = useState(false);
   const [reverting, setReverting] = useState<string | null>(null);
@@ -118,25 +118,27 @@ export function VersionTimeline() {
           </h4>
           <div className="space-y-1 max-h-28 overflow-y-auto">
             {history.map((entry, i) => (
-              <div
+              <button
                 key={i}
+                onClick={() => { if (i !== historyIndex) jumpToHistory(i); }}
                 className={cn(
-                  'flex items-center gap-2 px-2 py-1 rounded text-xs cursor-default',
+                  'w-full flex items-center gap-2 px-2 py-1 rounded text-xs text-left transition-colors',
                   i === historyIndex
-                    ? 'bg-accent-blue/10 text-accent-blue'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]'
+                    ? 'bg-accent-blue/10 text-accent-blue cursor-default'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] cursor-pointer'
                 )}
+                title={i === historyIndex ? 'Current state' : `Revert to: ${entry.note}`}
               >
                 {i === historyIndex ? (
-                  <CheckCircle2 size={11} />
+                  <CheckCircle2 size={11} className="shrink-0" />
                 ) : (
-                  <RotateCcw size={11} className="opacity-40" />
+                  <RotateCcw size={11} className="opacity-40 shrink-0" />
                 )}
                 <span className="flex-1 truncate">{entry.note}</span>
                 <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap">
                   v{i + 1}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </>
