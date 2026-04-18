@@ -1,7 +1,7 @@
 'use client';
 
 import type { WidgetConfig } from '@/types';
-import { queryData } from '@/lib/data/sample-data';
+import { queryDataSync } from '@/lib/data/sample-data';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { LineChartWidget } from '@/components/widgets/LineChartWidget';
 import { BarChartWidget } from '@/components/widgets/BarChartWidget';
@@ -53,7 +53,7 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
 
   let data: Record<string, unknown>[] = [];
   try {
-    const result = queryData(source, config.dataConfig.groupBy);
+    const result = queryDataSync(source, config.dataConfig.groupBy);
     data = sanitizeData(result.data);
   } catch (err) {
     console.warn(`[WidgetRenderer] queryData failed for source="${source}":`, err);

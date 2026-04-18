@@ -310,7 +310,7 @@ async function handleChatRequest({
       }
     }
 
-    const systemPrompt = buildSystemPrompt(glossaryTerms, (currentSchema ?? null) as DashboardSchema | null, undefined, currentUser);
+    const systemPrompt = await buildSystemPrompt(glossaryTerms, (currentSchema ?? null) as DashboardSchema | null, undefined, currentUser);
 
     // Save user message to database
     if (chatSession) {

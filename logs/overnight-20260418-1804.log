@@ -48,3 +48,6 @@ Done!
 🤖 Step 2: Running overnight builder (AI triage=true)...
 /Users/Jeffrey.Coy/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
   warnings.warn(
+[agent/overnight-sprint d53c439] chore: pre-overnight-builder snapshot
+ 5 files changed, 328 insertions(+), 102 deletions(-)
+ create mode 100644 logs/overnight-20260418-1804.log

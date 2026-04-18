@@ -18,6 +18,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import { initializeDefaultPermissionGroups } from '../src/lib/auth/permissions';
 
 const prisma = new PrismaClient();
 
@@ -444,7 +445,12 @@ async function main() {
   });
   console.log(`✅ User: ${user.name} (${user.email}) — ${user.role}`);
 
-  // 2. Create template dashboards
+  // 2. Initialize permission groups
+  console.log('🔐 Initializing default permission groups...');
+  await initializeDefaultPermissionGroups();
+  console.log('✅ Permission groups initialized');
+
+  // 3. Create template dashboards
   for (const tmpl of TEMPLATE_DASHBOARDS) {
     const existing = await prisma.dashboard.findUnique({ where: { id: tmpl.id } });
     if (existing) {
@@ -475,7 +481,7 @@ async function main() {
     console.log(`  ✨ Created dashboard: ${tmpl.title}`);
   }
 
-  // 3. Create sample users for demo
+  // 4. Create sample users for demo
   const sampleUsers = [
     { id: 'user-sarah', email: 'sarah.chen@uszoom.com', name: 'Sarah Chen', role: 'CREATOR', department: 'Analytics' },
     { id: 'user-mike', email: 'mike.johnson@uszoom.com', name: 'Mike Johnson', role: 'POWER_USER', department: 'Revenue Ops' },
@@ -492,7 +498,7 @@ async function main() {
   }
   console.log(`✅ ${sampleUsers.length} sample users created`);
 
-  // 4. Create sample shared dashboards
+  // 5. Create sample shared dashboards
   const dashboards = await prisma.dashboard.findMany({ where: { isTemplate: true } });
   for (const d of dashboards) {
     for (const su of sampleUsers.slice(0, 2)) {
@@ -505,7 +511,7 @@ async function main() {
   }
   console.log(`✅ Shared template dashboards with sample users`);
 
-  // 5. Create sample audit log entries
+  // 6. Create sample audit log entries
   const auditActions = [
     { action: 'dashboard.create', resourceType: 'dashboard', resourceId: 'executive-summary' },
     { action: 'dashboard.create', resourceType: 'dashboard', resourceId: 'support-operations' },
@@ -519,7 +525,7 @@ async function main() {
   }
   console.log(`✅ ${auditActions.length} audit log entries`);
 
-  // 6. Create folders
+  // 7. Create folders
   const folder = await prisma.folder.upsert({
     where: { id: 'folder-templates' },
     update: {},
@@ -534,7 +540,7 @@ async function main() {
 
   console.log('\n🎯 Now generating comprehensive sample data (18 months)...\n');
 
-  // 7. Generate comprehensive sample data
+  // 8. Generate comprehensive sample data
   await generateSampleCustomers();
   await generateSampleSubscriptions(5000);
   await generateSampleTickets();

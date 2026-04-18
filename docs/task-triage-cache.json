@@ -1,5 +1,5 @@
 {
-  "cached_at": "2026-04-18T14:46:58.052357",
+  "cached_at": "2026-04-18T18:05:55.603153",
   "decisions": {
     "1214122597260608:f5e938d1bfaa": {
       "automatable": true,
@@ -348,6 +348,14 @@
     "1214125691559387:c37092173303": {
       "automatable": false,
       "reason": "Requires business analysis and external collaboration"
+    },
+    "1214125662501105:97bd3f0059c5": {
+      "automatable": true,
+      "reason": "Code implementation of RBAC system and permissions"
+    },
+    "1214125691559387:070406162972": {
+      "automatable": false,
+      "reason": "Business decision requiring external human input/consultation"
     }
   }
 }

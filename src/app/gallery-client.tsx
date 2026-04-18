@@ -111,6 +111,7 @@ export function GalleryPage() {
   const [showSort, setShowSort] = useState(false);
   const [favoritesCollapsed, setFavoritesCollapsed] = useState(false);
   const [allCollapsed, setAllCollapsed] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Option+Arrow Left/Right to cycle tabs
@@ -147,6 +148,10 @@ export function GalleryPage() {
         const res = await fetch('/api/dashboards?limit=50');
         if (!res.ok) return;
         const { dashboards: dbDashboards } = await res.json();
+        // Detect current user from the first owned dashboard, or from API
+        const userId = dbDashboards?.[0]?.owner?.id || null;
+        if (userId) setCurrentUserId(userId);
+
         const fromDb: DashboardCardData[] = (dbDashboards || []).map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (d: any) => ({
@@ -154,10 +159,13 @@ export function GalleryPage() {
             title: d.title,
             description: d.description || '',
             tags: typeof d.tags === 'string' ? (d.tags ? d.tags.split(',').map((t: string) => t.trim()) : []) : (d.tags || []),
+            ownerId: d.owner?.id || undefined,
             ownerName: d.owner?.name || 'Unknown',
             updatedAt: new Date(d.updatedAt),
             widgetCount: d._count?.versions || 0,
             isTemplate: d.isTemplate || false,
+            isPublic: d.isPublic || false,
+            isShared: userId ? d.owner?.id !== userId : false,
             isFavorite: false,
           }),
         );
@@ -254,8 +262,8 @@ export function GalleryPage() {
   const filtered = sortDashboards(dashboards.filter(d => {
     if (activeTab === 'templates' && !d.isTemplate) return false;
     if (activeTab === 'company') return matchesSearch(d);
-    if (activeTab === 'my' && d.isTemplate) return false;
-    if (activeTab === 'shared') return false;
+    if (activeTab === 'my' && (d.isTemplate || d.isShared)) return false;
+    if (activeTab === 'shared') return !!d.isShared && !d.isTemplate && matchesSearch(d);
     return matchesSearch(d);
   }), sortMode);
 

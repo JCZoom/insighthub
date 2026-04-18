@@ -33,9 +33,14 @@ function randInt(min: number, max: number): number {
   return Math.floor(randBetween(min, max + 1));
 }
 
+import { type SessionUser } from '@/lib/auth/session';
+import { canAccessDataSource, getDataCategoryForSource } from '@/lib/auth/permissions';
+
 export interface SampleDataResult {
   data: Record<string, unknown>[];
   columns: string[];
+  accessDenied?: boolean;
+  deniedReason?: string;
 }
 
 // Pre-generated data sets for different widget queries
@@ -283,7 +288,59 @@ function getCachedData(key: string, generator: () => Record<string, unknown>[]):
   return _dataCache.get(key)!;
 }
 
-export function queryData(source: string, _groupBy?: string[]): SampleDataResult {
+export async function queryData(source: string, _groupBy?: string[], user?: SessionUser): Promise<SampleDataResult> {
+  if (!source || typeof source !== 'string') {
+    return { data: [], columns: [] };
+  }
+
+  // Check permissions if user is provided
+  if (user) {
+    const hasAccess = await canAccessDataSource(user, source);
+    if (!hasAccess) {
+      const dataCategory = getDataCategoryForSource(source);
+      return {
+        data: [],
+        columns: [],
+        accessDenied: true,
+        deniedReason: dataCategory
+          ? `Access denied to ${dataCategory} data. Contact your administrator to request permissions.`
+          : `Access denied to data source '${source}'. Contact your administrator to request permissions.`
+      };
+    }
+  }
+
+  const generator = DATA_GENERATORS[source];
+  if (!generator) {
+    // Fallback: try to match partial source names
+    const key = Object.keys(DATA_GENERATORS).find(k => source.toLowerCase().includes(k));
+    if (key) {
+      // Check permissions for the matched key too
+      if (user) {
+        const hasAccess = await canAccessDataSource(user, key);
+        if (!hasAccess) {
+          const dataCategory = getDataCategoryForSource(key);
+          return {
+            data: [],
+            columns: [],
+            accessDenied: true,
+            deniedReason: dataCategory
+              ? `Access denied to ${dataCategory} data. Contact your administrator to request permissions.`
+              : `Access denied to data source '${key}'. Contact your administrator to request permissions.`
+          };
+        }
+      }
+
+      const data = getCachedData(key, DATA_GENERATORS[key]);
+      return { data, columns: data.length > 0 ? Object.keys(data[0]) : [] };
+    }
+    return { data: [], columns: [] };
+  }
+  const data = getCachedData(source, generator);
+  return { data, columns: data.length > 0 ? Object.keys(data[0]) : [] };
+}
+
+// Backwards compatible sync version for existing code that doesn't need permission checks
+export function queryDataSync(source: string, _groupBy?: string[]): SampleDataResult {
   if (!source || typeof source !== 'string') {
     return { data: [], columns: [] };
   }

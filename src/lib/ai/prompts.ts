@@ -1,6 +1,12 @@
 import type { DashboardSchema } from '@/types';
 import { WIDGET_LIBRARY, type WidgetTemplate } from '@/lib/data/widget-library';
 import { type SessionUser, canAccessSensitiveData, canCreateDashboard } from '@/lib/auth/session';
+import {
+  resolveUserPermissions,
+  getRestrictedDataCategories,
+  getRestrictedDataSources,
+  type ResolvedPermissions
+} from '@/lib/auth/permissions';
 
 interface GlossaryEntry {
   term: string;
@@ -76,49 +82,68 @@ const DATA_SOURCES: DataSource[] = [
   }
 ];
 
-function getAvailableDataSources(user?: SessionUser): string {
+async function getAvailableDataSources(user?: SessionUser, permissions?: ResolvedPermissions): Promise<string> {
   if (!user) {
     // No user provided - return only public data sources for safety
     const publicSources = DATA_SOURCES.filter(ds => ds.permissionLevel === 'public');
     const descriptions = publicSources.map(ds => ds.description).join('\n\n');
-    return `## Available Data Sources\n\n${descriptions}`;
+    return `## Available Data Sources\n\n${descriptions}\n\n**Note**: Limited to public data sources only.`;
   }
 
-  let allowedSources = DATA_SOURCES;
+  // Use provided permissions or resolve them
+  const userPermissions = permissions || await resolveUserPermissions(user);
 
-  // Filter based on user role and permissions
-  if (user.role === 'VIEWER') {
-    // Viewers only get public data sources
-    allowedSources = DATA_SOURCES.filter(ds => ds.permissionLevel === 'public');
-  } else if (user.role === 'CREATOR') {
-    // Creators get public and standard data sources
-    allowedSources = DATA_SOURCES.filter(ds =>
-      ds.permissionLevel === 'public' || ds.permissionLevel === 'standard'
+  // Filter data sources based on user's allowed data sources
+  const allowedSources = DATA_SOURCES.filter(ds => {
+    return userPermissions.allowedDataSources.some(allowedSource =>
+      ds.name.toLowerCase().includes(allowedSource.toLowerCase()) ||
+      allowedSource.toLowerCase().includes(ds.name.toLowerCase())
     );
-  } else if (canAccessSensitiveData(user)) {
-    // Power users and admins get all data sources
-    allowedSources = DATA_SOURCES;
-  } else {
-    // Fallback - only public sources
-    allowedSources = DATA_SOURCES.filter(ds => ds.permissionLevel === 'public');
+  });
+
+  if (allowedSources.length === 0) {
+    return `## Available Data Sources
+
+No data sources available. Contact your administrator to request data access permissions.`;
   }
 
   const descriptions = allowedSources.map(ds => ds.description).join('\n\n');
   const sourceNames = allowedSources.map(ds => ds.name).join(', ');
 
+  // Add restricted data section
+  const restrictedCategories = await getRestrictedDataCategories(user);
+  const restrictedSources = await getRestrictedDataSources(user);
+
+  let restrictedSection = '';
+  if (restrictedCategories.length > 0 || restrictedSources.length > 0) {
+    restrictedSection = `
+
+## RESTRICTED DATA - YOU CANNOT ACCESS
+
+**IMPORTANT**: You do NOT have access to the following data categories and must NOT generate queries or widgets using them:
+
+${restrictedCategories.length > 0 ? `**Restricted Categories**: ${restrictedCategories.join(', ')}` : ''}
+${restrictedSources.length > 0 ? `**Restricted Sources**: ${restrictedSources.slice(0, 10).join(', ')}${restrictedSources.length > 10 ? '...' : ''}` : ''}
+
+When a user asks for data you cannot access, respond with a friendly denial:
+"You don't have access to [specific data category]. Please contact your administrator to request access to [Category] data."
+
+Always suggest alternative metrics from your allowed data sources when possible.`;
+  }
+
   return `## Available Data Sources
 
 ${descriptions}
 
-**Note**: You have access to the following data sources based on your role: ${sourceNames}. Only generate queries and widgets using these approved sources.`;
+**Note**: You have access to the following data sources: ${sourceNames}. Only generate queries and widgets using these approved sources.${restrictedSection}`;
 }
 
-export function buildSystemPrompt(
+export async function buildSystemPrompt(
   glossaryTerms: GlossaryEntry[],
   currentSchema: DashboardSchema | null,
   widgetLibrary: WidgetTemplate[] = WIDGET_LIBRARY,
   user?: SessionUser,
-): string {
+): Promise<string> {
   const glossarySection = glossaryTerms.length > 0
     ? glossaryTerms.map(t =>
         `- **${t.term}** [${t.category}]: ${t.definition}${t.formula ? ` Formula: \`${t.formula}\`` : ''}`
@@ -129,7 +154,9 @@ export function buildSystemPrompt(
     ? JSON.stringify(currentSchema, null, 2)
     : '{ "layout": { "columns": 12, "rowHeight": 80, "gap": 16 }, "globalFilters": [], "widgets": [] }';
 
-  const availableDataSources = getAvailableDataSources(user);
+  // Resolve user permissions once to avoid multiple DB calls
+  const userPermissions = user ? await resolveUserPermissions(user) : undefined;
+  const availableDataSources = await getAvailableDataSources(user, userPermissions);
   const smartSuggestions = generateSchemaBasedSuggestions(currentSchema);
 
   return `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.

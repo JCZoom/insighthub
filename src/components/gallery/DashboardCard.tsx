@@ -11,11 +11,13 @@ export interface DashboardCardData {
   title: string;
   description?: string;
   tags: string[];
+  ownerId?: string;
   ownerName: string;
   updatedAt: Date;
   widgetCount: number;
   isTemplate?: boolean;
   isPublic?: boolean;
+  isShared?: boolean;
   isFavorite?: boolean;
 }
 

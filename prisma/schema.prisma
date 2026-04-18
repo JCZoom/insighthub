@@ -22,6 +22,7 @@ model User {
   chatSessions ChatSession[]
   auditLogs        AuditLog[]
   publishedWidgets WidgetTemplate[] @relation("publishedWidgets")
+  permissionAssignments UserPermissionAssignment[]
 }
 
 // Role values: VIEWER, CREATOR, POWER_USER, ADMIN (plain String — not a Prisma enum)
@@ -255,4 +256,50 @@ model SampleDeal {
   owner       String
 
   @@map("sample_deals")
+}
+
+// Permission System Models
+model PermissionGroup {
+  id                      String                     @id @default(cuid())
+  name                    String                     @unique
+  description             String?
+  isSystem                Boolean                    @default(false)  // true for built-in groups like "Viewer", "Admin"
+  featurePermissions      String                     @default("{}") // JSON: {"canCreateDashboard": true, "canEditGlossary": false, etc}
+  dataPermissions         String                     @default("{}") // JSON: {"Revenue": "FULL", "Support": "NONE", "CustomerPII": "FILTERED", etc}
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  userAssignments         UserPermissionAssignment[]
+  dataAccessRules         DataAccessRule[]
+
+  @@index([isSystem])
+}
+
+model UserPermissionAssignment {
+  id                 String           @id @default(cuid())
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionGroupId  String
+  permissionGroup    PermissionGroup  @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+  customOverrides    String           @default("{}") // JSON: individual permission overrides within the group
+  assignedBy         String
+  assignedAt         DateTime         @default(now())
+
+  @@unique([userId, permissionGroupId])
+  @@index([userId])
+  @@index([permissionGroupId])
+}
+
+model DataAccessRule {
+  id                 String           @id @default(cuid())
+  permissionGroupId  String
+  permissionGroup    PermissionGroup  @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
+  dataCategory       String           // "Revenue", "Support", "CustomerPII", etc
+  accessLevel        String           @default("NONE") // "FULL", "NONE", "FILTERED"
+  filterCriteria     String?          // JSON: conditions for FILTERED access
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([permissionGroupId, dataCategory])
+  @@index([permissionGroupId])
+  @@index([dataCategory])
 }
