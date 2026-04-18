@@ -201,6 +201,32 @@ export function GalleryPage() {
     }
   }, [dashboards, toast]);
 
+  const handleDuplicate = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/dashboards/${id}/duplicate`, { method: 'POST' });
+      if (res.ok) {
+        const { dashboard } = await res.json();
+        const newCard: DashboardCardData = {
+          id: dashboard.id,
+          title: dashboard.title,
+          description: dashboard.description || '',
+          tags: typeof dashboard.tags === 'string' ? (dashboard.tags ? dashboard.tags.split(',').map((t: string) => t.trim()) : []) : (dashboard.tags || []),
+          ownerName: dashboard.owner?.name || 'You',
+          updatedAt: new Date(dashboard.updatedAt),
+          widgetCount: dashboard.versions?.length || 1,
+          isTemplate: false,
+          isFavorite: false,
+        };
+        setDashboards(prev => [newCard, ...prev]);
+        toast({ type: 'success', title: 'Dashboard duplicated', description: `"${newCard.title}" created.` });
+      } else {
+        toast({ type: 'error', title: 'Duplicate failed', description: 'Could not clone this dashboard.' });
+      }
+    } catch {
+      toast({ type: 'error', title: 'Duplicate failed', description: 'Network error.' });
+    }
+  }, [toast]);
+
   const handleRename = useCallback(async (id: string, currentTitle: string) => {
     const newTitle = window.prompt('Rename dashboard:', currentTitle);
     if (!newTitle || newTitle.trim() === currentTitle) return;
@@ -253,7 +279,6 @@ export function GalleryPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              tabIndex={-1}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
                 activeTab === tab.id
@@ -274,7 +299,6 @@ export function GalleryPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search dashboards..."
-              tabIndex={-1}
               className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-56 transition-colors"
             />
           </div>
@@ -342,7 +366,7 @@ export function GalleryPage() {
                 : 'flex flex-col gap-2'
             )}>
               {favorites.map(d => (
-                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
+                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
               ))}
             </div>
           )}
@@ -406,7 +430,7 @@ export function GalleryPage() {
               </div>
             </Link>
             {filtered.map(d => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
             ))}
           </div>
         )}

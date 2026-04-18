@@ -90,6 +90,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onSave: () => handleSave(),
+    onSaveAs: () => handleSaveAs(),
     onToggleHelp: () => setShowHelp(prev => !prev),
   });
 
@@ -595,7 +596,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             </button>
             <button
               onClick={() => setShowSaveMenu(prev => !prev)}
-              className="flex items-center px-1.5 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
+              className="flex items-center px-2 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
               title="Save options"
             >
               <ChevronDown size={12} />

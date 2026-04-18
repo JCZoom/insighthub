@@ -6,7 +6,6 @@ import {
   MessageSquare,
   LayoutDashboard,
   BookOpen,
-  BarChart3,
   Database,
   Code2,
   Share2,
@@ -165,6 +164,7 @@ const SHORTCUTS = [
   { keys: ['⌘', '4'], description: 'Go to About' },
   { keys: ['⌘', '5'], description: 'New Dashboard' },
   { keys: ['⌘', 'S'], description: 'Save dashboard' },
+  { keys: ['⌘', '⇧', 'S'], description: 'Save as (duplicate)' },
   { keys: ['⌘', 'Z'], description: 'Undo' },
   { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
   { keys: ['/'], description: 'Focus search or chat input' },
@@ -249,6 +249,9 @@ export default function AboutPage() {
               <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-accent-purple/10 border border-accent-purple/20 text-accent-purple">
                 Advanced
               </span>
+              <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-accent-amber/10 border border-accent-amber/20 text-accent-amber">
+                Coming Soon
+              </span>
             </div>
             <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-2xl">
               Data engineers and senior analysts can go deeper — write raw SQL, build visual queries, or access everything via API.
@@ -257,10 +260,15 @@ export default function AboutPage() {
               {POWER_USER_FEATURES.map(f => (
                 <div
                   key={f.title}
-                  className="p-5 rounded-xl border border-accent-purple/15 bg-gradient-to-b from-accent-purple/10 to-transparent"
+                  className="p-5 rounded-xl border border-accent-purple/15 bg-gradient-to-b from-accent-purple/10 to-transparent opacity-60"
                 >
-                  <div className="inline-flex p-2 rounded-lg bg-[var(--bg-primary)]/50 mb-3">
-                    <f.icon size={20} className="text-accent-purple" />
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="inline-flex p-2 rounded-lg bg-[var(--bg-primary)]/50">
+                      <f.icon size={20} className="text-accent-purple" />
+                    </div>
+                    <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-accent-amber/10 border border-accent-amber/20 text-accent-amber">
+                      Coming Soon
+                    </span>
                   </div>
                   <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5">{f.title}</h3>
                   <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{f.description}</p>

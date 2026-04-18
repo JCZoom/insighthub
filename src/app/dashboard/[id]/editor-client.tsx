@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { MobileNotice } from '@/components/layout/MobileNotice';
 import { DashboardCanvas } from '@/components/dashboard/DashboardCanvas';
@@ -25,6 +26,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   const handleChatWidthChange = useCallback((w: number) => setChatWidth(w), []);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const { save } = useAutoSave();
 
@@ -32,6 +34,22 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
     onSave: async () => {
       await save();
       toast({ type: 'success', title: 'Dashboard saved' });
+    },
+    onSaveAs: async () => {
+      // Save current work first
+      await save();
+      try {
+        const res = await fetch(`/api/dashboards/${dashboardId}/duplicate`, { method: 'POST' });
+        if (res.ok) {
+          const { dashboard } = await res.json();
+          toast({ type: 'success', title: 'Saved as copy', description: `"${dashboard.title}" created.` });
+          router.push(`/dashboard/${dashboard.id}`);
+        } else {
+          toast({ type: 'error', title: 'Save As failed', description: 'Could not duplicate dashboard.' });
+        }
+      } catch {
+        toast({ type: 'error', title: 'Save As failed', description: 'Network error.' });
+      }
     },
     onFocusChat: () => chatInputRef.current?.focus(),
   });

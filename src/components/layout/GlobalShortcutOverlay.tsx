@@ -42,6 +42,7 @@ const DASHBOARD_SHORTCUTS: ShortcutGroup = {
   title: 'Dashboard Editor',
   shortcuts: [
     { keys: ['Mod', 'S'], description: 'Save dashboard' },
+    { keys: ['Mod', 'Shift', 'S'], description: 'Save as (duplicate)' },
     { keys: ['Mod', 'Z'], description: 'Undo' },
     { keys: ['Mod', 'Shift', 'Z'], description: 'Redo' },
     { keys: ['/'], description: 'Focus chat input' },

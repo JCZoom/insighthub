@@ -5,6 +5,7 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 
 interface KeyboardShortcutOptions {
   onSave?: () => void;
+  onSaveAs?: () => void;
   onSearch?: () => void;
   onFocusChat?: () => void;
   onToggleHelp?: () => void;
@@ -37,8 +38,15 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
       return;
     }
 
+    // Save As: Cmd+Shift+S
+    if (meta && e.shiftKey && e.key === 's') {
+      e.preventDefault();
+      optionsRef.current.onSaveAs?.();
+      return;
+    }
+
     // Save: Cmd+S
-    if (meta && e.key === 's') {
+    if (meta && !e.shiftKey && e.key === 's') {
       e.preventDefault();
       optionsRef.current.onSave?.();
       return;

@@ -450,3 +450,20 @@
 [2026-04-18 15:24:51] 📌 Task: [Review Fix] Full dashboard schema sent as GET query parameter
 [2026-04-18 15:24:51]    Section: Untitled section | Priority: Normal
 [2026-04-18 15:24:51]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 15:46:44]   ⏱️  Claude Code finished in 1314s (exit code: 0)
+[2026-04-18 15:46:44]   💰 Task cost: $0.5228 | Running total: $2.99 / $25.00
+[2026-04-18 15:46:44]   📊 Tokens: 142 in + 6,053 out | cache: 692,060 read + 59,136 create
+[2026-04-18 15:46:44]   🔨 Running build check...
+[2026-04-18 15:47:02]   ✅ Build passed
+[2026-04-18 15:47:02]   ✅ Task completed successfully
+[2026-04-18 15:47:03]   ✅ Asana task 1214124658813050 → completed
+[2026-04-18 15:47:04] 
+============================================================
+[2026-04-18 15:47:04] 🌅 Overnight builder finished
+[2026-04-18 15:47:04]    Tasks attempted: 10
+[2026-04-18 15:47:04]    Succeeded: 9
+[2026-04-18 15:47:04]    Failed: 1
+[2026-04-18 15:47:04]    Total spent: $2.99
+[2026-04-18 15:47:04]    Total tokens: 914 in + 53,753 out
+[2026-04-18 15:47:04] ============================================================
+[2026-04-18 15:47:04] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18-3.md

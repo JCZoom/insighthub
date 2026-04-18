@@ -7,10 +7,8 @@ import { buildSystemPrompt } from '@/lib/ai/prompts';
 import type { DashboardSchema } from '@/types';
 import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
 import { getCurrentUser } from '@/lib/auth/session';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 interface YamlGlossaryEntry {
   term: string;
@@ -29,7 +27,7 @@ const ChatRequestSchema = z.object({
   message: z.string()
     .min(1, 'Message is required')
     .max(10000, 'Message cannot exceed 10,000 characters'),
-  currentSchema: z.any().nullable().optional(),
+  currentSchema: z.record(z.string(), z.unknown()).nullable().optional(),
   conversationHistory: z.array(ConversationHistoryItemSchema)
     .max(20, 'Conversation history cannot exceed 20 entries')
     .optional()
@@ -163,7 +161,6 @@ async function* processRealStream(
           event: 'token',
           data: {
             text: chunk.delta.text,
-            accumulated: accumulatedText,
             progress
           }
         };
@@ -268,14 +265,16 @@ async function handleChatRequest({
     const anthropic = new Anthropic({ apiKey });
     const glossaryTerms = loadGlossaryForPrompt();
 
-    // Get current user for permission-based data source filtering
+    // Require authentication
     let currentUser;
     try {
       currentUser = await getCurrentUser();
     } catch (error) {
-      // If user session retrieval fails, continue without user context (more restrictive permissions)
       console.warn('Failed to retrieve user session for chat API:', error);
-      currentUser = undefined;
+      currentUser = null;
+    }
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Handle chat session persistence (only if user is authenticated)
@@ -311,7 +310,7 @@ async function handleChatRequest({
       }
     }
 
-    const systemPrompt = buildSystemPrompt(glossaryTerms, currentSchema, undefined, currentUser);
+    const systemPrompt = buildSystemPrompt(glossaryTerms, (currentSchema ?? null) as DashboardSchema | null, undefined, currentUser);
 
     // Save user message to database
     if (chatSession) {
@@ -406,11 +405,11 @@ async function handleChatRequest({
             controller.close();
           } catch (error) {
             console.error('Streaming error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+            const errorMessage = process.env.NODE_ENV === 'production'
+              ? 'Internal server error'
+              : (error instanceof Error ? error.message : 'Internal server error');
             controller.enqueue(new TextEncoder().encode(formatSSE('error', { error: errorMessage })));
             controller.close();
-          } finally {
-            await prisma.$disconnect();
           }
         }
       });
@@ -420,8 +419,6 @@ async function handleChatRequest({
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control',
         },
       });
     }
@@ -477,11 +474,12 @@ async function handleChatRequest({
     });
   } catch (error) {
     console.error('Chat API error:', error);
+    const errorMessage = process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
+      : (error instanceof Error ? error.message : 'Internal server error');
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: errorMessage },
       { status: 500 },
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

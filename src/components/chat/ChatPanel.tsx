@@ -243,28 +243,6 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         // Decode the chunk and add to buffer
         buffer += decoder.decode(value, { stream: true });
 
-        // Process complete SSE messages in the buffer
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const eventData = line.slice(6); // Remove 'data: ' prefix
-              const data = JSON.parse(eventData);
-
-              if (process.env.NODE_ENV === 'development') {
-                console.log('SSE message:', data);
-              }
-            } catch (error) {
-              console.error('Failed to parse SSE data:', error);
-            }
-          } else if (line.startsWith('event: ')) {
-            const eventType = line.slice(7); // Remove 'event: ' prefix
-            continue; // Will be processed with the next data line
-          }
-        }
-
         // Look for complete SSE events
         const events = buffer.split('\n\n');
         buffer = events.pop() || ''; // Keep incomplete event in buffer
@@ -302,7 +280,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
               case 'token':
                 setStreamingState(prev => ({
                   ...prev,
-                  explanation: data.accumulated || '',
+                  explanation: prev.explanation + (data.text || ''),
                   progress: data.progress || prev.progress,
                   message: 'Streaming response...'
                 }));
@@ -344,8 +322,8 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
                 // Auto-save version for significant AI changes (if dashboard exists)
                 if (dashboardId && allPatches.length > 0 && shouldAutoSavePatches(allPatches)) {
-                  // Capture schema synchronously to avoid stale state during setTimeout delay
-                  const schemaToSave = schema;
+                  // Capture schema from store state (not closure) to get post-patch version
+                  const schemaToSave = useDashboardStore.getState().schema;
                   setTimeout(async () => {
                     try {
                       const changeSummary = generateChangeSummary(allPatches, finalExplanation);
