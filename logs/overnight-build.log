@@ -348,3 +348,18 @@
 [2026-04-18 14:50:59] 📌 Task: [Review Fix] Duplicated response parsing logic (3 copies)
 [2026-04-18 14:50:59]    Section: Untitled section | Priority: Normal
 [2026-04-18 14:50:59]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:53:10]   ⏱️  Claude Code finished in 130s (exit code: 0)
+[2026-04-18 14:53:10]   💰 Task cost: $0.2792 | Running total: $0.72 / $25.00
+[2026-04-18 14:53:10]   📊 Tokens: 79 in + 6,569 out | cache: 300,796 read + 23,499 create
+[2026-04-18 14:53:10]   🔨 Running build check...
+[2026-04-18 14:53:22]   ✅ Build passed
+[2026-04-18 14:53:22]   ✅ Task completed successfully
+[2026-04-18 14:53:24]   ✅ Asana task 1214124658812877 → completed
+[2026-04-18 14:53:24]   💤 Pausing 15s before next task...
+[2026-04-18 14:53:39] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:53:39] 📋 Iteration 4/10 | Spent so far: $0.72 / $25.00
+[2026-04-18 14:53:39] ────────────────────────────────────────────────────────────
+[2026-04-18 14:53:40] 📌 Task: [Review Fix] Inconsistent indentation in handleChatRequest
+[2026-04-18 14:53:40]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:53:40]   🤖 Running Claude Code (claude-sonnet-4-20250514)...

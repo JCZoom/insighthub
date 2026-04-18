@@ -257,221 +257,221 @@ async function handleChatRequest({
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: 'ANTHROPIC_API_KEY not configured. Add it to .env.local' },
-          { status: 500 },
-        );
-      }
-
-      const anthropic = new Anthropic({ apiKey });
-      const glossaryTerms = loadGlossaryForPrompt();
-
-      // Get current user for permission-based data source filtering
-      let currentUser;
-      try {
-        currentUser = await getCurrentUser();
-      } catch (error) {
-        // If user session retrieval fails, continue without user context (more restrictive permissions)
-        console.warn('Failed to retrieve user session for chat API:', error);
-        currentUser = undefined;
-      }
-
-      // Handle chat session persistence (only if user is authenticated)
-      let chatSession = null;
-      if (currentUser) {
-        try {
-          if (sessionId) {
-            // Try to get existing session
-            chatSession = await prisma.chatSession.findUnique({
-              where: {
-                id: sessionId,
-                userId: currentUser.id // Ensure user owns the session
-              }
-            });
-
-            if (!chatSession) {
-              console.warn(`Session ${sessionId} not found or access denied for user ${currentUser.id}`);
-            }
-          }
-
-          // Create new session if none exists
-          if (!chatSession) {
-            chatSession = await prisma.chatSession.create({
-              data: {
-                userId: currentUser.id,
-                dashboardId: dashboardId || null,
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Failed to handle chat session:', error);
-          // Continue without persistence rather than fail
-        }
-      }
-
-      const systemPrompt = buildSystemPrompt(glossaryTerms, currentSchema, undefined, currentUser);
-
-      // Save user message to database
-      if (chatSession) {
-        try {
-          await prisma.chatMessage.create({
-            data: {
-              sessionId: chatSession.id,
-              role: 'user',
-              content: message,
-            }
-          });
-        } catch (error) {
-          console.error('Failed to save user message:', error);
-        }
-      }
-
-      // Build message array: use conversation history if available, otherwise just the current message
-      const messages: { role: 'user' | 'assistant'; content: string }[] =
-        conversationHistory && conversationHistory.length > 0
-          ? conversationHistory
-          : [{ role: 'user', content: message }];
-
-      // Detect SQL mode - check if user message contains SQL keywords or asks for SQL help
-      const sqlKeywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'GROUP BY', 'ORDER BY', 'INSERT', 'UPDATE', 'DELETE', 'CREATE'];
-      const sqlHelpPhrases = ['explain query', 'optimize sql', 'snowflake', 'verify dashboard', 'formula help', 'natural language to sql'];
-
-      const isSqlMode = sqlKeywords.some(keyword =>
-        message.toUpperCase().includes(keyword)
-      ) || sqlHelpPhrases.some(phrase =>
-        message.toLowerCase().includes(phrase.toLowerCase())
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY not configured. Add it to .env.local' },
+        { status: 500 },
       );
+    }
 
-      // If streaming is requested, return SSE stream
-      if (stream) {
-        const readable = new ReadableStream({
-          async start(controller) {
-            try {
-              // Call Anthropic API
-              const response = await anthropic.messages.create({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
-                system: systemPrompt,
-                messages,
-              });
+    const anthropic = new Anthropic({ apiKey });
+    const glossaryTerms = loadGlossaryForPrompt();
 
-              const textBlock = response.content.find(b => b.type === 'text');
-              const rawText = textBlock?.type === 'text' ? textBlock.text : '';
+    // Get current user for permission-based data source filtering
+    let currentUser;
+    try {
+      currentUser = await getCurrentUser();
+    } catch (error) {
+      // If user session retrieval fails, continue without user context (more restrictive permissions)
+      console.warn('Failed to retrieve user session for chat API:', error);
+      currentUser = undefined;
+    }
 
-              // Process response and stream updates
-              let finalParsedData: any = null;
-              for await (const chunk of processResponseStream(rawText, message, isSqlMode)) {
-                if (chunk.event === 'explanation') {
-                  finalParsedData = chunk.data;
-                  // Update sessionId in the completion data
-                  finalParsedData.sessionId = chatSession?.id;
-                }
-                controller.enqueue(new TextEncoder().encode(formatSSE(chunk.event, chunk.data)));
-              }
-
-              // Save assistant message to database
-              if (chatSession && finalParsedData) {
-                try {
-                  // We need to collect all patches from the stream to save
-                  const explanation = finalParsedData.explanation || '';
-
-                  await prisma.chatMessage.create({
-                    data: {
-                      sessionId: chatSession.id,
-                      role: 'assistant',
-                      content: explanation,
-                      schemaChange: null, // Will be updated if patches were streamed
-                    }
-                  });
-
-                  // Update session timestamp
-                  await prisma.chatSession.update({
-                    where: { id: chatSession.id },
-                    data: { updatedAt: new Date() }
-                  });
-                } catch (error) {
-                  console.error('Failed to save assistant message:', error);
-                }
-              }
-
-              // Send final completion with sessionId
-              controller.enqueue(new TextEncoder().encode(formatSSE('complete', {
-                sessionId: chatSession?.id
-              })));
-              controller.close();
-            } catch (error) {
-              console.error('Streaming error:', error);
-              const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-              controller.enqueue(new TextEncoder().encode(formatSSE('error', { error: errorMessage })));
-              controller.close();
-            } finally {
-              await prisma.$disconnect();
+    // Handle chat session persistence (only if user is authenticated)
+    let chatSession = null;
+    if (currentUser) {
+      try {
+        if (sessionId) {
+          // Try to get existing session
+          chatSession = await prisma.chatSession.findUnique({
+            where: {
+              id: sessionId,
+              userId: currentUser.id // Ensure user owns the session
             }
+          });
+
+          if (!chatSession) {
+            console.warn(`Session ${sessionId} not found or access denied for user ${currentUser.id}`);
+          }
+        }
+
+        // Create new session if none exists
+        if (!chatSession) {
+          chatSession = await prisma.chatSession.create({
+            data: {
+              userId: currentUser.id,
+              dashboardId: dashboardId || null,
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to handle chat session:', error);
+        // Continue without persistence rather than fail
+      }
+    }
+
+    const systemPrompt = buildSystemPrompt(glossaryTerms, currentSchema, undefined, currentUser);
+
+    // Save user message to database
+    if (chatSession) {
+      try {
+        await prisma.chatMessage.create({
+          data: {
+            sessionId: chatSession.id,
+            role: 'user',
+            content: message,
+          }
+        });
+      } catch (error) {
+        console.error('Failed to save user message:', error);
+      }
+    }
+
+    // Build message array: use conversation history if available, otherwise just the current message
+    const messages: { role: 'user' | 'assistant'; content: string }[] =
+      conversationHistory && conversationHistory.length > 0
+        ? conversationHistory
+        : [{ role: 'user', content: message }];
+
+    // Detect SQL mode - check if user message contains SQL keywords or asks for SQL help
+    const sqlKeywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'GROUP BY', 'ORDER BY', 'INSERT', 'UPDATE', 'DELETE', 'CREATE'];
+    const sqlHelpPhrases = ['explain query', 'optimize sql', 'snowflake', 'verify dashboard', 'formula help', 'natural language to sql'];
+
+    const isSqlMode = sqlKeywords.some(keyword =>
+      message.toUpperCase().includes(keyword)
+    ) || sqlHelpPhrases.some(phrase =>
+      message.toLowerCase().includes(phrase.toLowerCase())
+    );
+
+    // If streaming is requested, return SSE stream
+    if (stream) {
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            // Call Anthropic API
+            const response = await anthropic.messages.create({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 4096,
+              system: systemPrompt,
+              messages,
+            });
+
+            const textBlock = response.content.find(b => b.type === 'text');
+            const rawText = textBlock?.type === 'text' ? textBlock.text : '';
+
+            // Process response and stream updates
+            let finalParsedData: any = null;
+            for await (const chunk of processResponseStream(rawText, message, isSqlMode)) {
+              if (chunk.event === 'explanation') {
+                finalParsedData = chunk.data;
+                // Update sessionId in the completion data
+                finalParsedData.sessionId = chatSession?.id;
+              }
+              controller.enqueue(new TextEncoder().encode(formatSSE(chunk.event, chunk.data)));
+            }
+
+            // Save assistant message to database
+            if (chatSession && finalParsedData) {
+              try {
+                // We need to collect all patches from the stream to save
+                const explanation = finalParsedData.explanation || '';
+
+                await prisma.chatMessage.create({
+                  data: {
+                    sessionId: chatSession.id,
+                    role: 'assistant',
+                    content: explanation,
+                    schemaChange: null, // Will be updated if patches were streamed
+                  }
+                });
+
+                // Update session timestamp
+                await prisma.chatSession.update({
+                  where: { id: chatSession.id },
+                  data: { updatedAt: new Date() }
+                });
+              } catch (error) {
+                console.error('Failed to save assistant message:', error);
+              }
+            }
+
+            // Send final completion with sessionId
+            controller.enqueue(new TextEncoder().encode(formatSSE('complete', {
+              sessionId: chatSession?.id
+            })));
+            controller.close();
+          } catch (error) {
+            console.error('Streaming error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+            controller.enqueue(new TextEncoder().encode(formatSSE('error', { error: errorMessage })));
+            controller.close();
+          } finally {
+            await prisma.$disconnect();
+          }
+        }
+      });
+
+      return new Response(readable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Cache-Control',
+        },
+      });
+    }
+
+    // Fallback to non-streaming mode for backwards compatibility
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages,
+    });
+
+    const textBlock = response.content.find(b => b.type === 'text');
+    const rawText = textBlock?.type === 'text' ? textBlock.text : '';
+
+    // Parse the response using shared parsing logic
+    const parsed = parseAIResponse(rawText, isSqlMode);
+
+    // Save assistant message to database
+    if (chatSession) {
+      try {
+        const schemaChangeString = parsed.patches && parsed.patches.length > 0
+          ? JSON.stringify(parsed.patches)
+          : null;
+
+        await prisma.chatMessage.create({
+          data: {
+            sessionId: chatSession.id,
+            role: 'assistant',
+            content: parsed.explanation || '',
+            schemaChange: schemaChangeString,
           }
         });
 
-        return new Response(readable, {
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Cache-Control',
-          },
+        // Update session timestamp
+        await prisma.chatSession.update({
+          where: { id: chatSession.id },
+          data: { updatedAt: new Date() }
         });
+      } catch (error) {
+        console.error('Failed to save assistant message:', error);
       }
+    }
 
-      // Fallback to non-streaming mode for backwards compatibility
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages,
-      });
-
-      const textBlock = response.content.find(b => b.type === 'text');
-      const rawText = textBlock?.type === 'text' ? textBlock.text : '';
-
-      // Parse the response using shared parsing logic
-      const parsed = parseAIResponse(rawText, isSqlMode);
-
-      // Save assistant message to database
-      if (chatSession) {
-        try {
-          const schemaChangeString = parsed.patches && parsed.patches.length > 0
-            ? JSON.stringify(parsed.patches)
-            : null;
-
-          await prisma.chatMessage.create({
-            data: {
-              sessionId: chatSession.id,
-              role: 'assistant',
-              content: parsed.explanation || '',
-              schemaChange: schemaChangeString,
-            }
-          });
-
-          // Update session timestamp
-          await prisma.chatSession.update({
-            where: { id: chatSession.id },
-            data: { updatedAt: new Date() }
-          });
-        } catch (error) {
-          console.error('Failed to save assistant message:', error);
-        }
-      }
-
-      return NextResponse.json({
-        explanation: parsed.explanation,
-        patches: parsed.patches || [],
-        quickActions: parsed.quickActions || [],
-        sql: parsed.sql || undefined,
-        sqlType: parsed.sqlType || undefined,
-        isSqlMode,
-        sessionId: chatSession?.id // Return session ID for client to use in subsequent calls
-      });
+    return NextResponse.json({
+      explanation: parsed.explanation,
+      patches: parsed.patches || [],
+      quickActions: parsed.quickActions || [],
+      sql: parsed.sql || undefined,
+      sqlType: parsed.sqlType || undefined,
+      isSqlMode,
+      sessionId: chatSession?.id // Return session ID for client to use in subsequent calls
+    });
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(
