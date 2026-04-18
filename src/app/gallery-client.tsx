@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown } from 'lucide-react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 // Use fixed dates to avoid SSR/client hydration mismatches (Date.now() differs between server and client)
 const INITIAL_DASHBOARDS: DashboardCardData[] = [
@@ -325,6 +326,24 @@ export function GalleryPage() {
               ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
               : 'flex flex-col gap-2'
           )}>
+            {/* Create new dashboard card */}
+            <Link
+              href="/dashboard/new"
+              className={cn(
+                'group rounded-xl border-2 border-dashed border-[var(--border-color)] hover:border-accent-blue/50 bg-[var(--bg-card)]/50 hover:bg-accent-blue/5 transition-all',
+                viewMode === 'grid'
+                  ? 'flex flex-col items-center justify-center gap-3 min-h-[200px]'
+                  : 'flex items-center gap-3 px-4 py-3'
+              )}
+            >
+              <div className="w-12 h-12 rounded-full bg-accent-blue/10 group-hover:bg-accent-blue/20 flex items-center justify-center transition-colors">
+                <Plus size={24} className="text-accent-blue" />
+              </div>
+              <div className={viewMode === 'list' ? '' : 'text-center'}>
+                <p className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-accent-blue transition-colors">Create New Dashboard</p>
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Describe it in plain English</p>
+              </div>
+            </Link>
             {filtered.map(d => (
               <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
             ))}
