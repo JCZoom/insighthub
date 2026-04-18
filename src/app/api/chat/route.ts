@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import type { DashboardSchema } from '@/types';
 import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
+import { getCurrentUser } from '@/lib/auth/session';
 
 interface YamlGlossaryEntry {
   term: string;
@@ -61,7 +62,18 @@ export async function POST(request: NextRequest) {
 
       const anthropic = new Anthropic({ apiKey });
       const glossaryTerms = loadGlossaryForPrompt();
-      const systemPrompt = buildSystemPrompt(glossaryTerms, currentSchema);
+
+      // Get current user for permission-based data source filtering
+      let currentUser;
+      try {
+        currentUser = await getCurrentUser();
+      } catch (error) {
+        // If user session retrieval fails, continue without user context (more restrictive permissions)
+        console.warn('Failed to retrieve user session for chat API:', error);
+        currentUser = undefined;
+      }
+
+      const systemPrompt = buildSystemPrompt(glossaryTerms, currentSchema, undefined, currentUser);
 
       // Build message array: use conversation history if available, otherwise just the current message
       const messages: { role: 'user' | 'assistant'; content: string }[] =

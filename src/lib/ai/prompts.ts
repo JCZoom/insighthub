@@ -1,5 +1,6 @@
 import type { DashboardSchema } from '@/types';
 import { WIDGET_LIBRARY, type WidgetTemplate } from '@/lib/data/widget-library';
+import { type SessionUser, canAccessSensitiveData, canCreateDashboard } from '@/lib/auth/session';
 
 interface GlossaryEntry {
   term: string;
@@ -8,22 +9,16 @@ interface GlossaryEntry {
   category: string;
 }
 
-const AVAILABLE_DATA_SOURCES = `
-## Available Data Sources
+interface DataSource {
+  name: string;
+  description: string;
+  permissionLevel: 'public' | 'standard' | 'sensitive';
+}
 
-### sample_customers
-- id (int), name (text), email (text), company (text)
-- plan (text: 'starter', 'professional', 'enterprise')
-- region (text: 'Northeast', 'Southeast', 'Midwest', 'West', 'International')
-- signup_date (date), cancelled_date (date, nullable)
-- monthly_revenue (decimal), account_manager (text)
-
-### sample_subscriptions
-- id (int), customer_id (int), plan (text), status (text: 'active', 'cancelled', 'paused', 'trial')
-- start_date (date), end_date (date, nullable)
-- monthly_amount (decimal), add_ons (json array)
-
-### sample_tickets
+const DATA_SOURCES: DataSource[] = [
+  {
+    name: 'sample_tickets',
+    description: `### sample_tickets
 - id (int), customer_id (int), subject (text)
 - category (text: 'billing', 'technical', 'onboarding', 'feature_request', 'cancellation')
 - priority (text: 'low', 'medium', 'high', 'urgent')
@@ -31,31 +26,98 @@ const AVAILABLE_DATA_SOURCES = `
 - channel (text: 'email', 'chat', 'phone', 'portal')
 - created_at (timestamp), resolved_at (timestamp, nullable)
 - first_response_minutes (int), satisfaction_score (int, 1-5)
-- agent (text), team (text)
-
-### sample_revenue
+- agent (text), team (text)`,
+    permissionLevel: 'public'
+  },
+  {
+    name: 'sample_subscriptions',
+    description: `### sample_subscriptions
+- id (int), customer_id (int), plan (text), status (text: 'active', 'cancelled', 'paused', 'trial')
+- start_date (date), end_date (date, nullable)
+- monthly_amount (decimal), add_ons (json array)`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'sample_usage',
+    description: `### sample_usage
+- id (int), customer_id (int)
+- feature (text: 'mail_scan', 'package_forward', 'check_deposit', 'address_use')
+- usage_count (int), usage_date (date)`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'sample_customers',
+    description: `### sample_customers
+- id (int), name (text), email (text), company (text)
+- plan (text: 'starter', 'professional', 'enterprise')
+- region (text: 'Northeast', 'Southeast', 'Midwest', 'West', 'International')
+- signup_date (date), cancelled_date (date, nullable)
+- monthly_revenue (decimal), account_manager (text)`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'sample_revenue',
+    description: `### sample_revenue
 - id (int), customer_id (int)
 - event_type (text: 'new', 'expansion', 'contraction', 'churn', 'reactivation')
 - amount (decimal), event_date (date)
-- plan_from (text), plan_to (text)
-
-### sample_usage
-- id (int), customer_id (int)
-- feature (text: 'mail_scan', 'package_forward', 'check_deposit', 'address_use')
-- usage_count (int), usage_date (date)
-
-### sample_deals
+- plan_from (text), plan_to (text)`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'sample_deals',
+    description: `### sample_deals
 - id (int), company (text), contact (text)
 - stage (text: 'prospect', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost')
 - amount (decimal), probability (int, 0-100)
 - source (text: 'inbound', 'outbound', 'referral', 'partner')
-- region (text), created_at (date), closed_at (date, nullable), owner (text)
-`;
+- region (text), created_at (date), closed_at (date, nullable), owner (text)`,
+    permissionLevel: 'sensitive'
+  }
+];
+
+function getAvailableDataSources(user?: SessionUser): string {
+  if (!user) {
+    // No user provided - return only public data sources for safety
+    const publicSources = DATA_SOURCES.filter(ds => ds.permissionLevel === 'public');
+    const descriptions = publicSources.map(ds => ds.description).join('\n\n');
+    return `## Available Data Sources\n\n${descriptions}`;
+  }
+
+  let allowedSources = DATA_SOURCES;
+
+  // Filter based on user role and permissions
+  if (user.role === 'VIEWER') {
+    // Viewers only get public data sources
+    allowedSources = DATA_SOURCES.filter(ds => ds.permissionLevel === 'public');
+  } else if (user.role === 'CREATOR') {
+    // Creators get public and standard data sources
+    allowedSources = DATA_SOURCES.filter(ds =>
+      ds.permissionLevel === 'public' || ds.permissionLevel === 'standard'
+    );
+  } else if (canAccessSensitiveData(user)) {
+    // Power users and admins get all data sources
+    allowedSources = DATA_SOURCES;
+  } else {
+    // Fallback - only public sources
+    allowedSources = DATA_SOURCES.filter(ds => ds.permissionLevel === 'public');
+  }
+
+  const descriptions = allowedSources.map(ds => ds.description).join('\n\n');
+  const sourceNames = allowedSources.map(ds => ds.name).join(', ');
+
+  return `## Available Data Sources
+
+${descriptions}
+
+**Note**: You have access to the following data sources based on your role: ${sourceNames}. Only generate queries and widgets using these approved sources.`;
+}
 
 export function buildSystemPrompt(
   glossaryTerms: GlossaryEntry[],
   currentSchema: DashboardSchema | null,
   widgetLibrary: WidgetTemplate[] = WIDGET_LIBRARY,
+  user?: SessionUser,
 ): string {
   const glossarySection = glossaryTerms.length > 0
     ? glossaryTerms.map(t =>
@@ -66,6 +128,8 @@ export function buildSystemPrompt(
   const schemaSection = currentSchema
     ? JSON.stringify(currentSchema, null, 2)
     : '{ "layout": { "columns": 12, "rowHeight": 80, "gap": 16 }, "globalFilters": [], "widgets": [] }';
+
+  const availableDataSources = getAvailableDataSources(user);
 
   return `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
 
@@ -79,7 +143,7 @@ ${glossarySection}
 ${schemaSection}
 \`\`\`
 
-${AVAILABLE_DATA_SOURCES}
+${availableDataSources}
 
 ## Widget Types Available
 kpi_card, line_chart, bar_chart, area_chart, pie_chart, donut_chart, stacked_bar, scatter_plot, table, funnel, gauge, metric_row, text_block, divider
@@ -106,10 +170,10 @@ When a user pastes SQL code:
 ### Natural Language → SQL Mode
 When a user asks for data in natural language:
 - Generate actual Snowflake SQL query (not just widget config)
-- Use the available data sources (sample_customers, sample_subscriptions, etc.)
+- Use ONLY the data sources listed in the "Available Data Sources" section above
 - Include proper Snowflake syntax and functions
 - Respond with explanation + SQL in code block + action buttons
-- Respect user permissions (only generate queries for allowed data sources)
+- Respect user permissions (only generate queries for allowed data sources based on your role)
 
 ### SQL Optimization Mode
 When a user asks to optimize a query:
