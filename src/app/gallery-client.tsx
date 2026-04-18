@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
@@ -89,6 +89,8 @@ export function GalleryPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [showSort, setShowSort] = useState(false);
+  const [favoritesCollapsed, setFavoritesCollapsed] = useState(false);
+  const [allCollapsed, setAllCollapsed] = useState(false);
   const { toast } = useToast();
 
   // Close sort dropdown on outside click
@@ -278,28 +280,40 @@ export function GalleryPage() {
       {/* Favorites section — only visible on All/Templates tabs and when there are favorites matching search */}
       {showFavorites && (
         <section className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={() => setFavoritesCollapsed(prev => !prev)}
+            className="flex items-center gap-2 mb-3 group cursor-pointer"
+          >
+            {favoritesCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
             <Star size={14} className="text-accent-amber fill-accent-amber" />
-            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Favorites</h2>
-          </div>
-          <div className={cn(
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-              : 'flex flex-col gap-2'
-          )}>
-            {favorites.map(d => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
-            ))}
-          </div>
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider group-hover:text-[var(--text-primary)] transition-colors">Favorites ({favorites.length})</h2>
+          </button>
+          {!favoritesCollapsed && (
+            <div className={cn(
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                : 'flex flex-col gap-2'
+            )}>
+              {favorites.map(d => (
+                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
       {/* All dashboards */}
       <section>
-        <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
-          {activeTab === 'templates' ? 'Templates' : activeTab === 'my' ? 'My Dashboards' : activeTab === 'company' ? 'Company Dashboards' : activeTab === 'shared' ? 'Shared with Me' : 'All Dashboards'} ({filtered.length})
-        </h2>
-        {filtered.length === 0 ? (
+        <button
+          onClick={() => setAllCollapsed(prev => !prev)}
+          className="flex items-center gap-2 mb-3 group cursor-pointer"
+        >
+          {allCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
+          <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider group-hover:text-[var(--text-primary)] transition-colors">
+            {activeTab === 'templates' ? 'Templates' : activeTab === 'my' ? 'My Dashboards' : activeTab === 'company' ? 'Company Dashboards' : activeTab === 'shared' ? 'Shared with Me' : 'All Dashboards'} ({filtered.length})
+          </h2>
+        </button>
+        {allCollapsed ? null : filtered.length === 0 ? (
           <div className="text-center py-16">
             {activeTab === 'my' ? (
               <>

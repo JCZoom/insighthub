@@ -333,3 +333,7 @@
 [2026-04-18 14:49:02] 📌 Task: [Review Fix] `useEffect` dependency causes infinite loop potential
 [2026-04-18 14:49:02]    Section: Untitled section | Priority: Normal
 [2026-04-18 14:49:02]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:50:29]   ⏱️  Claude Code finished in 87s (exit code: 0)
+[2026-04-18 14:50:29]   💰 Task cost: $0.2256 | Running total: $0.44 / $25.00
+[2026-04-18 14:50:29]   📊 Tokens: 72 in + 4,066 out | cache: 261,745 read + 22,331 create
+[2026-04-18 14:50:29]   🔨 Running build check...
