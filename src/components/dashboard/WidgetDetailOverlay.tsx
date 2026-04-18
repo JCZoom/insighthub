@@ -148,7 +148,7 @@ function DetailChart({ section }: { section: DetailSection }) {
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} />
           <XAxis dataKey={xKey} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={{ stroke: 'var(--border-color)' }} tickLine={false} />
           <YAxis tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
-          <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '11px' }} labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }} />
+          <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '11px' }} labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }} />
           {numKeys.length > 1 && <Legend wrapperStyle={{ fontSize: '10px' }} />}
           {numKeys.map((key, i) =>
             section.chartType === 'line' ? (
