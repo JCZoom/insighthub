@@ -605,7 +605,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             onClick={undo}
             disabled={!canUndo}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title="Undo (⌘Z)"
+            title="Undo (⌘Z / Ctrl+Z)"
           >
             <Undo2 size={16} className="text-[var(--text-secondary)]" />
           </button>
@@ -613,7 +613,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             onClick={redo}
             disabled={!canRedo}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title="Redo (⌘⇧Z)"
+            title="Redo (⌘⇧Z / Ctrl+Shift+Z)"
           >
             <Redo2 size={16} className="text-[var(--text-secondary)]" />
           </button>
@@ -626,7 +626,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   ? 'bg-accent-purple/10 text-accent-purple'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
               }`}
-              title="Browse Widget Library"
+              title="Browse Widget Library (L)"
             >
               <Library size={14} />
               <span className="hidden lg:inline">Widgets</span>
@@ -672,7 +672,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
-            title="Keyboard shortcuts (?)"
+            title="Keyboard shortcuts (?) • ⌘K palette"
           >
             <Keyboard size={14} className="text-[var(--text-muted)]" />
           </button>
@@ -861,7 +861,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 <button
                   onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
                   className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
-                  title={`Delete ${widget.title}`}
+                  title={`Delete ${widget.title} (Del)`}
                 >
                   <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
                 </button>

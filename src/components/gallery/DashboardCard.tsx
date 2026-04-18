@@ -24,6 +24,7 @@ export interface DashboardCardData {
 interface DashboardCardProps {
   dashboard: DashboardCardData;
   viewMode?: 'grid' | 'list';
+  isSelected?: boolean;
   onToggleFavorite?: (id: string) => void;
   onDelete?: (id: string) => void;
   onRename?: (id: string, currentTitle: string) => void;
@@ -35,7 +36,7 @@ interface CtxMenu {
   y: number;
 }
 
-export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, onDelete, onRename, onDuplicate }: DashboardCardProps) {
+export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onToggleFavorite, onDelete, onRename, onDuplicate }: DashboardCardProps) {
   const router = useRouter();
   const [timeLabel, setTimeLabel] = useState('');
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
@@ -83,7 +84,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
   const listRow = (
     <Link
       href={`/dashboard/${dashboard.id}`}
-      className="block group"
+      className={`block group ${isSelected ? 'ring-2 ring-accent-blue rounded-xl' : ''}`}
       onContextMenu={handleContextMenu}
     >
       <div className="card p-0 overflow-hidden flex items-center gap-4 px-4 py-3">
@@ -150,7 +151,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
   const gridCard = (
     <Link
       href={`/dashboard/${dashboard.id}`}
-      className="block group"
+      className={`block group ${isSelected ? 'ring-2 ring-accent-blue rounded-xl' : ''}`}
       onContextMenu={handleContextMenu}
     >
       <div className="card p-0 overflow-hidden h-full flex flex-col">

@@ -28,6 +28,11 @@ const NAV_SHORTCUTS: ShortcutGroup = {
     { keys: ['Mod', 'K'], description: 'Open command palette' },
     { keys: ['Mod', 'F'], description: 'Focus search (on pages with search)' },
     { keys: ['?'], description: 'Toggle this reference sheet' },
+    { keys: ['g', 'h'], description: 'Go To → Home' },
+    { keys: ['g', 'd'], description: 'Go To → Dashboards' },
+    { keys: ['g', 'g'], description: 'Go To → Glossary' },
+    { keys: ['g', 'n'], description: 'Go To → New Dashboard' },
+    { keys: ['g', 'a'], description: 'Go To → About' },
   ],
 };
 
@@ -61,8 +66,18 @@ const GALLERY_SHORTCUTS: ShortcutGroup = {
   title: 'Dashboards Gallery',
   shortcuts: [
     { keys: ['/'], description: 'Focus the search bar' },
+    { keys: ['j'], description: 'Select next dashboard' },
+    { keys: ['k'], description: 'Select previous dashboard' },
+    { keys: ['Enter'], description: 'Open selected dashboard' },
+    { keys: ['n'], description: 'Create new dashboard' },
+    { keys: ['1'], description: 'All tab' },
+    { keys: ['2'], description: 'My Dashboards tab' },
+    { keys: ['3'], description: 'Company tab' },
+    { keys: ['4'], description: 'Shared tab' },
+    { keys: ['5'], description: 'Templates tab' },
     { keys: ['Alt', '←'], description: 'Previous tab' },
     { keys: ['Alt', '→'], description: 'Next tab' },
+    { keys: ['Esc'], description: 'Deselect card' },
   ],
 };
 

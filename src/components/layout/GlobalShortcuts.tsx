@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { CommandPalette } from './CommandPalette';
@@ -10,18 +10,58 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const gPrefixRef = useRef(false);
+  const gPrefixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Don't intercept when typing in an input/textarea/contenteditable
     const target = e.target as HTMLElement;
     const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
+    // Escape key hierarchy: overlays → modals → panels → selection → input blur
+    if (e.key === 'Escape') {
+      // 1. Close command palette
+      if (showCommandPalette) { setShowCommandPalette(false); return; }
+      // 2. Close shortcut overlay
+      if (showHelp) { setShowHelp(false); return; }
+      // 3. Blur active input/textarea
+      if (isInput) { (target as HTMLElement).blur(); return; }
+      // Let remaining Escape handling propagate to page-level components
+      return;
+    }
+
     // ? (Shift+/) — toggle shortcut help (works even in inputs for discoverability)
     if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      // Only trigger if not in an input (except when it's just ?)
       if (!isInput) {
         e.preventDefault();
         setShowHelp(prev => !prev);
+        return;
+      }
+    }
+
+    // g-prefix "Go To" navigation (g then h/d/g/n/a within 500ms)
+    if (!isInput && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+      if (gPrefixRef.current) {
+        gPrefixRef.current = false;
+        if (gPrefixTimerRef.current) { clearTimeout(gPrefixTimerRef.current); gPrefixTimerRef.current = null; }
+        const goToRoutes: Record<string, string> = {
+          h: '/',
+          d: '/dashboards',
+          g: '/glossary',
+          n: '/dashboard/new',
+          a: '/about',
+        };
+        const route = goToRoutes[e.key];
+        if (route) {
+          e.preventDefault();
+          if (pathname !== route) router.push(route);
+          return;
+        }
+      }
+      if (e.key === 'g') {
+        gPrefixRef.current = true;
+        if (gPrefixTimerRef.current) clearTimeout(gPrefixTimerRef.current);
+        gPrefixTimerRef.current = setTimeout(() => { gPrefixRef.current = false; }, 500);
         return;
       }
     }
@@ -80,7 +120,7 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [router, pathname]);
+  }, [router, pathname, showCommandPalette, showHelp]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);

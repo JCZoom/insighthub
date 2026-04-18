@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // Use fixed dates to avoid SSR/client hydration mismatches (Date.now() differs between server and client)
 const INITIAL_DASHBOARDS: DashboardCardData[] = [
@@ -136,26 +137,83 @@ export function GalleryPage() {
   const [filterDateRange, setFilterDateRange] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const { toast } = useToast();
 
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
+  const galleryRouter = useRouter();
+
   const hasActiveFilters = filterOwner || filterDepartment || filterTag || filterDateRange !== 'all';
 
-  // Option+Arrow Left/Right to cycle tabs
+  // Gallery keyboard shortcuts: Alt+arrows for tabs, j/k to nav, Enter to open, n for new, Esc to deselect, 1-5 for tabs
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-      e.preventDefault();
-      const ids = TABS.map(t => t.id);
-      setActiveTab(prev => {
-        const idx = ids.indexOf(prev);
-        if (e.key === 'ArrowRight') return ids[(idx + 1) % ids.length];
-        return ids[(idx - 1 + ids.length) % ids.length];
-      });
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // Alt+Arrow Left/Right to cycle tabs
+      if (e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          if (isInput) return;
+          e.preventDefault();
+          const ids = TABS.map(t => t.id);
+          setActiveTab(prev => {
+            const idx = ids.indexOf(prev);
+            if (e.key === 'ArrowRight') return ids[(idx + 1) % ids.length];
+            return ids[(idx - 1 + ids.length) % ids.length];
+          });
+          setSelectedCardIndex(-1);
+          return;
+        }
+      }
+
+      // Skip all below if in input
+      if (isInput) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+
+      // 1-5: switch tabs
+      const tabIdx = parseInt(e.key) - 1;
+      if (tabIdx >= 0 && tabIdx < TABS.length) {
+        e.preventDefault();
+        setActiveTab(TABS[tabIdx].id);
+        setSelectedCardIndex(-1);
+        return;
+      }
+
+      // j / ArrowDown: next card
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedCardIndex(prev => Math.min(prev + 1, filteredRef.current.length - 1));
+        return;
+      }
+
+      // k / ArrowUp: previous card
+      if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedCardIndex(prev => Math.max(prev - 1, -1));
+        return;
+      }
+
+      // Enter: open selected card
+      if (e.key === 'Enter' && selectedCardIndex >= 0 && selectedCardIndex < filteredRef.current.length) {
+        e.preventDefault();
+        galleryRouter.push(`/dashboard/${filteredRef.current[selectedCardIndex].id}`);
+        return;
+      }
+
+      // n: new dashboard
+      if (e.key === 'n') {
+        e.preventDefault();
+        galleryRouter.push('/dashboard/new');
+        return;
+      }
+
+      // Escape: deselect
+      if (e.key === 'Escape') {
+        setSelectedCardIndex(-1);
+        return;
+      }
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+  }, [selectedCardIndex, galleryRouter]);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -323,6 +381,10 @@ export function GalleryPage() {
     return ids.map(id => dashboards.find(d => d.id === id)).filter(Boolean) as DashboardCardData[];
   }, [dashboards]);
   const showRecent = activeTab === 'all' && recentlyViewed.length > 0 && !search && !hasActiveFilters;
+
+  // Keep a ref so the keyboard handler always sees current filtered list
+  const filteredRef = useRef(filtered);
+  filteredRef.current = filtered;
 
   return (
     <main className="flex-1 w-full px-4 sm:px-6 py-6">
@@ -584,8 +646,8 @@ export function GalleryPage() {
                 <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Describe it in plain English</p>
               </div>
             </Link>
-            {filtered.map(d => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+            {filtered.map((d, i) => (
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
             ))}
           </div>
         )}

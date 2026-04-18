@@ -69,7 +69,7 @@ export function Navbar() {
               <Link
                 href="/"
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
-                title="Back to Home"
+                title="Back to Home (g h)"
               >
                 <Home size={15} />
                 <span className="hidden sm:inline">Home</span>
@@ -85,7 +85,7 @@ export function Navbar() {
             <button
               onClick={() => setShowShortcuts(true)}
               className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
-              title="Keyboard shortcuts (?)"
+              title="Keyboard shortcuts (?) • ⌘K palette"
             >
               <Keyboard size={14} className="text-[var(--text-muted)]" />
             </button>
