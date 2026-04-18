@@ -192,7 +192,7 @@ export function GalleryPage() {
   const showFavorites = (activeTab === 'all' || activeTab === 'templates') && favorites.length > 0;
 
   return (
-    <main className="flex-1 mx-auto max-w-[1600px] px-4 sm:px-6 py-6">
+    <main className="flex-1 w-full mx-auto max-w-[1600px] px-4 sm:px-6 py-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Dashboards</h1>
