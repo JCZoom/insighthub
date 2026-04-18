@@ -225,25 +225,46 @@ export async function withRateLimit<T>(
   endpointName: string,
   handler: () => Promise<T>
 ): Promise<T | NextResponse> {
-  // Apply rate limiting
-  const rateLimitResponse = await createRateLimitMiddleware(rateLimiter, endpointName)(request);
+  // Resolve user once and reuse for both rate-limit check and response headers
+  let userId: string;
+  try {
+    const user = await getCurrentUser();
+    userId = user.id;
+  } catch (error) {
+    // If auth fails, skip rate limiting and let the handler deal with it
+    return handler();
+  }
 
-  if (rateLimitResponse) {
-    return rateLimitResponse; // Rate limit exceeded
+  // Check rate limit
+  const result = await rateLimiter.checkRateLimit(userId, endpointName);
+
+  if (!result.allowed) {
+    const response = NextResponse.json(
+      {
+        error: 'Too many requests',
+        message: `Rate limit exceeded. Try again in ${result.retryAfter} seconds.`,
+        retryAfter: result.retryAfter
+      },
+      { status: 429 }
+    );
+    response.headers.set('X-RateLimit-Limit', rateLimiter['maxRequests'].toString());
+    response.headers.set('X-RateLimit-Remaining', '0');
+    response.headers.set('X-RateLimit-Reset', result.resetTime.toString());
+    response.headers.set('Retry-After', result.retryAfter!.toString());
+    return response;
   }
 
   // Execute the handler
-  const result = await handler();
+  const handlerResult = await handler();
 
   // Add rate limit headers to successful responses
-  if (result instanceof NextResponse) {
+  if (handlerResult instanceof NextResponse) {
     try {
-      const user = await getCurrentUser();
-      await addRateLimitHeaders(result, rateLimiter, user.id, endpointName);
+      await addRateLimitHeaders(handlerResult, rateLimiter, userId, endpointName);
     } catch (error) {
       console.error('Error adding rate limit headers to response:', error);
     }
   }
 
-  return result;
+  return handlerResult;
 }

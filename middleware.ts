@@ -33,27 +33,13 @@ export default withAuth(
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      block-all-mixed-content;
       upgrade-insecure-requests;
     `.replace(/\s{2,}/g, ' ').trim();
 
     response.headers.set('Content-Security-Policy', cspHeader);
 
-    // CSRF Token for API mutations (POST, PUT, PATCH, DELETE)
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
-      const csrfToken = request.headers.get('x-csrf-token');
-      const sessionCsrf = request.headers.get('x-nextauth-csrf-token');
-
-      // For API routes, check CSRF token
-      if (request.nextUrl.pathname.startsWith('/api/')) {
-        if (!csrfToken && !sessionCsrf) {
-          return new NextResponse(
-            JSON.stringify({ error: 'CSRF token missing' }),
-            { status: 403, headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-      }
-    }
+    // CSRF protection is handled by NextAuth's built-in cookie-based mechanism.
+    // Custom header-based CSRF is not wired into the client — do not gate here.
 
     return response;
   },

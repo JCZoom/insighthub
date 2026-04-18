@@ -14,11 +14,14 @@ interface State {
   retryCount: number;
 }
 
-const MAX_RETRIES = 1;
+const MAX_RETRIES = 3;
 
 /**
  * Catches render errors in individual widgets so one broken widget
  * doesn't take down the entire dashboard canvas.
+ *
+ * Auto-recovers when the widget config changes (e.g. user edits the widget
+ * type or data source via the config panel or AI chat).
  */
 export class WidgetErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -31,8 +34,14 @@ export class WidgetErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
-    // Log for debugging but don't expose internals to the user
     console.error(`[WidgetErrorBoundary] "${this.props.widgetTitle}" crashed:`, error);
+  }
+
+  // Auto-recover when the widget title changes (proxy for config change)
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.widgetTitle !== this.props.widgetTitle && this.state.hasError) {
+      this.setState({ hasError: false, errorMessage: '', retryCount: 0 });
+    }
   }
 
   handleRetry = () => {
@@ -57,7 +66,7 @@ export class WidgetErrorBoundary extends Component<Props, State> {
             &ldquo;{this.props.widgetTitle}&rdquo; encountered an error.{' '}
             {exhausted
               ? 'Try editing or removing this widget via the chat.'
-              : 'This is usually caused by unexpected data.'}
+              : 'Click retry or edit this widget\u2019s config to fix.'}
           </p>
           {!exhausted ? (
             <button
@@ -65,7 +74,7 @@ export class WidgetErrorBoundary extends Component<Props, State> {
               className="mt-1 flex items-center gap-1 text-[10px] text-accent-blue hover:underline"
             >
               <RotateCcw size={10} />
-              Retry
+              Retry ({this.state.retryCount + 1}/{MAX_RETRIES})
             </button>
           ) : (
             <p className="mt-1 text-[9px] text-[var(--text-muted)] font-mono max-w-[220px] text-center truncate" title={this.state.errorMessage}>

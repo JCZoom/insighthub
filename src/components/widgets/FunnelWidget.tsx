@@ -1,15 +1,15 @@
 'use client';
 
 import type { WidgetConfig } from '@/types';
+import { getColorPalette } from './widget-utils';
 
 interface FunnelWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
 }
 
-const COLORS = ['#6baaff', '#56c47a', '#b48eff', '#dba644', '#4dcec2', '#f47670'];
-
 export function FunnelWidget({ config, data }: FunnelWidgetProps) {
+  const COLORS = getColorPalette(config.visualConfig.colorScheme);
   if (!data.length) {
     return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
   }

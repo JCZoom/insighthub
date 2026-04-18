@@ -1,6 +1,7 @@
 'use client';
 
 import type { WidgetConfig } from '@/types';
+import { getPrimaryColor } from './widget-utils';
 
 interface GaugeWidgetProps {
   config: WidgetConfig;
@@ -15,7 +16,9 @@ export function GaugeWidget({ config, data }: GaugeWidgetProps) {
   const percent = Math.min(value / max, 1);
   const angle = percent * 180;
 
-  const color = percent > 0.75 ? '#56c47a' : percent > 0.5 ? '#dba644' : '#f47670';
+  // Use explicit colorScheme if set, otherwise fall back to threshold colors
+  const thresholdColor = percent > 0.75 ? '#56c47a' : percent > 0.5 ? '#dba644' : '#f47670';
+  const color = config.visualConfig.colorScheme ? getPrimaryColor(config.visualConfig.colorScheme) : thresholdColor;
 
   return (
     <div className="card p-4 h-full flex flex-col items-center justify-center fade-in">

@@ -108,9 +108,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Minimal top bar — matches Navbar max-w + padding */}
+      {/* Minimal top bar */}
       <nav className="relative z-10">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6">
+        <div className="px-4 sm:px-6">
         <div className="flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-accent-blue font-bold text-lg tracking-tight">
           <Sparkles size={20} />

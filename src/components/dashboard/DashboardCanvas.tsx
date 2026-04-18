@@ -5,12 +5,13 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 import { WidgetRenderer } from './WidgetRenderer';
 import { WidgetErrorBoundary } from './WidgetErrorBoundary';
 import { WidgetDetailOverlay } from './WidgetDetailOverlay';
+import { WidgetConfigPanel } from './WidgetConfigPanel';
 import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 import { ShareModal } from './ShareModal';
 import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
 import type { WidgetConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
@@ -49,6 +50,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [detailWidget, setDetailWidget] = useState<WidgetConfig | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [configWidgetId, setConfigWidgetId] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -150,6 +152,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       x: e.clientX,
       y: e.clientY,
       actions: getWidgetActions({
+        editConfig: () => { selectWidget(widget.id); setConfigWidgetId(widget.id); },
         duplicate: () => duplicateWidget(widget.id),
         delete: () => removeWidget(widget.id),
         widen: () => {
@@ -253,7 +256,9 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex min-h-0">
+      {/* Canvas + toolbar column */}
+      <div className="flex-1 flex flex-col min-h-0 min-w-0">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -354,7 +359,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       {/* Demo mode banner */}
       <div className="flex items-center gap-2 px-4 py-1.5 bg-accent-amber/5 border-b border-accent-amber/20 text-xs text-accent-amber">
         <Info size={12} />
-        <span>Demo mode — using sample data. Right-click to add widgets. Drag grip to move, corner to resize.</span>
+        <span>Demo mode — using sample data. Right-click to add widgets. Drag to move, corner to resize, double-click to edit config.</span>
       </div>
 
       {/* Widget grid */}
@@ -365,6 +370,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
           // Click on empty canvas deselects
           if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-grid]')) {
             selectWidget(null);
+            setConfigWidgetId(null);
           }
         }}
       >
@@ -421,6 +427,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               <div
                 key={widget.id}
                 onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); }}
+                onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
                 onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
                 style={{
                   gridColumn: `${widget.position.x + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
@@ -439,6 +446,14 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <GripVertical size={12} className="text-[var(--text-muted)]" />
                 </div>
+                {/* Edit config button (top-right, second) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
+                  className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
+                  title="Edit widget config"
+                >
+                  <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
+                </button>
                 {/* Delete button (top-right) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
@@ -461,7 +476,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                     <path d="M12 2L2 12M12 6L6 12M12 10L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </div>
-                <WidgetErrorBoundary widgetTitle={widget.title}>
+                <WidgetErrorBoundary
+                  key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
+                  widgetTitle={widget.title}
+                >
                   <WidgetRenderer config={widget} onDetailClick={setDetailWidget} />
                 </WidgetErrorBoundary>
               </div>
@@ -489,6 +507,15 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       {/* Modals — rendered outside the scroll container so fixed positioning works */}
       {showHelp && <ShortcutHelpOverlay onClose={() => setShowHelp(false)} />}
       {showShare && <ShareModal onClose={() => setShowShare(false)} />}
+      </div>
+
+      {/* Widget config panel — slides in from right when editing */}
+      {configWidgetId && (
+        <WidgetConfigPanel
+          widgetId={configWidgetId}
+          onClose={() => setConfigWidgetId(null)}
+        />
+      )}
     </div>
   );
 }

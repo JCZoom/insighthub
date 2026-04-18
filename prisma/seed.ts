@@ -182,7 +182,7 @@ async function generateSampleSubscriptions(customerCount: number) {
       startDate: customer.signupDate,
       endDate: customer.cancelledDate,
       monthlyAmount: customer.monthlyRevenue,
-      addOns: addOns.length > 0 ? addOns : undefined,
+      addOns: addOns.length > 0 ? JSON.stringify(addOns) : null,
     });
   }
 
@@ -507,10 +507,10 @@ async function main() {
 
   // 5. Create sample audit log entries
   const auditActions = [
-    { action: 'dashboard.create', resourceType: 'Dashboard', resourceId: 'executive-summary' },
-    { action: 'dashboard.create', resourceType: 'Dashboard', resourceId: 'support-operations' },
-    { action: 'user.login', resourceType: 'User', resourceId: user.id },
-    { action: 'glossary.sync', resourceType: 'GlossaryTerm', resourceId: 'batch' },
+    { action: 'dashboard.create', resourceType: 'dashboard', resourceId: 'executive-summary' },
+    { action: 'dashboard.create', resourceType: 'dashboard', resourceId: 'support-operations' },
+    { action: 'user.login', resourceType: 'user', resourceId: user.id },
+    { action: 'glossary.create', resourceType: 'glossary', resourceId: 'batch' },
   ];
   for (const a of auditActions) {
     await prisma.auditLog.create({

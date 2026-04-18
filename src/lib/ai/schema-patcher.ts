@@ -2,6 +2,43 @@ import type { DashboardSchema, SchemaPatch, WidgetConfig } from '@/types';
 import { getWidgetTemplate, cloneWidgetFromLibrary } from '@/lib/data/widget-library';
 import { autoLayoutWidgets, needsAutoLayout } from './auto-layout';
 
+/**
+ * Ensure a widget config coming from the AI has all required fields with
+ * safe defaults. The AI frequently omits visualConfig, dataConfig, or
+ * position — any of which would crash the chart widgets.
+ */
+function normalizeWidget(w: Partial<WidgetConfig> & { id: string; type: string; title: string }): WidgetConfig {
+  return {
+    ...w,
+    type: (w.type || 'text_block') as WidgetConfig['type'],
+    title: w.title || 'Untitled Widget',
+    position: {
+      x: 0,
+      y: 0,
+      w: 6,
+      h: 4,
+      ...(w.position || {}),
+    },
+    dataConfig: {
+      source: '',
+      ...(w.dataConfig || {}),
+    },
+    visualConfig: {
+      ...(w.visualConfig || {}),
+    },
+  };
+}
+
+/** Normalize all widgets in a full schema (used for replace_all patches) */
+function normalizeSchema(schema: DashboardSchema): DashboardSchema {
+  return {
+    ...schema,
+    layout: schema.layout || { columns: 12, rowHeight: 80, gap: 16 },
+    globalFilters: schema.globalFilters || [],
+    widgets: (schema.widgets || []).map(w => normalizeWidget(w as any)),
+  };
+}
+
 export function applyPatches(
   schema: DashboardSchema,
   patches: SchemaPatch[],
@@ -41,7 +78,7 @@ function applySinglePatch(
       }
       return {
         ...schema,
-        widgets: [...schema.widgets, patch.widget],
+        widgets: [...schema.widgets, normalizeWidget(patch.widget as any)],
       };
     }
 
@@ -96,7 +133,7 @@ function applySinglePatch(
         console.warn('[schema-patcher] replace_all patch missing .schema, skipping');
         return schema;
       }
-      return patch.schema;
+      return normalizeSchema(patch.schema);
     }
 
     case 'use_widget': {

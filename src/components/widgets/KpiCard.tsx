@@ -18,12 +18,39 @@ const ACCENT_CLASSES: Record<string, string> = {
   red: 'hero-accent-red',
 };
 
+function computeAggregation(
+  data: Record<string, unknown>[],
+  field: string,
+  fn: string,
+): number {
+  const values = data.map(r => Number(r[field]) || 0);
+  if (values.length === 0) return 0;
+  switch (fn) {
+    case 'sum': return values.reduce((a, b) => a + b, 0);
+    case 'avg': return values.reduce((a, b) => a + b, 0) / values.length;
+    case 'count': return values.length;
+    case 'count_distinct': return new Set(values).size;
+    case 'min': return Math.min(...values);
+    case 'max': return Math.max(...values);
+    case 'median': {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+    default: return values[0];
+  }
+}
+
 export function KpiCard({ config, data }: KpiCardProps) {
   const row = data[0] || {};
   const agg = config.dataConfig.aggregation;
   const field = agg?.field || Object.keys(row)[0] || 'value';
-  const rawValue = row[field];
-  const value = typeof rawValue === 'number' ? rawValue : Number(rawValue) || 0;
+  const aggFn = agg?.function || 'sum';
+
+  // If we have multiple rows and an aggregation function, compute it
+  const value = data.length > 1
+    ? computeAggregation(data, field, aggFn)
+    : (typeof row[field] === 'number' ? row[field] as number : Number(row[field]) || 0);
 
   const accent = config.visualConfig.colorScheme || 'blue';
   const accentClass = ACCENT_CLASSES[accent] || ACCENT_CLASSES.blue;

@@ -129,11 +129,11 @@ export function AuditLogClient() {
 
   const uniqueActions = [...new Set(logs.map(log => log.action))];
   const uniqueResourceTypes = [...new Set(logs.map(log => log.resourceType))];
-  const uniqueUsers = [...new Set(logs.map(log => ({ id: log.userId, name: log.user.name, email: log.user.email })))];
+  const uniqueUsers = [...new Map(logs.map(log => [log.userId, { id: log.userId, name: log.user.name, email: log.user.email }])).values()];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>

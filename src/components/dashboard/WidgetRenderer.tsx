@@ -13,15 +13,48 @@ import { TextBlockWidget } from '@/components/widgets/TextBlockWidget';
 import { FunnelWidget } from '@/components/widgets/FunnelWidget';
 import { MetricRowWidget } from '@/components/widgets/MetricRowWidget';
 import { ScatterPlotWidget } from '@/components/widgets/ScatterPlotWidget';
+import { HeatmapWidget } from '@/components/widgets/HeatmapWidget';
 
 interface WidgetRendererProps {
   config: WidgetConfig;
   onDetailClick?: (config: WidgetConfig) => void;
 }
 
-export function WidgetRenderer({ config, onDetailClick }: WidgetRendererProps) {
-  const source = config.dataConfig.source;
-  const { data } = queryData(source, config.dataConfig.groupBy);
+/**
+ * Sanitize numeric values in data rows — replace NaN, Infinity, undefined
+ * with 0 to prevent Recharts SVG rendering crashes.
+ */
+function sanitizeData(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows.map(row => {
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row)) {
+      if (typeof v === 'number' && (!Number.isFinite(v))) {
+        clean[k] = 0;
+      } else {
+        clean[k] = v ?? '';
+      }
+    }
+    return clean;
+  });
+}
+
+export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRendererProps) {
+  // Normalize: ensure dataConfig and visualConfig always exist as objects.
+  // The AI frequently omits these, causing "Cannot read properties of undefined" crashes.
+  const config: WidgetConfig = {
+    ...rawConfig,
+    dataConfig: rawConfig.dataConfig || { source: '' },
+    visualConfig: rawConfig.visualConfig || {},
+  };
+  const source = config.dataConfig.source || '';
+
+  let data: Record<string, unknown>[] = [];
+  try {
+    const result = queryData(source, config.dataConfig.groupBy);
+    data = sanitizeData(result.data);
+  } catch (err) {
+    console.warn(`[WidgetRenderer] queryData failed for source="${source}":`, err);
+  }
 
   // If the AI referenced a data source we don't have sample data for,
   // show a clear message instead of rendering an empty/broken chart.
@@ -30,7 +63,7 @@ export function WidgetRenderer({ config, onDetailClick }: WidgetRendererProps) {
       <div className="card p-4 h-full flex flex-col items-center justify-center text-center gap-1">
         <p className="text-xs font-medium text-[var(--text-primary)]">{config.title}</p>
         <p className="text-[10px] text-[var(--text-muted)]">
-          No data available for source &ldquo;{source}&rdquo;
+          No data available for source &ldquo;{source || 'unknown'}&rdquo;
         </p>
       </div>
     );
@@ -72,6 +105,9 @@ export function WidgetRenderer({ config, onDetailClick }: WidgetRendererProps) {
       break;
     case 'scatter_plot':
       widget = <ScatterPlotWidget config={config} data={data} />;
+      break;
+    case 'heatmap':
+      widget = <HeatmapWidget config={config} data={data} />;
       break;
     case 'text_block':
       widget = <TextBlockWidget config={config} />;
