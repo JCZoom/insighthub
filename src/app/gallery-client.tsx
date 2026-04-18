@@ -82,8 +82,28 @@ function sortDashboards(items: DashboardCardData[], mode: SortMode): DashboardCa
   });
 }
 
+const FAVORITES_KEY = 'insighthub-favorites';
+
+function loadFavoriteIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveFavoriteIds(ids: Set<string>) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...ids]));
+}
+
+function applyFavorites(items: DashboardCardData[], favIds: Set<string>): DashboardCardData[] {
+  return items.map(d => ({ ...d, isFavorite: favIds.has(d.id) }));
+}
+
 export function GalleryPage() {
-  const [dashboards, setDashboards] = useState<DashboardCardData[]>(INITIAL_DASHBOARDS);
+  const [dashboards, setDashboards] = useState<DashboardCardData[]>(() => {
+    if (typeof window === 'undefined') return INITIAL_DASHBOARDS;
+    return applyFavorites(INITIAL_DASHBOARDS, loadFavoriteIds());
+  });
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -148,7 +168,7 @@ export function GalleryPage() {
           ...userDashboards,
           ...INITIAL_DASHBOARDS,
         ];
-        setDashboards(merged);
+        setDashboards(applyFavorites(merged, loadFavoriteIds()));
       } catch {
         // API unreachable (no DB running) — just show templates
       }
@@ -157,9 +177,12 @@ export function GalleryPage() {
   }, []);
 
   const toggleFavorite = useCallback((id: string) => {
-    setDashboards(prev =>
-      prev.map(d => d.id === id ? { ...d, isFavorite: !d.isFavorite } : d)
-    );
+    setDashboards(prev => {
+      const updated = prev.map(d => d.id === id ? { ...d, isFavorite: !d.isFavorite } : d);
+      const favIds = new Set(updated.filter(d => d.isFavorite).map(d => d.id));
+      saveFavoriteIds(favIds);
+      return updated;
+    });
   }, []);
 
   const handleDelete = useCallback(async (id: string) => {
