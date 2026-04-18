@@ -8,7 +8,7 @@ import { WidgetDetailOverlay } from './WidgetDetailOverlay';
 import { WidgetConfigPanel } from './WidgetConfigPanel';
 import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 import { ShareModal } from './ShareModal';
-import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
+import { ContextMenu, getCanvasActions, getWidgetActions, useLongPressContextMenu, type ContextMenuAction } from './ContextMenu';
 import { MetricExplanationModal } from './MetricExplanationModal';
 import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
@@ -17,6 +17,9 @@ import { useRouter } from 'next/navigation';
 import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useTouchDrag } from '@/hooks/useTouchDrag';
+import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
+import { cn } from '@/lib/utils';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG, exportToSVG } from '@/lib/export-utils';
 
@@ -70,6 +73,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     containerRect: DOMRect;
   } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isTouch] = useState(() => isTouchDevice());
+  const [dragHoldState, setDragHoldState] = useState<{
+    widgetId: string;
+    isHolding: boolean;
+  } | null>(null);
 
   // Track active event listeners for cleanup on unmount
   const activeListenersRef = useRef<{
@@ -78,6 +86,9 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   }>({});
 
   const router = useRouter();
+
+  // Long press context menu support
+  const { createLongPressHandler, LongPressRing } = useLongPressContextMenu();
 
   // Cleanup event listeners on unmount
   useEffect(() => {
@@ -258,26 +269,56 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     });
   };
 
-  // --- Marquee (lasso) multi-select ---
+  // --- Marquee (lasso) multi-select with touch optimization ---
   const handleMarqueeStart = (e: React.PointerEvent) => {
-    // Only start marquee on left-click directly on the scroll container or grid background
+    // For touch devices, require longer hold to distinguish from scroll
+    const isTouch = e.pointerType !== 'mouse';
+
+    // Only start marquee on primary pointer (left-click or first touch)
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     // Don't start if clicking on a widget or interactive element
     if (target.closest('[data-widget-id]') || target.closest('button') || target.closest('a')) return;
     // Only start on the container or grid background
     if (!scrollContainerRef.current) return;
+
     const containerRect = scrollContainerRef.current.getBoundingClientRect();
-    setMarqueeState({
-      startX: e.clientX,
-      startY: e.clientY,
-      currentX: e.clientX,
-      currentY: e.clientY,
-      containerRect,
-    });
+    const startTime = Date.now();
+    const holdThreshold = isTouch ? 200 : 0; // Require short hold on touch to avoid conflict with scroll
+    let hasStartedMarquee = false;
+
+    const startMarquee = () => {
+      if (hasStartedMarquee) return;
+      hasStartedMarquee = true;
+      setMarqueeState({
+        startX: e.clientX,
+        startY: e.clientY,
+        currentX: e.clientX,
+        currentY: e.clientY,
+        containerRect,
+      });
+    };
+
+    // For mouse, start immediately
+    if (!isTouch) {
+      startMarquee();
+    }
 
     const handleMove = (me: PointerEvent) => {
-      setMarqueeState(prev => prev ? { ...prev, currentX: me.clientX, currentY: me.clientY } : null);
+      const timeSinceStart = Date.now() - startTime;
+      const dx = Math.abs(me.clientX - e.clientX);
+      const dy = Math.abs(me.clientY - e.clientY);
+      const movement = Math.sqrt(dx * dx + dy * dy);
+
+      // For touch, check if we should start marquee based on time and movement
+      if (isTouch && !hasStartedMarquee && timeSinceStart >= holdThreshold && movement < 20) {
+        startMarquee();
+      }
+
+      // If marquee has started, update it
+      if (hasStartedMarquee) {
+        setMarqueeState(prev => prev ? { ...prev, currentX: me.clientX, currentY: me.clientY } : null);
+      }
     };
 
     const handleUp = () => {
@@ -325,77 +366,82 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     document.addEventListener('pointerup', handleUp);
   };
 
-  // --- Drag-and-drop (supports multi-selection) ---
-  const handleDragStart = (e: React.PointerEvent, widget: WidgetConfig) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // --- Drag-and-drop (supports multi-selection) with touch optimization ---
+  const createDragHandler = (widget: WidgetConfig) => {
     const isMultiDrag = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(widget.id);
-    setDragState({
-      widgetId: widget.id,
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: widget.position.x,
-      origY: widget.position.y,
-      ghostX: widget.position.x,
-      ghostY: widget.position.y,
-    });
 
-    const handleMove = (me: PointerEvent) => {
-      if (!gridRef.current) return;
-      const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / layout.columns;
-      const cellH = layout.rowHeight + layout.gap;
-      const dx = me.clientX - e.clientX;
-      const dy = me.clientY - e.clientY;
-      const newX = Math.max(0, Math.min(layout.columns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
-      const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
-      setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
-    };
-
-    const handleUp = (ue: PointerEvent) => {
-      document.removeEventListener('pointermove', handleMove);
-      document.removeEventListener('pointerup', handleUp);
-      activeListenersRef.current.pointermove = undefined;
-      activeListenersRef.current.pointerup = undefined;
-
-      if (!gridRef.current) { setDragState(null); return; }
-      const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / layout.columns;
-      const cellH = layout.rowHeight + layout.gap;
-      const dx = ue.clientX - e.clientX;
-      const dy = ue.clientY - e.clientY;
-      const deltaCol = Math.round(dx / cellW);
-      const deltaRow = Math.round(dy / cellH);
-
-      if (deltaCol !== 0 || deltaRow !== 0) {
-        if (isMultiDrag) {
-          // Move all selected widgets by the same delta
-          const store = useDashboardStore.getState();
-          const moves = selectedWidgetIds.map(id => {
-            const w = store.schema.widgets.find(wg => wg.id === id);
-            if (!w) return null;
-            return {
-              id,
-              x: Math.max(0, Math.min(layout.columns - w.position.w, w.position.x + deltaCol)),
-              y: Math.max(0, w.position.y + deltaRow),
-            };
-          }).filter((m): m is {id: string; x: number; y: number} => m !== null);
-          if (moves.length > 0) moveWidgets(moves);
-        } else {
-          const newX = Math.max(0, Math.min(layout.columns - widget.position.w, widget.position.x + deltaCol));
-          const newY = Math.max(0, widget.position.y + deltaRow);
-          moveWidget(widget.id, newX, newY);
+    return useTouchDrag({
+      holdThreshold: isTouch ? 300 : 0,
+      onHoldStart: () => {
+        setDragHoldState({ widgetId: widget.id, isHolding: true });
+        // Haptic feedback for hold start
+        if ('vibrate' in navigator) {
+          navigator.vibrate([20]);
         }
-      }
-      setDragState(null);
-    };
+      },
+      onHoldEnd: () => {
+        setDragHoldState(null);
+      },
+      onDragStart: (e: PointerEvent) => {
+        setDragHoldState(null);
+        setDragState({
+          widgetId: widget.id,
+          startX: e.clientX,
+          startY: e.clientY,
+          origX: widget.position.x,
+          origY: widget.position.y,
+          ghostX: widget.position.x,
+          ghostY: widget.position.y,
+        });
+      },
+      onDragMove: (me: PointerEvent) => {
+        if (!gridRef.current || !dragState) return;
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const cellW = gridRect.width / layout.columns;
+        const cellH = layout.rowHeight + layout.gap;
+        const dx = me.clientX - dragState.startX;
+        const dy = me.clientY - dragState.startY;
+        const newX = Math.max(0, Math.min(layout.columns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
+        const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
+        setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
+      },
+      onDragEnd: (ue: PointerEvent) => {
+        if (!gridRef.current || !dragState) {
+          setDragState(null);
+          return;
+        }
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const cellW = gridRect.width / layout.columns;
+        const cellH = layout.rowHeight + layout.gap;
+        const dx = ue.clientX - dragState.startX;
+        const dy = ue.clientY - dragState.startY;
+        const deltaCol = Math.round(dx / cellW);
+        const deltaRow = Math.round(dy / cellH);
 
-    // Track listeners for cleanup
-    activeListenersRef.current.pointermove = handleMove;
-    activeListenersRef.current.pointerup = handleUp;
-
-    document.addEventListener('pointermove', handleMove);
-    document.addEventListener('pointerup', handleUp);
+        if (deltaCol !== 0 || deltaRow !== 0) {
+          if (isMultiDrag) {
+            // Move all selected widgets by the same delta
+            const store = useDashboardStore.getState();
+            const moves = selectedWidgetIds.map(id => {
+              const w = store.schema.widgets.find(wg => wg.id === id);
+              if (!w) return null;
+              return {
+                id,
+                x: Math.max(0, Math.min(layout.columns - w.position.w, w.position.x + deltaCol)),
+                y: Math.max(0, w.position.y + deltaRow),
+              };
+            }).filter((m): m is {id: string; x: number; y: number} => m !== null);
+            if (moves.length > 0) moveWidgets(moves);
+          } else {
+            const newX = Math.max(0, Math.min(layout.columns - widget.position.w, widget.position.x + deltaCol));
+            const newY = Math.max(0, widget.position.y + deltaRow);
+            moveWidget(widget.id, newX, newY);
+          }
+        }
+        setDragState(null);
+      },
+      enableMouseDrag: true,
+    });
   };
 
   // --- Enhanced resize with multiple directions ---
@@ -843,13 +889,31 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 }${isSelected && !isDragging && !isResizing ? (isMultiSelected ? ' ring-2 ring-accent-blue rounded-xl' : ' ring-2 ring-accent-cyan rounded-xl') : ''
                 }${isMultiDragging === false && isSelected && selectedWidgetIds.length > 1 && dragState && !isDragging ? ' opacity-60 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''}`}
               >
-                {/* Drag handle */}
+                {/* Drag handle - larger and more accessible for touch */}
                 <div
-                  onPointerDown={(e) => handleDragStart(e, widget)}
-                  className="absolute top-1 left-1 z-10 p-1 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
-                  title="Drag to reposition"
+                  {...createDragHandler(widget)}
+                  {...createLongPressHandler((e: PointerEvent) => {
+                    handleWidgetContextMenu(
+                      { clientX: e.clientX, clientY: e.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
+                      widget
+                    );
+                  })}
+                  className={cn(
+                    "absolute top-1 left-1 z-10 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] cursor-grab active:cursor-grabbing transition-all",
+                    isTouch
+                      ? "p-2 opacity-80" // Always visible and larger on touch
+                      : "p-1 opacity-0 group-hover:opacity-100", // Hover behavior on desktop
+                    dragHoldState?.widgetId === widget.id && dragHoldState.isHolding
+                      ? "scale-110 bg-accent-blue/20 border-accent-blue/40"
+                      : ""
+                  )}
+                  style={{
+                    minWidth: isTouch ? getTouchTargetSize() + 'px' : 'auto',
+                    minHeight: isTouch ? getTouchTargetSize() + 'px' : 'auto',
+                  }}
+                  title={isTouch ? "Drag to reposition • Long press for menu" : "Drag to reposition"}
                 >
-                  <GripVertical size={12} className="text-[var(--text-muted)]" />
+                  <GripVertical size={isTouch ? 16 : 12} className="text-[var(--text-muted)]" />
                 </div>
                 {/* Glossary terms badge */}
                 {widget.glossaryTermIds && widget.glossaryTermIds.length > 0 && (
@@ -952,6 +1016,9 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             {selectedWidgetIds.length} widgets selected
           </div>
         )}
+
+        {/* Long press ring indicator */}
+        <LongPressRing />
 
       </div>
 

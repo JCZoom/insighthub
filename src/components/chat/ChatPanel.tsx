@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic } from 'lucide-react';
+import { handleVirtualKeyboard, isMobileDevice } from '@/lib/touch-utils';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
@@ -83,6 +84,9 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasLoadedHistoryRef = useRef(false);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isMobile] = useState(() => isMobileDevice());
 
   // Speech-to-text
   const onSpeechResult = useCallback((transcript: string) => {
@@ -95,6 +99,28 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError, audioStream } = useSpeechToText({
     onResult: onSpeechResult,
   });
+
+  // Virtual keyboard handling for mobile devices
+  useEffect(() => {
+    if (!isMobile || !inputContainerRef.current) return;
+
+    const cleanup = handleVirtualKeyboard(
+      inputContainerRef.current,
+      (height, isVisible) => {
+        setKeyboardHeight(isVisible ? height : 0);
+
+        // Ensure input stays visible when keyboard appears
+        if (isVisible && inputRef.current) {
+          // Small delay to let the keyboard animation settle
+          setTimeout(() => {
+            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 150);
+        }
+      }
+    );
+
+    return cleanup || undefined;
+  }, [isMobile]);
 
   // Cmd+Shift+M global shortcut for mic
   useEffect(() => {
@@ -541,7 +567,13 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-[var(--border-color)]">
+      <div
+        ref={inputContainerRef}
+        className="p-3 border-t border-[var(--border-color)]"
+        style={{
+          paddingBottom: isMobile && keyboardHeight > 0 ? '20px' : '12px',
+        }}
+      >
         <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2">
           <textarea
             ref={inputRef}
