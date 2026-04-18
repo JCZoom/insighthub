@@ -117,6 +117,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={handleFavoriteClick}
+            tabIndex={-1}
             className="p-1 rounded-md hover:bg-black/10 transition-colors"
             title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -132,6 +133,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
           {isOwned && onDelete && (
             <button
               onClick={handleDeleteClick}
+              tabIndex={-1}
               className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
               title="Delete dashboard"
             >
@@ -156,6 +158,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
           {/* Favorite button */}
           <button
             onClick={handleFavoriteClick}
+            tabIndex={-1}
             className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 transition-colors"
             title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -172,6 +175,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
           {isOwned && onDelete && (
             <button
               onClick={handleDeleteClick}
+              tabIndex={-1}
               className="absolute top-2 right-8 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
               title="Delete dashboard"
             >

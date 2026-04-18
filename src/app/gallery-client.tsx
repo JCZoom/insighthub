@@ -230,6 +230,7 @@ export function GalleryPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              tabIndex={-1}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
                 activeTab === tab.id
@@ -250,6 +251,7 @@ export function GalleryPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search dashboards..."
+              tabIndex={-1}
               className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-56 transition-colors"
             />
           </div>
@@ -257,6 +259,7 @@ export function GalleryPage() {
           <div className="relative">
             <button
               onClick={() => setShowSort(!showSort)}
+              tabIndex={-1}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <ArrowUpDown size={12} />
@@ -282,12 +285,14 @@ export function GalleryPage() {
           <div className="flex items-center gap-0.5 border border-[var(--border-color)] rounded-lg p-0.5">
             <button
               onClick={() => setViewMode('grid')}
+              tabIndex={-1}
               className={cn('p-1.5 rounded', viewMode === 'grid' ? 'bg-accent-blue/10 text-accent-blue' : 'text-[var(--text-muted)]')}
             >
               <LayoutGrid size={14} />
             </button>
             <button
               onClick={() => setViewMode('list')}
+              tabIndex={-1}
               className={cn('p-1.5 rounded', viewMode === 'list' ? 'bg-accent-blue/10 text-accent-blue' : 'text-[var(--text-muted)]')}
             >
               <List size={14} />
@@ -301,6 +306,7 @@ export function GalleryPage() {
         <section className="mb-8">
           <button
             onClick={() => setFavoritesCollapsed(prev => !prev)}
+            tabIndex={-1}
             className="flex items-center gap-2 mb-3 group cursor-pointer"
           >
             {favoritesCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
@@ -325,6 +331,7 @@ export function GalleryPage() {
       <section>
         <button
           onClick={() => setAllCollapsed(prev => !prev)}
+          tabIndex={-1}
           className="flex items-center gap-2 mb-3 group cursor-pointer"
         >
           {allCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}

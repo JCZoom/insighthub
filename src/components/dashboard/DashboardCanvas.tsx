@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { WidgetRenderer } from './WidgetRenderer';
 import { WidgetErrorBoundary } from './WidgetErrorBoundary';
@@ -63,7 +63,29 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
 
+  // Track active event listeners for cleanup on unmount
+  const activeListenersRef = useRef<{
+    pointermove?: (event: PointerEvent) => void;
+    pointerup?: (event: PointerEvent) => void;
+  }>({});
+
   const router = useRouter();
+
+  // Cleanup event listeners on unmount
+  useEffect(() => {
+    return () => {
+      // Remove any remaining event listeners
+      if (activeListenersRef.current.pointermove) {
+        document.removeEventListener('pointermove', activeListenersRef.current.pointermove);
+      }
+      if (activeListenersRef.current.pointerup) {
+        document.removeEventListener('pointerup', activeListenersRef.current.pointerup);
+      }
+      // Reset body styles
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -256,6 +278,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     const handleUp = (ue: PointerEvent) => {
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
+      // Clear from active listeners tracking
+      activeListenersRef.current.pointermove = undefined;
+      activeListenersRef.current.pointerup = undefined;
+
       if (!gridRef.current) { setDragState(null); return; }
       const gridRect = gridRef.current.getBoundingClientRect();
       const cellW = gridRect.width / layout.columns;
@@ -269,6 +295,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       }
       setDragState(null);
     };
+
+    // Track listeners for cleanup
+    activeListenersRef.current.pointermove = handleMove;
+    activeListenersRef.current.pointerup = handleUp;
 
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
@@ -372,6 +402,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     const handleUp = (ue: PointerEvent) => {
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
+      // Clear from active listeners tracking
+      activeListenersRef.current.pointermove = undefined;
+      activeListenersRef.current.pointerup = undefined;
+
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
 
@@ -396,6 +430,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
 
     document.body.style.cursor = cursors[direction];
     document.body.style.userSelect = 'none';
+
+    // Track listeners for cleanup
+    activeListenersRef.current.pointermove = handleMove;
+    activeListenersRef.current.pointerup = handleUp;
+
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
   };

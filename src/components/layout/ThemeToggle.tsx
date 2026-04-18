@@ -37,6 +37,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
+        tabIndex={-1}
         className="p-2 rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-card-hover)] transition-colors"
         aria-label="Toggle theme"
       >
@@ -48,6 +49,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
+      tabIndex={-1}
       className="p-2 rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-card-hover)] transition-colors"
       aria-label="Toggle theme"
     >

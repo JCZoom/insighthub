@@ -42,6 +42,17 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // ⌘F / Ctrl+F — focus in-page search if one exists (otherwise let browser handle it)
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+      const searchEl = document.querySelector('input[placeholder*="search" i], input[placeholder*="Search" i], input[type="search"]') as HTMLElement | null;
+      if (searchEl) {
+        e.preventDefault();
+        searchEl.focus();
+        return;
+      }
+      // No in-page search — let browser native find open
+    }
+
     // / — focus search/prompt input (skip if already in input)
     if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && !isInput) {
       e.preventDefault();

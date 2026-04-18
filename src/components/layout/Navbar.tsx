@@ -49,6 +49,7 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  tabIndex={-1}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                     pathname === item.href
@@ -68,6 +69,7 @@ export function Navbar() {
             {isSubPage && (
               <Link
                 href="/"
+                tabIndex={-1}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
                 title="Back to Home"
               >
@@ -77,6 +79,7 @@ export function Navbar() {
             )}
             <Link
               href="/dashboard/new"
+              tabIndex={-1}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-blue text-white text-sm font-medium hover:bg-accent-blue/90 transition-colors"
             >
               <Plus size={15} />
@@ -84,6 +87,7 @@ export function Navbar() {
             </Link>
             <button
               onClick={() => setShowShortcuts(true)}
+              tabIndex={-1}
               className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
               title="Keyboard shortcuts (?)"
             >
@@ -94,6 +98,7 @@ export function Navbar() {
             <div ref={profileRef} className="relative">
               <button
                 onClick={() => setProfileOpen(prev => !prev)}
+                tabIndex={-1}
                 className="w-8 h-8 rounded-full bg-accent-purple/20 text-accent-purple flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-accent-purple/30 transition-all cursor-pointer"
               >
                 JC

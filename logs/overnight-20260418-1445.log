@@ -58,3 +58,102 @@ Done!
  9 files changed, 1015 insertions(+), 761 deletions(-)
  create mode 100644 logs/overnight-20260418-1445.log
  create mode 100644 src/app/about/page.tsx
+[2026-04-18 14:46:49] ============================================================
+[2026-04-18 14:46:49] 🌙 Overnight Builder starting
+[2026-04-18 14:46:49]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 14:46:49]    Model: claude-sonnet-4-20250514
+[2026-04-18 14:46:49]    Max tasks: 10
+[2026-04-18 14:46:49]    Max consecutive failures: 3
+[2026-04-18 14:46:49]    Dry run: False
+[2026-04-18 14:46:49]    Budget cap: $25.00
+[2026-04-18 14:46:49]    AI triage: True
+[2026-04-18 14:46:49]    Operator notes: PRIORITY: Fix the 13 open [Review Fix] tasks in the Untitled section — these are...
+[2026-04-18 14:46:49] ============================================================
+[2026-04-18 14:46:49] ⚠️  Uncommitted changes detected. Committing before starting...
+[2026-04-18 14:46:49] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:46:49] 📋 Iteration 1/10 | Spent so far: $0.00 / $25.00
+[2026-04-18 14:46:49] ────────────────────────────────────────────────────────────
+[2026-04-18 14:46:58] 📌 Task: [Review Fix] useDashboardStore.getState() inside setTimeout loses React context
+[2026-04-18 14:46:58]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:46:58]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:48:36]   ⏱️  Claude Code finished in 98s (exit code: 0)
+[2026-04-18 14:48:36]   💰 Task cost: $0.2188 | Running total: $0.22 / $25.00
+[2026-04-18 14:48:36]   📊 Tokens: 65 in + 4,132 out | cache: 241,463 read + 21,890 create
+[2026-04-18 14:48:36]   🔨 Running build check...
+[2026-04-18 14:48:45]   ✅ Build passed
+[2026-04-18 14:48:45]   ✅ Task completed successfully
+[2026-04-18 14:48:47]   ✅ Asana task 1214122629497691 → completed
+[2026-04-18 14:48:47]   💤 Pausing 15s before next task...
+[2026-04-18 14:49:02] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:49:02] 📋 Iteration 2/10 | Spent so far: $0.22 / $25.00
+[2026-04-18 14:49:02] ────────────────────────────────────────────────────────────
+[2026-04-18 14:49:02] 📌 Task: [Review Fix] `useEffect` dependency causes infinite loop potential
+[2026-04-18 14:49:02]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:49:02]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:50:29]   ⏱️  Claude Code finished in 87s (exit code: 0)
+[2026-04-18 14:50:29]   💰 Task cost: $0.2256 | Running total: $0.44 / $25.00
+[2026-04-18 14:50:29]   📊 Tokens: 72 in + 4,066 out | cache: 261,745 read + 22,331 create
+[2026-04-18 14:50:29]   🔨 Running build check...
+[2026-04-18 14:50:42]   ✅ Build passed
+[2026-04-18 14:50:42]   ✅ Task completed successfully
+[2026-04-18 14:50:43]   ✅ Asana task 1214122629529165 → completed
+[2026-04-18 14:50:44]   💤 Pausing 15s before next task...
+[2026-04-18 14:50:59] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:50:59] 📋 Iteration 3/10 | Spent so far: $0.44 / $25.00
+[2026-04-18 14:50:59] ────────────────────────────────────────────────────────────
+[2026-04-18 14:50:59] 📌 Task: [Review Fix] Duplicated response parsing logic (3 copies)
+[2026-04-18 14:50:59]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:50:59]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:53:10]   ⏱️  Claude Code finished in 130s (exit code: 0)
+[2026-04-18 14:53:10]   💰 Task cost: $0.2792 | Running total: $0.72 / $25.00
+[2026-04-18 14:53:10]   📊 Tokens: 79 in + 6,569 out | cache: 300,796 read + 23,499 create
+[2026-04-18 14:53:10]   🔨 Running build check...
+[2026-04-18 14:53:22]   ✅ Build passed
+[2026-04-18 14:53:22]   ✅ Task completed successfully
+[2026-04-18 14:53:24]   ✅ Asana task 1214124658812877 → completed
+[2026-04-18 14:53:24]   💤 Pausing 15s before next task...
+[2026-04-18 14:53:39] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:53:39] 📋 Iteration 4/10 | Spent so far: $0.72 / $25.00
+[2026-04-18 14:53:39] ────────────────────────────────────────────────────────────
+[2026-04-18 14:53:40] 📌 Task: [Review Fix] Inconsistent indentation in handleChatRequest
+[2026-04-18 14:53:40]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:53:40]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:56:40]   ⏱️  Claude Code finished in 180s (exit code: 0)
+[2026-04-18 14:56:40]   💰 Task cost: $0.4196 | Running total: $1.14 / $25.00
+[2026-04-18 14:56:40]   📊 Tokens: 142 in + 9,228 out | cache: 579,263 read + 27,982 create
+[2026-04-18 14:56:40]   🔨 Running build check...
+[2026-04-18 14:56:51]   ✅ Build passed
+[2026-04-18 14:56:51]   ✅ Task completed successfully
+[2026-04-18 14:56:51]   ✅ Asana task 1214127949380975 → completed
+[2026-04-18 14:56:52]   💤 Pausing 15s before next task...
+[2026-04-18 14:57:07] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:57:07] 📋 Iteration 5/10 | Spent so far: $1.14 / $25.00
+[2026-04-18 14:57:07] ────────────────────────────────────────────────────────────
+[2026-04-18 14:57:07] 📌 Task: [Review Fix] Debug console.log left in production code
+[2026-04-18 14:57:07]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:57:07]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:58:25]   ⏱️  Claude Code finished in 78s (exit code: 0)
+[2026-04-18 14:58:25]   💰 Task cost: $0.2001 | Running total: $1.34 / $25.00
+[2026-04-18 14:58:25]   📊 Tokens: 65 in + 2,743 out | cache: 237,948 read + 22,740 create
+[2026-04-18 14:58:25]   🔨 Running build check...
+[2026-04-18 14:58:35]   ✅ Build passed
+[2026-04-18 14:58:35]   ✅ Task completed successfully
+[2026-04-18 14:58:36]   ✅ Asana task 1214125694511334 → completed
+[2026-04-18 14:58:37]   💤 Pausing 15s before next task...
+[2026-04-18 14:58:52] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:58:52] 📋 Iteration 6/10 | Spent so far: $1.34 / $25.00
+[2026-04-18 14:58:52] ────────────────────────────────────────────────────────────
+[2026-04-18 14:58:52] 📌 Task: [Review Fix] Artificial delays in SSE stream are fake progress, not real streaming
+[2026-04-18 14:58:52]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:58:52]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 15:01:11]   ⏱️  Claude Code finished in 139s (exit code: 0)
+[2026-04-18 15:01:11]   💰 Task cost: $0.3288 | Running total: $1.67 / $25.00
+[2026-04-18 15:01:11]   📊 Tokens: 100 in + 6,767 out | cache: 405,132 read + 27,559 create
+[2026-04-18 15:01:11]   🔨 Running build check...
+[2026-04-18 15:01:23]   ✅ Build passed

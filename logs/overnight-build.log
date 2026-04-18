@@ -393,3 +393,18 @@
 [2026-04-18 14:58:52] 📌 Task: [Review Fix] Artificial delays in SSE stream are fake progress, not real streaming
 [2026-04-18 14:58:52]    Section: Untitled section | Priority: Normal
 [2026-04-18 14:58:52]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 15:01:11]   ⏱️  Claude Code finished in 139s (exit code: 0)
+[2026-04-18 15:01:11]   💰 Task cost: $0.3288 | Running total: $1.67 / $25.00
+[2026-04-18 15:01:11]   📊 Tokens: 100 in + 6,767 out | cache: 405,132 read + 27,559 create
+[2026-04-18 15:01:11]   🔨 Running build check...
+[2026-04-18 15:01:23]   ✅ Build passed
+[2026-04-18 15:01:23]   ✅ Task completed successfully
+[2026-04-18 15:01:24]   ✅ Asana task 1214133173777130 → completed
+[2026-04-18 15:01:24]   💤 Pausing 15s before next task...
+[2026-04-18 15:01:39] 
+────────────────────────────────────────────────────────────
+[2026-04-18 15:01:39] 📋 Iteration 7/10 | Spent so far: $1.67 / $25.00
+[2026-04-18 15:01:39] ────────────────────────────────────────────────────────────
+[2026-04-18 15:01:40] 📌 Task: [Review Fix] Document event listeners leak on unmount during drag/resize
+[2026-04-18 15:01:40]    Section: Untitled section | Priority: Normal
+[2026-04-18 15:01:40]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
