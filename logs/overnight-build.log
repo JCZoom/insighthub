@@ -171,3 +171,19 @@
 [2026-04-18 12:25:37] 📌 Task: Context-aware system prompt builder
 [2026-04-18 12:25:37]    Section: 🤖 AI & Chat System | Priority: Normal
 [2026-04-18 12:25:37]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 12:30:21]   ⏱️  Claude Code finished in 284s (exit code: 0)
+[2026-04-18 12:30:21]   💰 Task cost: $0.7668 | Running total: $1.52 / $25.00
+[2026-04-18 12:30:21]   📊 Tokens: 263 in + 13,997 out | cache: 1,349,201 read + 39,715 create
+[2026-04-18 12:30:21]   🔨 Running build check...
+[2026-04-18 12:30:30]   ✅ Build passed
+[2026-04-18 12:30:30]   ✅ Task completed successfully
+[2026-04-18 12:30:31]   ⚠️  Task 1214127917352756 has 4 incomplete subtask(s) — NOT marking complete
+[2026-04-18 12:30:31]       Remaining: Include widget library listings for use_widget patches, Filter available data sources by user role/permissions, Inject current dashboard schema, Inject full glossary into system prompt
+[2026-04-18 12:30:32]   💤 Pausing 15s before next task...
+[2026-04-18 12:30:47] 
+────────────────────────────────────────────────────────────
+[2026-04-18 12:30:47] 📋 Iteration 3/10 | Spent so far: $1.52 / $25.00
+[2026-04-18 12:30:47] ────────────────────────────────────────────────────────────
+[2026-04-18 12:30:48] 📌 Task: AI change summaries for version history
+[2026-04-18 12:30:48]    Section: 🤖 AI & Chat System | Priority: Normal
+[2026-04-18 12:30:48]   🤖 Running Claude Code (claude-sonnet-4-20250514)...

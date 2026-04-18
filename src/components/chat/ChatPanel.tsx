@@ -6,6 +6,7 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
+import { generateChangeSummary } from '@/lib/ai/change-summarizer';
 
 interface ChatPanelProps {
   initialPrompt?: string;
@@ -56,7 +57,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleMic]);
 
-  const { schema, applyPatch, canUndo, undo, setAiWorking } = useDashboardStore();
+  const { schema, applyPatch, canUndo, undo, setAiWorking, dashboardId } = useDashboardStore();
 
   const hasSentInitialPrompt = useRef(false);
 
@@ -107,7 +108,28 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       const quickActions: QuickAction[] = result.quickActions || [];
 
       if (patches.length > 0) {
-        applyPatch(patches, result.explanation || 'AI update');
+        // Generate a concise change summary for the history
+        const changeSummary = generateChangeSummary(patches, result.explanation);
+        applyPatch(patches, changeSummary);
+
+        // Auto-save version for significant AI changes (if dashboard exists)
+        if (dashboardId && shouldAutoSavePatches(patches)) {
+          try {
+            const currentSchema = useDashboardStore.getState().schema;
+            await fetch(`/api/dashboards/${dashboardId}/versions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                schema: currentSchema,
+                changeNote: `AI: ${changeSummary}`
+              }),
+            });
+            // Note: We don't show a toast for auto-save to avoid being intrusive
+          } catch (error) {
+            // Silently fail auto-save - user can still manually save
+            console.warn('Auto-save failed:', error);
+          }
+        }
       }
 
       const assistantMessage: ChatMessageUI = {
@@ -303,5 +325,23 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Determines whether the given patches are significant enough to warrant auto-saving a version.
+ * This helps avoid creating too many versions for minor changes.
+ */
+function shouldAutoSavePatches(patches: SchemaPatch[]): boolean {
+  if (!patches || patches.length === 0) {
+    return false;
+  }
+
+  // Auto-save for any structural changes (add/remove widgets or major schema changes)
+  return patches.some(patch =>
+    patch.type === 'add_widget' ||
+    patch.type === 'remove_widget' ||
+    patch.type === 'replace_all' ||
+    patch.type === 'use_widget'
   );
 }

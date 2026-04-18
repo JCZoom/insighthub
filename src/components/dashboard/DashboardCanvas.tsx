@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -63,7 +64,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const handleSave = async () => {
     const store = useDashboardStore.getState();
     let { dashboardId } = store;
-    const { schema: currentSchema, title: currentTitle, markSaved, initialize } = store;
+    const { schema: currentSchema, title: currentTitle, markSaved, initialize, history, historyIndex } = store;
     setSaveStatus('saving');
     try {
       // If no dashboardId, create the dashboard first
@@ -91,11 +92,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         setSaveStatus('saved');
         toast({ type: 'success', title: 'Dashboard saved!', description: 'Saved to your gallery. Find it anytime at /dashboards.' });
       } else {
-        // Existing dashboard — save a new version
+        // Existing dashboard — save a new version with smart change summary
+        const changeNote = generateChangeSummaryFromHistory(history, historyIndex);
         const res = await fetch(`/api/dashboards/${dashboardId}/versions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ schema: currentSchema, changeNote: 'Manual save' }),
+          body: JSON.stringify({ schema: currentSchema, changeNote }),
         });
         if (res.ok) {
           markSaved();
