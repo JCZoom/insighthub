@@ -14,6 +14,7 @@ const SHORTCUT_GROUPS = [
       { keys: ['⌘', 'S'], description: 'Save dashboard' },
       { keys: ['⌘', 'Z'], description: 'Undo' },
       { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
+      { keys: ['⌘', '⇧', 'M'], description: 'Toggle voice input' },
       { keys: ['?'], description: 'Toggle this help' },
       { keys: ['/'], description: 'Focus chat input' },
     ],

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
+import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, MicOff, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { useSpeechToText } from '@/hooks/useSpeechToText';
 import Link from 'next/link';
 
 const QUICK_ACTIONS = [
@@ -51,6 +52,30 @@ export default function Home() {
   const [profileOpen, setProfileOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  // Speech-to-text
+  const onSpeechResult = useCallback((transcript: string) => {
+    setInput(prev => {
+      const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+      return prev + separator + transcript;
+    });
+  }, []);
+
+  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript } = useSpeechToText({
+    onResult: onSpeechResult,
+  });
+
+  // Cmd+Shift+M global shortcut for mic
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleMic();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleMic]);
 
   useEffect(() => {
     setGreeting(getGreeting());
@@ -172,15 +197,19 @@ export default function Home() {
                 rows={1}
                 className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[24px] max-h-32"
               />
-              <button
-                onClick={() => {
-                  // TODO: Wire up speech-to-text
-                }}
-                className="p-2 rounded-xl text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10 transition-colors"
-                title="Voice input (coming soon)"
-              >
-                <Mic size={18} />
-              </button>
+              {micSupported && (
+                <button
+                  onClick={toggleMic}
+                  className={`p-2 rounded-xl transition-all ${
+                    isListening
+                      ? 'bg-accent-red/20 text-accent-red animate-pulse'
+                      : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
+                  }`}
+                  title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+                >
+                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
+              )}
               <button
                 onClick={() => handleSubmit(input)}
                 disabled={!input.trim()}
@@ -190,6 +219,11 @@ export default function Home() {
               </button>
             </div>
           </div>
+          {isListening && interimTranscript && (
+            <p className="text-xs text-accent-purple mb-4 italic truncate">
+              {interimTranscript}…
+            </p>
+          )}
 
           {/* Quick start templates */}
           <div className="fade-up stagger-4 flex items-center gap-3 mb-4">

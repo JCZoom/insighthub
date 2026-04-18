@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic, MicOff } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
+import { useSpeechToText } from '@/hooks/useSpeechToText';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,30 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Speech-to-text
+  const onSpeechResult = useCallback((transcript: string) => {
+    setInput(prev => {
+      const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+      return prev + separator + transcript;
+    });
+  }, []);
+
+  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript } = useSpeechToText({
+    onResult: onSpeechResult,
+  });
+
+  // Cmd+Shift+M global shortcut for mic
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleMic();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleMic]);
 
   const { schema, applyPatch, canUndo, undo, setAiWorking } = useDashboardStore();
 
@@ -229,6 +254,21 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none max-h-32"
             style={{ minHeight: '24px' }}
           />
+          {/* Microphone button */}
+          {micSupported && (
+            <button
+              onClick={toggleMic}
+              className={cn(
+                'p-1.5 rounded-lg transition-all',
+                isListening
+                  ? 'bg-accent-red/20 text-accent-red animate-pulse'
+                  : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
+              )}
+              title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+            >
+              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+            </button>
+          )}
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || isLoading}
@@ -242,8 +282,13 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             <Send size={14} />
           </button>
         </div>
+        {isListening && interimTranscript && (
+          <p className="text-[10px] text-accent-purple mt-1 px-1 truncate italic">
+            {interimTranscript}…
+          </p>
+        )}
         <p className="text-[10px] text-[var(--text-muted)] mt-1.5 text-center">
-          Press Enter to send, Shift+Enter for new line
+          Enter to send · Shift+Enter new line{micSupported ? ' · ⇧⌘M voice' : ''}
         </p>
       </div>
     </div>

@@ -8,6 +8,7 @@ interface KeyboardShortcutOptions {
   onSearch?: () => void;
   onFocusChat?: () => void;
   onToggleHelp?: () => void;
+  onToggleMic?: () => void;
 }
 
 export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
@@ -118,6 +119,13 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
     if (e.key === '?' && !isInput) {
       e.preventDefault();
       optionsRef.current.onToggleHelp?.();
+      return;
+    }
+
+    // Voice input: Cmd+Shift+M
+    if (meta && e.shiftKey && e.key.toLowerCase() === 'm') {
+      e.preventDefault();
+      optionsRef.current.onToggleMic?.();
       return;
     }
   }, []);
