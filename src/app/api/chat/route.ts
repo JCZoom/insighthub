@@ -214,62 +214,10 @@ async function* processRealStream(
   }
 }
 
-// Handle GET requests for EventSource streaming
-export async function GET(request: NextRequest) {
-  return withRateLimit(request, chatRateLimiter, 'chat', async () => {
-    const { searchParams } = new URL(request.url);
-
-    try {
-      // Parse and validate query parameters
-      const message = searchParams.get('message');
-      const currentSchemaStr = searchParams.get('currentSchema');
-      const conversationHistoryStr = searchParams.get('conversationHistory');
-      const sessionId = searchParams.get('sessionId') || undefined;
-      const dashboardId = searchParams.get('dashboardId') || undefined;
-      const stream = searchParams.get('stream') === 'true';
-
-      // Parse JSON parameters
-      let currentSchema = null;
-      let conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [];
-
-      try {
-        if (currentSchemaStr) currentSchema = JSON.parse(currentSchemaStr);
-        if (conversationHistoryStr) conversationHistory = JSON.parse(conversationHistoryStr);
-      } catch (error) {
-        return NextResponse.json(
-          { error: 'Invalid JSON in query parameters' },
-          { status: 400 }
-        );
-      }
-
-      // Validate the parsed data
-      const validatedData = ChatRequestSchema.parse({
-        message,
-        currentSchema,
-        conversationHistory,
-        sessionId,
-        dashboardId,
-        stream
-      });
-
-      return handleChatRequest(validatedData);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const firstError = error.issues[0];
-        return NextResponse.json(
-          { error: `Validation error: ${firstError.message}` },
-          { status: 400 }
-        );
-      }
-
-      console.error('GET chat API error:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
-    }
-  });
-}
+// GET method removed for security reasons - use POST instead
+// Previously this endpoint accepted sensitive data (dashboard schemas, conversation history)
+// as URL query parameters, which exposed data in server logs, browser history, and proxy logs.
+// All clients now use the secure POST endpoint with request body.
 
 export async function POST(request: NextRequest) {
   return withRateLimit(request, chatRateLimiter, 'chat', async () => {

@@ -329,7 +329,6 @@ export function GalleryPage() {
         <section className="mb-8">
           <button
             onClick={() => setFavoritesCollapsed(prev => !prev)}
-            tabIndex={-1}
             className="flex items-center gap-2 mb-3 group cursor-pointer"
           >
             {favoritesCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
@@ -354,7 +353,6 @@ export function GalleryPage() {
       <section>
         <button
           onClick={() => setAllCollapsed(prev => !prev)}
-          tabIndex={-1}
           className="flex items-center gap-2 mb-3 group cursor-pointer"
         >
           {allCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
