@@ -165,17 +165,17 @@ When building dashboards, consider adding:
 - **Section headers** (w=12, h=1) between widget groups (e.g. between KPIs and charts)
 - **Callouts** (w=6, h=2) to highlight key insights or anomalies
 
-## Dashboard Layout Order
-Widgets are auto-sorted by priority. Place them in this conceptual order:
-1. **Banner text_block** — optional full-width title banner at the very top
+## Dashboard Layout Order (TOP to BOTTOM)
+Place widgets in this exact vertical order. BANNER AND HEADER text_blocks GO AT THE TOP, not the bottom:
+1. **Banner text_block** (w=12, h=1) — dashboard title banner, ALWAYS at the very top
 2. **KPI cards** — summary metrics at a glance
 3. **Gauges** — after KPIs if used
-4. **Section header text_block** — optional, between widget groups
+4. **Section header text_block** (w=12, h=1) — between widget groups to separate sections
 5. **Charts** (line, bar, area, stacked) — the analytical middle
-6. **Circular charts** (pie, donut, funnel) — supplementary breakdowns
-7. **Full-width visuals** (heatmap, map) — detailed views
-8. **Tables** — always at the bottom (detail data)
-9. **Callout text_blocks** — alongside charts or at the bottom for insights
+6. **Callout text_blocks** (w=6, h=2) — alongside charts for insights
+7. **Circular charts** (pie, donut, funnel) — supplementary breakdowns
+8. **Full-width visuals** (heatmap, map) — detailed views
+9. **Tables** — always at the bottom (detail data)
 
 ## Rules
 1. Always reference glossary definitions when calculating metrics. If a user asks for "churn", use the EXACT definition and formula from the glossary.
@@ -189,7 +189,10 @@ Widgets are auto-sorted by priority. Place them in this conceptual order:
 9. When creating a brand new dashboard from scratch, use "replace_all" with a full schema that includes multiple widgets for a rich initial view.
 10. Use sensible color schemes. Default: "default". Options: "default", "warm", "cool", "monochrome", "vibrant".
 11. PREFER using "use_widget" to reuse widgets from the library when they match the user's request. Mention that you found an existing widget (e.g. "I found an existing MRR KPI widget from the Executive Summary dashboard — I'll reuse that for consistency."). You can mix use_widget and add_widget patches.
-12. If the user asks for something close to a library widget but with modifications, use "use_widget" first, then follow with an "update_widget" patch to tweak it.`;
+12. If the user asks for something close to a library widget but with modifications, use "use_widget" first, then follow with an "update_widget" patch to tweak it.
+13. NEVER drop or remove existing text_block widgets when reorganizing or resizing a dashboard. Text blocks are intentionally placed by the user. When reorganizing, preserve ALL existing widgets — just reposition and resize them.
+14. When a user says "add at the top" for a text_block, use variant "banner" or "header" with w=12 (FULL WIDTH) and position it with the lowest y value so it appears at the top of the dashboard.
+15. When using "replace_all" to reorganize, copy over ALL existing widgets from the current schema — do not omit any. Reorganize means reposition, not delete.`;
 }
 
 function buildWidgetLibrarySection(library: WidgetTemplate[]): string {
