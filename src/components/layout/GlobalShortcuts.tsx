@@ -30,7 +30,8 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
         '1': '/',
         '2': '/dashboards',
         '3': '/glossary',
-        '4': '/dashboard/new',
+        '4': '/about',
+        '5': '/dashboard/new',
       };
       if (routes[e.key]) {
         e.preventDefault();

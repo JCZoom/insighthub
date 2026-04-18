@@ -299,3 +299,15 @@
 [2026-04-18 13:14:36] 📌 Task: Widget interactions & drill-down
 [2026-04-18 13:14:36]    Section: 📊 Widget System | Priority: Normal
 [2026-04-18 13:14:36]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:46:49] ============================================================
+[2026-04-18 14:46:49] 🌙 Overnight Builder starting
+[2026-04-18 14:46:49]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 14:46:49]    Model: claude-sonnet-4-20250514
+[2026-04-18 14:46:49]    Max tasks: 10
+[2026-04-18 14:46:49]    Max consecutive failures: 3
+[2026-04-18 14:46:49]    Dry run: False
+[2026-04-18 14:46:49]    Budget cap: $25.00
+[2026-04-18 14:46:49]    AI triage: True
+[2026-04-18 14:46:49]    Operator notes: PRIORITY: Fix the 13 open [Review Fix] tasks in the Untitled section — these are...
+[2026-04-18 14:46:49] ============================================================
+[2026-04-18 14:46:49] ⚠️  Uncommitted changes detected. Committing before starting...

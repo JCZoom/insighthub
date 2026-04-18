@@ -23,7 +23,8 @@ const NAV_SHORTCUTS: ShortcutGroup = {
     { keys: ['Mod', '1'], description: 'Go to Home' },
     { keys: ['Mod', '2'], description: 'Go to My Dashboards' },
     { keys: ['Mod', '3'], description: 'Go to Glossary' },
-    { keys: ['Mod', '4'], description: 'New Dashboard' },
+    { keys: ['Mod', '4'], description: 'Go to About' },
+    { keys: ['Mod', '5'], description: 'New Dashboard' },
     { keys: ['?'], description: 'Toggle this reference sheet' },
   ],
 };

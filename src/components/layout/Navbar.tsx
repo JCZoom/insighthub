@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info } from 'lucide-react';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard },
   { href: '/glossary', label: 'Glossary', icon: BookOpen },
+  { href: '/about', label: 'About', icon: Info },
 ];
 
 export function Navbar() {

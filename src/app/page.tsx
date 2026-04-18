@@ -54,6 +54,14 @@ export default function Home() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Speech-to-text
@@ -132,6 +140,12 @@ export default function Home() {
           >
             Glossary
           </Link>
+          <Link
+            href="/about"
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            About
+          </Link>
           <button
             onClick={() => setShowShortcuts(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
@@ -201,7 +215,7 @@ export default function Home() {
 
           {/* Input */}
           <div className="fade-up stagger-3 relative w-full mb-8">
-            <div className="hero-glow flex items-center gap-2 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] px-4 py-3 shadow-lg shadow-black/5 focus-within:border-accent-blue/40 transition-colors">
+            <div className="hero-glow flex items-end gap-2 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] px-4 py-3 shadow-lg shadow-black/5 focus-within:border-accent-blue/40 transition-colors">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -209,7 +223,7 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. Show me monthly churn rate by region for the past year..."
                 rows={1}
-                className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[24px] max-h-32"
+                className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[24px] max-h-64 overflow-y-auto"
               />
               {micSupported && (
                 <button
