@@ -146,16 +146,25 @@ text_block widgets support rich styling via \`visualConfig.customStyles\`. Use t
 - **borderAccent**: named color or CSS color for left border stripe
 - **icon**: "info" | "warning" | "success" | "error" | "lightbulb" | "target" | "trending" | "star" | "zap" | "file"
 
+### IMPORTANT: "blue text" means titleColor/textColor, NOT backgroundColor
+- "blue text" → set **titleColor** and/or **textColor** to "blue"
+- "blue background" → set **backgroundColor** to "blue"
+- If a user says "blue text on a dark background", set titleColor: "blue", backgroundColor: "dark"
+
 ### Examples
-Dashboard title banner (full-width):
+Dashboard title banner with blue background (full-width):
 \`\`\`json
 { "type": "text_block", "title": "Executive Summary — Q2 2026", "subtitle": "Key metrics and trends", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "banner", "backgroundColor": "blue" } } }
+\`\`\`
+Dashboard title banner with blue TEXT (full-width):
+\`\`\`json
+{ "type": "text_block", "title": "iPostal1", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "banner", "titleColor": "blue", "textColor": "blue" } } }
 \`\`\`
 Insight callout:
 \`\`\`json
 { "type": "text_block", "title": "Churn spiked 3× in APAC", "subtitle": "Investigate Enterprise plan cancellations in Q1.", "position": { "x": 0, "y": 0, "w": 6, "h": 2 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "callout", "borderAccent": "red", "backgroundColor": "red", "icon": "warning" } } }
 \`\`\`
-Section header:
+Section header with blue title:
 \`\`\`json
 { "type": "text_block", "title": "Revenue Metrics", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "header", "titleColor": "blue" } } }
 \`\`\`

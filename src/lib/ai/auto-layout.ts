@@ -47,8 +47,23 @@ const TYPE_PROFILES: Record<WidgetType, LayoutProfile> = {
   divider:      { w: 12, h: 1, priority: 6, perRow: 1 },
 };
 
-function profileFor(type: WidgetType): LayoutProfile {
-  return TYPE_PROFILES[type] ?? { w: 6, h: 4, priority: 3, perRow: 2 };
+function profileFor(type: WidgetType, config?: WidgetConfig): LayoutProfile {
+  const base = TYPE_PROFILES[type] ?? { w: 6, h: 4, priority: 3, perRow: 2 };
+
+  // Text blocks have variant-aware priority so banners/headers appear at the top
+  if (type === 'text_block' && config?.visualConfig?.customStyles) {
+    const variant = config.visualConfig.customStyles.variant;
+    if (variant === 'banner' || variant === 'header') {
+      // Use the AI-specified width (usually w=12) instead of the default w=6
+      const w = config.position?.w >= 12 ? 12 : config.position?.w || 12;
+      return { w, h: config.position?.h || 1, priority: -1, perRow: w >= 12 ? 1 : 2 };
+    }
+    if (variant === 'callout') {
+      return { ...base, priority: 2.5 }; // Between gauges and charts
+    }
+  }
+
+  return base;
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,18 +89,18 @@ export function autoLayoutWidgets(widgets: WidgetConfig[], columns = 12): Widget
 
   // Sort by priority tier, preserving original order within each tier
   const sorted = [...widgets].sort((a, b) => {
-    const pa = profileFor(a.type).priority;
-    const pb = profileFor(b.type).priority;
+    const pa = profileFor(a.type, a).priority;
+    const pb = profileFor(b.type, b).priority;
     return pa - pb;
   });
 
   // Group consecutive widgets that share the same layout profile
   interface TierGroup { profile: LayoutProfile; items: WidgetConfig[] }
   const groups: TierGroup[] = [];
-  let prevPriority = -1;
+  let prevPriority = -999;
 
   for (const w of sorted) {
-    const p = profileFor(w.type);
+    const p = profileFor(w.type, w);
     if (p.priority !== prevPriority) {
       groups.push({ profile: { ...p }, items: [] });
       prevPriority = p.priority;
@@ -103,9 +118,24 @@ export function autoLayoutWidgets(widgets: WidgetConfig[], columns = 12): Widget
 
     // Determine target width & perRow for this group
     const isKpi = items[0].type === 'kpi_card';
+    const isTextBlock = items[0].type === 'text_block';
     const targetW = isKpi ? adaptiveKpiW : group.profile.w;
     const perRow = isKpi ? adaptiveKpiPerRow : group.profile.perRow;
     const targetH = group.profile.h;
+
+    // Text blocks with banner/header variant: respect per-widget sizing
+    if (isTextBlock && group.profile.priority < 0) {
+      for (let i = 0; i < items.length; i++) {
+        const ww = items[i].position?.w >= 12 ? columns : (items[i].position?.w || columns);
+        const hh = items[i].position?.h || 1;
+        result.push({
+          ...items[i],
+          position: { x: 0, y: currentRow, w: ww, h: hh },
+        });
+        currentRow += hh;
+      }
+      continue;
+    }
 
     // If a single chart exists alone in a tier, let it span full width
     const effectiveW = items.length === 1 && group.profile.priority >= 2 && group.profile.priority <= 3
