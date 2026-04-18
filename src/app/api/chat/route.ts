@@ -79,26 +79,84 @@ export async function POST(request: NextRequest) {
       const textBlock = response.content.find(b => b.type === 'text');
       const rawText = textBlock?.type === 'text' ? textBlock.text : '';
 
-      // Parse the JSON response from Claude
-      let parsed: { explanation: string; patches: unknown[]; quickActions: unknown[] };
-      try {
-        // Try to extract JSON from the response (Claude sometimes wraps in markdown code blocks)
-        const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
-        const jsonStr = jsonMatch[1]?.trim() || rawText.trim();
-        parsed = JSON.parse(jsonStr);
-      } catch {
-        // If JSON parsing fails, treat the whole response as an explanation with no patches
-        parsed = {
-          explanation: rawText || 'I understood your request but had trouble generating the schema. Could you try rephrasing?',
-          patches: [],
-          quickActions: [],
-        };
+      // Detect SQL mode - check if user message contains SQL keywords or asks for SQL help
+      const sqlKeywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'GROUP BY', 'ORDER BY', 'INSERT', 'UPDATE', 'DELETE', 'CREATE'];
+      const sqlHelpPhrases = ['explain query', 'optimize sql', 'snowflake', 'verify dashboard', 'formula help', 'natural language to sql'];
+
+      const isSqlMode = sqlKeywords.some(keyword =>
+        message.toUpperCase().includes(keyword)
+      ) || sqlHelpPhrases.some(phrase =>
+        message.toLowerCase().includes(phrase.toLowerCase())
+      );
+
+      // Parse the response - try JSON first, then handle SQL mode responses
+      let parsed: { explanation: string; patches?: unknown[]; quickActions?: unknown[]; sql?: string; sqlType?: string };
+
+      if (isSqlMode) {
+        // For SQL mode, handle different response formats
+        try {
+          const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
+          const jsonStr = jsonMatch[1]?.trim();
+
+          if (jsonStr) {
+            parsed = JSON.parse(jsonStr);
+          } else {
+            // Extract SQL from code blocks if present
+            const sqlMatch = rawText.match(/```sql\s*([\s\S]*?)```/);
+            const sql = sqlMatch ? sqlMatch[1].trim() : null;
+
+            parsed = {
+              explanation: rawText.replace(/```sql[\s\S]*?```/g, '').trim() || 'Here\'s your SQL query:',
+              patches: [],
+              quickActions: sql ? [
+                { label: 'Run in Snowflake', prompt: 'Copy this query to your Snowflake worksheet' },
+                { label: 'Add to Dashboard', prompt: 'Create a widget from this query' },
+                { label: 'Explain Query', prompt: 'Explain what this query does step by step' }
+              ] : [],
+              sql: sql || undefined,
+              sqlType: sql ? 'generated' : undefined
+            };
+          }
+        } catch {
+          // Fallback for SQL mode
+          const sqlMatch = rawText.match(/```sql\s*([\s\S]*?)```/);
+          const sql = sqlMatch ? sqlMatch[1].trim() : null;
+
+          parsed = {
+            explanation: rawText.replace(/```sql[\s\S]*?```/g, '').trim() || 'I can help you with SQL queries and optimization.',
+            patches: [],
+            quickActions: sql ? [
+              { label: 'Run in Snowflake', prompt: 'Copy this query to your Snowflake worksheet' },
+              { label: 'Add to Dashboard', prompt: 'Create a widget from this query' }
+            ] : [],
+            sql: sql || undefined,
+            sqlType: sql ? 'explained' : undefined
+          };
+        }
+      } else {
+        // Regular dashboard mode
+        try {
+          // Try to extract JSON from the response (Claude sometimes wraps in markdown code blocks)
+          const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
+          const jsonStr = jsonMatch[1]?.trim() || rawText.trim();
+          parsed = JSON.parse(jsonStr);
+        } catch {
+          // If JSON parsing fails, treat the whole response as an explanation with no patches
+          parsed = {
+            explanation: rawText || 'I understood your request but had trouble generating the schema. Could you try rephrasing?',
+            patches: [],
+            quickActions: [],
+          };
+        }
       }
 
       return NextResponse.json({
         explanation: parsed.explanation,
         patches: parsed.patches || [],
         quickActions: parsed.quickActions || [],
+        sql: parsed.sql || undefined,
+        sqlType: parsed.sqlType || undefined,
+        isSqlMode
       });
     } catch (error) {
       console.error('Chat API error:', error);

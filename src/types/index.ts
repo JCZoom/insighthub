@@ -107,6 +107,9 @@ export interface ChatMessageUI {
   content: string;
   schemaPatches?: SchemaPatch[];
   quickActions?: QuickAction[];
+  sql?: string;
+  sqlType?: 'generated' | 'explained' | 'optimized' | 'verified';
+  isSqlMode?: boolean;
   createdAt: Date;
 }
 
