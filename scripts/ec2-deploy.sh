@@ -71,6 +71,16 @@ if [ -f "$PROJECT_DIR/.env.local" ]; then
     fi
     scp -q "$TMPENV" "$EC2_HOST:$APP_DIR/.env.local"
     rm -f "$TMPENV"
+    # Safety net: ensure NEXTAUTH_SECRET is ≥ 32 chars for production
+    # (assertEnv() throws in production if it's shorter)
+    SECRET_LEN=$(ssh "$EC2_HOST" "grep '^NEXTAUTH_SECRET=' $APP_DIR/.env.local | cut -d= -f2 | tr -d '\"' | tr -d \"'\" | wc -c | tr -d ' '")
+    SECRET_LEN=$((SECRET_LEN - 1))  # subtract newline
+    if [ "$SECRET_LEN" -lt 32 ]; then
+        echo "  ⚠ NEXTAUTH_SECRET too short ($SECRET_LEN chars) — generating a secure 64-char secret"
+        GEN_SECRET=$(openssl rand -base64 48)
+        ssh "$EC2_HOST" "sed -i 's|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=\"$GEN_SECRET\"|' $APP_DIR/.env.local"
+        echo "  ✓ Production NEXTAUTH_SECRET generated"
+    fi
     echo "  ✓ Environment variables synced"
 else
     echo "  ⚠ No .env.local found — you'll need to create one on EC2"

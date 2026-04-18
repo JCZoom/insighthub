@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
+import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid, Keyboard, Loader2 } from 'lucide-react';
+import { GlobalShortcutOverlay } from '@/components/layout/GlobalShortcutOverlay';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
@@ -51,6 +52,7 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [greeting, setGreeting] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +132,13 @@ export default function Home() {
           >
             Glossary
           </Link>
+          <button
+            onClick={() => setShowShortcuts(true)}
+            className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+            title="Keyboard shortcuts (?)"
+          >
+            <Keyboard size={14} className="text-[var(--text-muted)]" />
+          </button>
           <ThemeToggle />
           {/* Profile bubble with dropdown */}
           <div ref={profileRef} className="relative">
@@ -239,9 +248,12 @@ export default function Home() {
             </div>
           )}
           {!isListening && interimTranscript && (
-            <p className="text-xs text-accent-purple mb-4 italic truncate animate-pulse">
-              {interimTranscript}
-            </p>
+            <div className="flex items-center justify-center gap-1.5 mb-4">
+              <Loader2 size={12} className="animate-spin text-accent-blue" />
+              <p className="text-xs text-[var(--text-secondary)] font-medium">
+                {interimTranscript}
+              </p>
+            </div>
           )}
           {micError && !isListening && (
             <p className="text-xs text-accent-red mb-4">
@@ -281,6 +293,7 @@ export default function Home() {
           </div>
         </div>
       </main>
+      {showShortcuts && <GlobalShortcutOverlay onClose={() => setShowShortcuts(false)} />}
     </div>
   );
 }

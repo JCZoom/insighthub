@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard } from 'lucide-react';
+import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ export function Navbar() {
   const pathname = usePathname();
   const isSubPage = pathname !== '/';
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Close profile dropdown on outside click
@@ -30,6 +32,7 @@ export function Navbar() {
   }, [profileOpen]);
 
   return (
+    <>
     <nav className="sticky top-0 z-50 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
       <div className="px-4 sm:px-6">
         <div className="flex h-14 items-center justify-between">
@@ -78,6 +81,13 @@ export function Navbar() {
               <Plus size={15} />
               <span className="hidden sm:inline">New Dashboard</span>
             </Link>
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+              title="Keyboard shortcuts (?)"
+            >
+              <Keyboard size={14} className="text-[var(--text-muted)]" />
+            </button>
             <ThemeToggle />
             {/* Profile bubble with dropdown */}
             <div ref={profileRef} className="relative">
@@ -125,5 +135,7 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+    {showShortcuts && <GlobalShortcutOverlay onClose={() => setShowShortcuts(false)} />}
+    </>
   );
 }

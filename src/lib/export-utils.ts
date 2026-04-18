@@ -28,33 +28,54 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
 
 export async function exportToPNG(elementId: string, filename: string): Promise<void> {
   try {
-    const html2canvas = (await import('html2canvas')).default;
     const element = document.getElementById(elementId);
     if (!element) {
-      console.error('Element not found for PNG export');
+      console.error(`PNG export: element #${elementId} not found`);
       return;
     }
 
-    const computedBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#0d1117';
+    // Resolve CSS custom property to an actual color value html2canvas can use
+    const root = document.documentElement;
+    const computedBg = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
+    // Fallback to a sensible dark background if variable is empty or unresolvable
+    const bgColor = computedBg && computedBg !== '' ? computedBg : '#0a0e14';
+
+    const html2canvasModule = await import('html2canvas');
+    const html2canvas = html2canvasModule.default;
 
     const canvas = await html2canvas(element, {
-      backgroundColor: computedBg,
+      backgroundColor: bgColor,
       scale: 2,
       useCORS: true,
-      allowTaint: false,
+      allowTaint: true,
       logging: false,
+      // Resolve CSS variables in the cloned DOM so html2canvas can read them
+      onclone: (clonedDoc: Document) => {
+        const clonedRoot = clonedDoc.documentElement;
+        const rootStyles = getComputedStyle(root);
+        // Copy all CSS custom properties to the cloned document
+        const varsToCopy = ['--bg-primary', '--bg-card', '--bg-card-hover', '--border-color', '--text-primary', '--text-secondary', '--text-muted'];
+        varsToCopy.forEach(v => {
+          const val = rootStyles.getPropertyValue(v).trim();
+          if (val) clonedRoot.style.setProperty(v, val);
+        });
+      },
     });
 
-    const url = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = `${filename}.png`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const dataUrl = canvas.toDataURL('image/png');
+    triggerDownload(dataURLtoBlob(dataUrl), `${filename}.png`);
   } catch (error) {
     console.error('PNG export failed:', error);
   }
+}
+
+function dataURLtoBlob(dataUrl: string): Blob {
+  const parts = dataUrl.split(',');
+  const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+  const bstr = atob(parts[1]);
+  const u8arr = new Uint8Array(bstr.length);
+  for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+  return new Blob([u8arr], { type: mime });
 }
 
 // --- SVG Export (Recharts SVG extraction) ---

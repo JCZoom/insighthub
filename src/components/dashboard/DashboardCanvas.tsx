@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
@@ -502,7 +502,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                     onClick={() => { exportToSVG('dashboard-grid', `${title.replace(/[^a-zA-Z0-9]/g, '_')}_dashboard`); setShowExportMenu(false); }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
                   >
-                    <Image size={12} /> Export Dashboard as SVG
+                    <ImageIcon size={12} /> Export Dashboard as SVG
                   </button>
                 </div>
               </>
