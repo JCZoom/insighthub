@@ -1,4 +1,4 @@
-# InsightHub — AI-Powered Dashboard Builder
+# iPostal1 InsightHub — AI-Powered Dashboard Builder
 
 An internal self-service BI platform where any employee can build, customize, and share rich data dashboards using natural language. Powered by Claude AI.
 

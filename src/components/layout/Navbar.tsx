@@ -37,7 +37,8 @@ export function Navbar() {
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 text-accent-blue font-bold text-lg tracking-tight">
               <Sparkles size={20} />
-              <span>InsightHub</span>
+              <span className="hidden sm:inline">iPostal1 InsightHub</span>
+              <span className="sm:hidden">InsightHub</span>
             </Link>
 
             <div className="hidden sm:flex items-center gap-1">
