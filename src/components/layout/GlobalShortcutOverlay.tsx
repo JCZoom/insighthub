@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { X, Keyboard } from 'lucide-react';
 
 interface ShortcutItem {
+  /** Use 'Mod' as a placeholder — resolved to ⌘ (Mac) or Ctrl (Win/Linux) at render time. */
   keys: string[];
   description: string;
 }
@@ -14,13 +15,15 @@ interface ShortcutGroup {
   shortcuts: ShortcutItem[];
 }
 
+// --- Shortcut definitions (use 'Mod' for ⌘/Ctrl, 'Shift' for ⇧/Shift) ---
+
 const NAV_SHORTCUTS: ShortcutGroup = {
   title: 'Navigation',
   shortcuts: [
-    { keys: ['⌘', '1'], description: 'Go to Home' },
-    { keys: ['⌘', '2'], description: 'Go to My Dashboards' },
-    { keys: ['⌘', '3'], description: 'Go to Glossary' },
-    { keys: ['⌘', '4'], description: 'New Dashboard' },
+    { keys: ['Mod', '1'], description: 'Go to Home' },
+    { keys: ['Mod', '2'], description: 'Go to My Dashboards' },
+    { keys: ['Mod', '3'], description: 'Go to Glossary' },
+    { keys: ['Mod', '4'], description: 'New Dashboard' },
     { keys: ['?'], description: 'Toggle this reference sheet' },
   ],
 };
@@ -29,23 +32,23 @@ const HOME_SHORTCUTS: ShortcutGroup = {
   title: 'Home Page',
   shortcuts: [
     { keys: ['/'], description: 'Focus the prompt input' },
-    { keys: ['⌘', '⇧', 'M'], description: 'Toggle voice input' },
+    { keys: ['Mod', 'Shift', 'M'], description: 'Toggle voice input' },
   ],
 };
 
 const DASHBOARD_SHORTCUTS: ShortcutGroup = {
   title: 'Dashboard Editor',
   shortcuts: [
-    { keys: ['⌘', 'S'], description: 'Save dashboard' },
-    { keys: ['⌘', 'Z'], description: 'Undo' },
-    { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
+    { keys: ['Mod', 'S'], description: 'Save dashboard' },
+    { keys: ['Mod', 'Z'], description: 'Undo' },
+    { keys: ['Mod', 'Shift', 'Z'], description: 'Redo' },
     { keys: ['/'], description: 'Focus chat input' },
-    { keys: ['⌘', '⇧', 'M'], description: 'Toggle voice input' },
+    { keys: ['Mod', 'Shift', 'M'], description: 'Toggle voice input' },
     { keys: ['Tab'], description: 'Select next widget' },
-    { keys: ['⇧', 'Tab'], description: 'Select previous widget' },
+    { keys: ['Shift', 'Tab'], description: 'Select previous widget' },
     { keys: ['Esc'], description: 'Deselect widget' },
     { keys: ['Delete'], description: 'Delete selected widget' },
-    { keys: ['⌘', 'D'], description: 'Duplicate selected widget' },
+    { keys: ['Mod', 'D'], description: 'Duplicate selected widget' },
     { keys: ['↑ ↓ ← →'], description: 'Nudge widget by 1 grid unit' },
   ],
 };
@@ -57,7 +60,31 @@ const GALLERY_SHORTCUTS: ShortcutGroup = {
   ],
 };
 
-function getContextualGroups(pathname: string): ShortcutGroup[] {
+function isMacOS(): boolean {
+  if (typeof navigator === 'undefined') return true;
+  return /Mac|iPod|iPhone|iPad/.test(navigator.platform || '') ||
+    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS';
+}
+
+/** Resolve 'Mod' and 'Shift' to OS-specific symbols */
+function resolveKey(key: string, mac: boolean): string {
+  if (key === 'Mod') return mac ? '⌘' : 'Ctrl';
+  if (key === 'Shift') return mac ? '⇧' : 'Shift';
+  if (key === 'Delete') return mac ? 'Delete' : 'Del';
+  return key;
+}
+
+function resolveGroup(group: ShortcutGroup, mac: boolean): ShortcutGroup {
+  return {
+    ...group,
+    shortcuts: group.shortcuts.map(s => ({
+      ...s,
+      keys: s.keys.map(k => resolveKey(k, mac)),
+    })),
+  };
+}
+
+function getContextualGroups(pathname: string, mac: boolean): ShortcutGroup[] {
   const groups: ShortcutGroup[] = [NAV_SHORTCUTS];
 
   if (pathname === '/') {
@@ -68,7 +95,7 @@ function getContextualGroups(pathname: string): ShortcutGroup[] {
     groups.push(GALLERY_SHORTCUTS);
   }
 
-  return groups;
+  return groups.map(g => resolveGroup(g, mac));
 }
 
 interface GlobalShortcutOverlayProps {
@@ -77,7 +104,8 @@ interface GlobalShortcutOverlayProps {
 
 export function GlobalShortcutOverlay({ onClose }: GlobalShortcutOverlayProps) {
   const pathname = usePathname();
-  const groups = getContextualGroups(pathname);
+  const [mac] = useState(() => isMacOS());
+  const groups = getContextualGroups(pathname, mac);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' || e.key === '?') {

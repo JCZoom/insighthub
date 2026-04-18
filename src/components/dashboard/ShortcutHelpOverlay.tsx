@@ -1,43 +1,55 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Keyboard } from 'lucide-react';
 
 interface ShortcutHelpOverlayProps {
   onClose: () => void;
 }
 
-const SHORTCUT_GROUPS = [
-  {
-    title: 'General',
-    shortcuts: [
-      { keys: ['⌘', 'S'], description: 'Save dashboard' },
-      { keys: ['⌘', 'Z'], description: 'Undo' },
-      { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
-      { keys: ['⌘', '⇧', 'M'], description: 'Toggle voice input' },
-      { keys: ['?'], description: 'Toggle this help' },
-      { keys: ['/'], description: 'Focus chat input' },
-    ],
-  },
-  {
-    title: 'Widget Selection',
-    shortcuts: [
-      { keys: ['Tab'], description: 'Select next widget' },
-      { keys: ['⇧', 'Tab'], description: 'Select previous widget' },
-      { keys: ['Esc'], description: 'Deselect widget' },
-    ],
-  },
-  {
-    title: 'Widget Actions',
-    shortcuts: [
-      { keys: ['Delete'], description: 'Delete selected widget' },
-      { keys: ['⌘', 'D'], description: 'Duplicate selected widget' },
-      { keys: ['↑ ↓ ← →'], description: 'Nudge widget by 1 grid unit' },
-    ],
-  },
-];
+function isMac(): boolean {
+  if (typeof navigator === 'undefined') return true;
+  return /Mac|iPod|iPhone|iPad/.test(navigator.platform || '');
+}
+
+function mod(mac: boolean) { return mac ? '⌘' : 'Ctrl'; }
+function shift(mac: boolean) { return mac ? '⇧' : 'Shift'; }
+
+function getShortcutGroups(mac: boolean) {
+  return [
+    {
+      title: 'General',
+      shortcuts: [
+        { keys: [mod(mac), 'S'], description: 'Save dashboard' },
+        { keys: [mod(mac), 'Z'], description: 'Undo' },
+        { keys: [mod(mac), shift(mac), 'Z'], description: 'Redo' },
+        { keys: [mod(mac), shift(mac), 'M'], description: 'Toggle voice input' },
+        { keys: ['?'], description: 'Toggle this help' },
+        { keys: ['/'], description: 'Focus chat input' },
+      ],
+    },
+    {
+      title: 'Widget Selection',
+      shortcuts: [
+        { keys: ['Tab'], description: 'Select next widget' },
+        { keys: [shift(mac), 'Tab'], description: 'Select previous widget' },
+        { keys: ['Esc'], description: 'Deselect widget' },
+      ],
+    },
+    {
+      title: 'Widget Actions',
+      shortcuts: [
+        { keys: [mac ? 'Delete' : 'Del'], description: 'Delete selected widget' },
+        { keys: [mod(mac), 'D'], description: 'Duplicate selected widget' },
+        { keys: ['↑ ↓ ← →'], description: 'Nudge widget by 1 grid unit' },
+      ],
+    },
+  ];
+}
 
 export function ShortcutHelpOverlay({ onClose }: ShortcutHelpOverlayProps) {
+  const [macOS] = useState(() => isMac());
+  const SHORTCUT_GROUPS = getShortcutGroups(macOS);
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' || e.key === '?') {
       e.preventDefault();
