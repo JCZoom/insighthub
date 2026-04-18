@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Database, BarChart3, Copy, Check, Table2, Filter, Layers, Download, FileText, Camera } from 'lucide-react';
+import { X, Database, BarChart3, Copy, Check, Table2, Filter, Layers, Download, FileText, Camera, Image } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -46,13 +46,7 @@ function exportToCSV(data: Record<string, unknown>[], filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-// PNG export function - requires html2canvas to be installed
-// TODO: Install html2canvas with: npm install html2canvas
 async function exportToPNG(elementId: string, filename: string): Promise<void> {
-  alert('PNG export requires html2canvas package to be installed. Please run: npm install html2canvas');
-
-  // Once html2canvas is installed, uncomment the code below:
-  /*
   try {
     const html2canvas = (await import('html2canvas')).default;
     const element = document.getElementById(elementId);
@@ -61,11 +55,15 @@ async function exportToPNG(elementId: string, filename: string): Promise<void> {
       return;
     }
 
+    // Resolve CSS custom properties to actual colors for html2canvas
+    const computedBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#0d1117';
+
     const canvas = await html2canvas(element, {
-      backgroundColor: 'var(--bg-primary)',
+      backgroundColor: computedBg,
       scale: 2,
       useCORS: true,
       allowTaint: false,
+      logging: false,
     });
 
     const url = canvas.toDataURL('image/png');
@@ -77,9 +75,64 @@ async function exportToPNG(elementId: string, filename: string): Promise<void> {
     document.body.removeChild(link);
   } catch (error) {
     console.error('PNG export failed:', error);
-    alert('PNG export failed. Please try again or contact support.');
   }
-  */
+}
+
+function exportToSVG(containerId: string, filename: string): void {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Find the first Recharts SVG inside the container
+  const svgElement = container.querySelector('.recharts-wrapper svg') as SVGSVGElement | null;
+  if (!svgElement) {
+    // Fallback: try any SVG element
+    const anySvg = container.querySelector('svg') as SVGSVGElement | null;
+    if (!anySvg) {
+      console.warn('No SVG chart found in widget for export');
+      return;
+    }
+    downloadSVG(anySvg, filename);
+    return;
+  }
+  downloadSVG(svgElement, filename);
+}
+
+function downloadSVG(svgElement: SVGSVGElement, filename: string): void {
+  // Clone so we don't mutate the DOM
+  const clone = svgElement.cloneNode(true) as SVGSVGElement;
+
+  // Ensure the SVG has xmlns and viewBox
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  if (!clone.getAttribute('viewBox')) {
+    const bbox = svgElement.getBBox();
+    clone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+  }
+
+  // Inline computed styles so the SVG looks correct standalone
+  const allElements = clone.querySelectorAll('*');
+  const originalElements = svgElement.querySelectorAll('*');
+  allElements.forEach((el, i) => {
+    if (originalElements[i]) {
+      const computed = getComputedStyle(originalElements[i]);
+      const important = ['fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'font-size', 'font-family', 'font-weight', 'opacity', 'text-anchor', 'dominant-baseline'];
+      important.forEach(prop => {
+        const val = computed.getPropertyValue(prop);
+        if (val) (el as SVGElement).style.setProperty(prop, val);
+      });
+    }
+  });
+
+  const serializer = new XMLSerializer();
+  const svgString = serializer.serializeToString(clone);
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = `${filename}.svg`;
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 // --- Detail data generators per widget type ---
@@ -484,6 +537,14 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
               >
                 <Camera size={14} />
                 PNG
+              </button>
+              <button
+                onClick={() => exportToSVG('widget-detail-overlay', `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                title="Export chart as SVG (vector — scales to any size)"
+              >
+                <Image size={14} />
+                SVG
               </button>
               <button
                 onClick={onClose}
