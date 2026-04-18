@@ -586,9 +586,12 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           </div>
         )}
         {!isListening && interimTranscript && (
-          <p className="text-[10px] text-accent-purple mt-1 px-1 truncate italic animate-pulse">
-            {interimTranscript}
-          </p>
+          <div className="flex items-center gap-1.5 mt-1.5 px-1">
+            <Loader2 size={11} className="animate-spin text-accent-blue shrink-0" />
+            <p className="text-[11px] text-[var(--text-secondary)] font-medium">
+              {interimTranscript}
+            </p>
+          </div>
         )}
         {micError && !isListening && (
           <p className="text-[10px] text-accent-red mt-1 px-1">
