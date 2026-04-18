@@ -9,7 +9,7 @@ interface LineChartWidgetProps {
 }
 
 const COLOR_PALETTES: Record<string, string[]> = {
-  default: ['#58a6ff', '#3fb950', '#bc8cff', '#d29922', '#39d2c0', '#f85149'],
+  default: ['#6baaff', '#56c47a', '#b48eff', '#dba644', '#4dcec2', '#f47670'],
   warm: ['#f85149', '#d29922', '#e3b341', '#f0883e', '#db6d28', '#bc4c00'],
   cool: ['#58a6ff', '#388bfd', '#bc8cff', '#8b5cf6', '#39d2c0', '#2dd4bf'],
   vibrant: ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#9b59b6', '#1abc9c'],
@@ -51,14 +51,16 @@ export function LineChartWidget({ config, data }: LineChartWidgetProps) {
               tickLine={false}
             />
             <Tooltip
+              cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
               contentStyle={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 fontSize: '12px',
-                backdropFilter: 'blur(12px)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
               }}
               labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+              itemStyle={{ color: 'var(--text-secondary)' }}
             />
             {config.visualConfig.showLegend !== false && lineKeys.length > 1 && (
               <Legend wrapperStyle={{ fontSize: '11px' }} />

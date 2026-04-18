@@ -7,7 +7,7 @@ interface FunnelWidgetProps {
   data: Record<string, unknown>[];
 }
 
-const COLORS = ['#58a6ff', '#3fb950', '#bc8cff', '#d29922', '#39d2c0', '#f85149'];
+const COLORS = ['#6baaff', '#56c47a', '#b48eff', '#dba644', '#4dcec2', '#f47670'];
 
 export function FunnelWidget({ config, data }: FunnelWidgetProps) {
   if (!data.length) {

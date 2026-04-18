@@ -46,17 +46,20 @@ export function ScatterPlotWidget({ config, data }: ScatterPlotWidgetProps) {
             />
             {zKey && <ZAxis dataKey={zKey} range={[40, 400]} name={zKey} />}
             <Tooltip
+              cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' }}
               contentStyle={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 fontSize: '12px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
               }}
               labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+              itemStyle={{ color: 'var(--text-secondary)' }}
             />
             <Scatter
               data={data}
-              fill="#58a6ff"
+              fill="#6baaff"
               fillOpacity={0.7}
               animationDuration={800}
             />

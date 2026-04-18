@@ -15,7 +15,7 @@ export function GaugeWidget({ config, data }: GaugeWidgetProps) {
   const percent = Math.min(value / max, 1);
   const angle = percent * 180;
 
-  const color = percent > 0.75 ? '#3fb950' : percent > 0.5 ? '#d29922' : '#f85149';
+  const color = percent > 0.75 ? '#56c47a' : percent > 0.5 ? '#dba644' : '#f47670';
 
   return (
     <div className="card p-4 h-full flex flex-col items-center justify-center fade-in">

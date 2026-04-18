@@ -8,7 +8,7 @@ interface BarChartWidgetProps {
   data: Record<string, unknown>[];
 }
 
-const COLORS = ['#58a6ff', '#3fb950', '#bc8cff', '#d29922', '#39d2c0', '#f85149'];
+const COLORS = ['#6baaff', '#56c47a', '#b48eff', '#dba644', '#4dcec2', '#f47670'];
 
 export function BarChartWidget({ config, data }: BarChartWidgetProps) {
   if (!data.length) {
@@ -43,13 +43,16 @@ export function BarChartWidget({ config, data }: BarChartWidgetProps) {
               tickLine={false}
             />
             <Tooltip
+              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               contentStyle={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 fontSize: '12px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
               }}
               labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+              itemStyle={{ color: 'var(--text-secondary)' }}
             />
             {config.visualConfig.showLegend !== false && barKeys.length > 1 && (
               <Legend wrapperStyle={{ fontSize: '11px' }} />
