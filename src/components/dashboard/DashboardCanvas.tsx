@@ -12,7 +12,7 @@ import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction
 import { MetricExplanationModal } from './MetricExplanationModal';
 import type { WidgetConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2 } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
@@ -455,6 +455,14 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <GripVertical size={12} className="text-[var(--text-muted)]" />
                 </div>
+                {/* Info/Explain button (top-right, third) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
+                  className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/90 border border-[var(--border-color)] opacity-90 hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
+                  title="Explain this metric"
+                >
+                  <HelpCircle size={12} className="text-[var(--text-secondary)] hover:text-accent-purple transition-colors" />
+                </button>
                 {/* Edit config button (top-right, second) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
