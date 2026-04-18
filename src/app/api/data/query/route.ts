@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Source is required' }, { status: 400 });
     }
 
-    const result = queryData(source, groupBy);
+    const result = await queryData(source, groupBy);
     return NextResponse.json(result);
   } catch (error) {
     console.error('Data query error:', error);

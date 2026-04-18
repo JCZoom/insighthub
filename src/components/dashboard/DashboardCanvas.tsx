@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation';
 import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useTouchDrag } from '@/hooks/useTouchDrag';
+import { createTouchDragHandler } from '@/hooks/useTouchDrag';
 import { useViewport } from '@/hooks/useViewport';
 import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
 import { cn } from '@/lib/utils';
@@ -375,7 +375,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const createDragHandler = (widget: WidgetConfig) => {
     const isMultiDrag = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(widget.id);
 
-    return useTouchDrag({
+    return createTouchDragHandler({
       holdThreshold: isTouch ? 300 : 0,
       onHoldStart: () => {
         setDragHoldState({ widgetId: widget.id, isHolding: true });

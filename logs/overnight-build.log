@@ -660,3 +660,27 @@
 [2026-04-18 19:20:45] 📌 Task: 🖥️ Desktop Polish — Mac & Windows Browser Consistency
 [2026-04-18 19:20:45]    Section: 🎨 Dashboard Canvas & UX | Priority: Normal
 [2026-04-18 19:20:45]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 19:28:18]   ⏱️  Claude Code finished in 454s (exit code: 0)
+[2026-04-18 19:28:18]   💰 Task cost: $2.0062 | Running total: $16.54 / $25.00
+[2026-04-18 19:28:18]   📊 Tokens: 578 in + 24,003 out | cache: 4,584,445 read + 70,943 create
+[2026-04-18 19:28:18]   🔨 Running build check...
+[2026-04-18 19:28:29]   ✅ Build passed
+[2026-04-18 19:28:29]   ✅ Task completed successfully
+[2026-04-18 19:28:30]   ✅ Subtask → completed: Context menu edge-awareness (right edge, bottom edge, Windows scrollbar)
+[2026-04-18 19:28:30]   ✅ Subtask → completed: Firefox scrollbar styling (scrollbar-width: thin, scrollbar-color)
+[2026-04-18 19:28:31]   ✅ Subtask → completed: Glassmorphism backdrop-filter fallback for older browsers
+[2026-04-18 19:28:32]   ✅ Subtask → completed: Windows focus-visible ring styling (custom to match theme)
+[2026-04-18 19:28:32]   ✅ Subtask → completed: Platform-aware keyboard shortcut display (⌘ on Mac, Ctrl on Windows)
+[2026-04-18 19:28:32]   📋 Marked 5 subtask(s) complete in Asana
+[2026-04-18 19:28:33]   ⚠️  Task 1214125671525623 has 3 incomplete subtask(s) — NOT marking complete
+[2026-04-18 19:28:33]       Remaining: Cross-browser testing pass: Chrome, Safari, Firefox, Edge, Font rendering audit: verify text legibility on Windows ClearType, Window resize: auto-collapse chat panel below 1024px width
+[2026-04-18 19:28:34] 
+============================================================
+[2026-04-18 19:28:34] 🌅 Overnight builder finished
+[2026-04-18 19:28:34]    Tasks attempted: 10
+[2026-04-18 19:28:34]    Succeeded: 10
+[2026-04-18 19:28:34]    Failed: 0
+[2026-04-18 19:28:34]    Total spent: $16.54
+[2026-04-18 19:28:34]    Total tokens: 3,868 in + 247,939 out
+[2026-04-18 19:28:34] ============================================================
+[2026-04-18 19:28:34] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18-4.md

@@ -138,50 +138,24 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const responsive = useResponsiveWidget(containerRef);
 
-  if (!data.length) {
-    return (
-      <div className="card p-4 h-full flex items-center justify-center">
-        <div className="text-center">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-            {config.title}
-          </h3>
-          <p className="text-xs text-[var(--text-muted)]">No data available</p>
-        </div>
-      </div>
-    );
-  }
+  // Compute pivot fields and data BEFORE hooks to avoid Rules of Hooks violation
+  const availableFields = data.length > 0 ? Object.keys(data[0]) : [];
+  const hasEnoughFields = availableFields.length >= 2;
 
-  const availableFields = Object.keys(data[0]);
-
-  // Get pivot configuration from widget config
   const groupBy = config.dataConfig.groupBy || [];
-  const rowField = groupBy[0] || availableFields[0];
+  const rowField = groupBy[0] || availableFields[0] || '';
   const colField = groupBy[1] || availableFields[1] || rowField;
-  const valueField = config.dataConfig.aggregation?.field ||
+  const valueField = (data.length > 0 && (config.dataConfig.aggregation?.field ||
                     availableFields.find(f => typeof data[0][f] === 'number') ||
-                    availableFields[availableFields.length - 1];
+                    availableFields[availableFields.length - 1])) || '';
   const aggregation = config.dataConfig.aggregation?.function || 'sum';
 
-  // Handle case where we don't have enough fields for a proper pivot
-  if (availableFields.length < 2) {
-    return (
-      <div className="card p-4 h-full flex items-center justify-center">
-        <div className="text-center">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-            {config.title}
-          </h3>
-          <p className="text-xs text-[var(--text-muted)]">
-            Need at least 2 fields for pivot table
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const pivotData = buildPivotData(data, rowField, colField, valueField, aggregation as any);
+  const pivotData = data.length > 0 && hasEnoughFields
+    ? buildPivotData(data, rowField, colField, valueField, aggregation as any)
+    : null;
   const isMobile = responsive.size === 'mobile';
 
-  // Check if horizontal scrolling is needed
+  // Check if horizontal scrolling is needed (hook must always run)
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
@@ -207,6 +181,38 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
       resizeObserver.disconnect();
     };
   }, [pivotData]);
+
+  // Early returns AFTER all hooks to comply with Rules of Hooks
+  if (!data.length) {
+    return (
+      <div className="card p-4 h-full flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
+            {config.title}
+          </h3>
+          <p className="text-xs text-[var(--text-muted)]">No data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasEnoughFields) {
+    return (
+      <div className="card p-4 h-full flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
+            {config.title}
+          </h3>
+          <p className="text-xs text-[var(--text-muted)]">
+            Need at least 2 fields for pivot table
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // pivotData is guaranteed non-null after the above guards
+  const pivot = pivotData!;
 
   const textSize = isMobile ? "text-[10px]" : "text-xs";
   const headerTextSize = isMobile ? "text-[9px]" : "text-[10px]";
@@ -248,7 +254,7 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
                 </th>
 
                 {/* Column headers */}
-                {pivotData.columns.map((col) => (
+                {pivot.columns.map((col) => (
                   <th
                     key={col}
                     className={`text-center ${headerPadding} font-semibold text-[var(--text-secondary)] uppercase tracking-wider ${headerTextSize} ${
@@ -271,7 +277,7 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
             </thead>
             <tbody>
               {/* Data rows */}
-              {pivotData.rows.map((row, i) => (
+              {pivot.rows.map((row, i) => (
                 <tr key={row} className="border-b border-[var(--border-color)]/30 hover:bg-[var(--bg-card-hover)] transition-colors">
                   {/* Row label */}
                   <td
@@ -283,15 +289,15 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
                   </td>
 
                   {/* Data cells */}
-                  {pivotData.columns.map((col) => (
+                  {pivot.columns.map((col) => (
                     <td
                       key={col}
                       className={`${padding} text-center text-[var(--text-primary)] ${
                         isMobile ? 'whitespace-nowrap' : ''
                       }`}
                     >
-                      {pivotData.matrix[row][col].value > 0
-                        ? formatCell(valueField, pivotData.matrix[row][col].value)
+                      {pivot.matrix[row][col].value > 0
+                        ? formatCell(valueField, pivot.matrix[row][col].value)
                         : '—'
                       }
                     </td>
@@ -303,7 +309,7 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
                       isMobile ? 'whitespace-nowrap' : ''
                     } border-l border-[var(--border-color)]`}
                   >
-                    {formatCell(valueField, pivotData.rowTotals[row].value)}
+                    {formatCell(valueField, pivot.rowTotals[row].value)}
                   </td>
                 </tr>
               ))}
@@ -317,14 +323,14 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
                 >
                   Total
                 </td>
-                {pivotData.columns.map((col) => (
+                {pivot.columns.map((col) => (
                   <td
                     key={col}
                     className={`${padding} text-center font-semibold text-[var(--text-accent)] ${
                       isMobile ? 'whitespace-nowrap' : ''
                     }`}
                   >
-                    {formatCell(valueField, pivotData.colTotals[col].value)}
+                    {formatCell(valueField, pivot.colTotals[col].value)}
                   </td>
                 ))}
                 <td
@@ -332,7 +338,7 @@ export function PivotTableWidget({ config, data }: PivotTableWidgetProps) {
                     isMobile ? 'whitespace-nowrap' : ''
                   } border-l border-[var(--border-color)]`}
                 >
-                  {formatCell(valueField, pivotData.grandTotal.value)}
+                  {formatCell(valueField, pivot.grandTotal.value)}
                 </td>
               </tr>
             </tbody>

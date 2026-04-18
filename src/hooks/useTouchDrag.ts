@@ -141,3 +141,89 @@ export function useTouchDrag({
     isHolding: isHolding.current,
   };
 }
+
+/**
+ * Non-hook factory version of useTouchDrag.
+ * Safe to call inside loops, conditions, or render-time functions.
+ * Uses plain closures instead of React hooks.
+ */
+export function createTouchDragHandler(options: UseTouchDragOptions) {
+  const {
+    holdThreshold = 300,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onHoldStart,
+    onHoldEnd,
+    dragThreshold = 5,
+    enableMouseDrag = true,
+  } = options;
+
+  let holdTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let startPos: { x: number; y: number } | null = null;
+  let dragging = false;
+  let holding = false;
+  let hasStarted = false;
+
+  const clear = () => {
+    if (holdTimeoutId) {
+      clearTimeout(holdTimeoutId);
+      holdTimeoutId = null;
+    }
+    if (holding) onHoldEnd?.();
+    dragging = false;
+    holding = false;
+    hasStarted = false;
+    startPos = null;
+  };
+
+  return {
+    onPointerDown: (event: React.PointerEvent) => {
+      const isTouch = event.pointerType !== 'mouse';
+      if (!isTouch && enableMouseDrag) {
+        startPos = { x: event.clientX, y: event.clientY };
+        dragging = true;
+        hasStarted = true;
+        onDragStart(event.nativeEvent);
+        return;
+      }
+      if (isTouch) {
+        startPos = { x: event.clientX, y: event.clientY };
+        holding = true;
+        hasStarted = false;
+        onHoldStart?.();
+        holdTimeoutId = setTimeout(() => {
+          if (holding && !dragging) {
+            dragging = true;
+            if ('vibrate' in navigator) navigator.vibrate([30]);
+            onDragStart(event.nativeEvent);
+            hasStarted = true;
+          }
+        }, holdThreshold);
+      }
+    },
+    onPointerMove: (event: React.PointerEvent) => {
+      if (!startPos) return;
+      const dx = event.clientX - startPos.x;
+      const dy = event.clientY - startPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (holding && !hasStarted) {
+        if (distance > dragThreshold) clear();
+        return;
+      }
+      if (dragging && hasStarted) {
+        onDragMove(event.nativeEvent);
+      }
+    },
+    onPointerUp: (event: React.PointerEvent) => {
+      if (hasStarted && dragging) {
+        onDragEnd(event.nativeEvent);
+      }
+      clear();
+    },
+    onPointerCancel: () => clear(),
+    onPointerLeave: () => {
+      if (!hasStarted) clear();
+    },
+  };
+}
