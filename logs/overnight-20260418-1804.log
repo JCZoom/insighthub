@@ -51,3 +51,99 @@ Done!
 [agent/overnight-sprint d53c439] chore: pre-overnight-builder snapshot
  5 files changed, 328 insertions(+), 102 deletions(-)
  create mode 100644 logs/overnight-20260418-1804.log
+[2026-04-18 18:05:52] ============================================================
+[2026-04-18 18:05:52] 🌙 Overnight Builder starting
+[2026-04-18 18:05:52]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 18:05:52]    Model: claude-sonnet-4-20250514
+[2026-04-18 18:05:52]    Max tasks: 10
+[2026-04-18 18:05:52]    Max consecutive failures: 3
+[2026-04-18 18:05:52]    Dry run: False
+[2026-04-18 18:05:52]    Budget cap: $25.00
+[2026-04-18 18:05:52]    AI triage: True
+[2026-04-18 18:05:52]    Operator notes: PRIORITY ORDER: (1) Complete all widget renderers — only PivotTable is missing, ...
+[2026-04-18 18:05:52] ============================================================
+[2026-04-18 18:05:53] ⚠️  Uncommitted changes detected. Committing before starting...
+[2026-04-18 18:05:53] 
+────────────────────────────────────────────────────────────
+[2026-04-18 18:05:53] 📋 Iteration 1/10 | Spent so far: $0.00 / $25.00
+[2026-04-18 18:05:53] ────────────────────────────────────────────────────────────
+[2026-04-18 18:05:55] 📌 Task: 🔐 Role-Based Access Control & Granular Data Permissions
+[2026-04-18 18:05:55]    Section: 🔐 Auth & Security | Priority: Normal
+[2026-04-18 18:05:55]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 18:21:53]   ⏱️  Claude Code finished in 958s (exit code: 0)
+[2026-04-18 18:21:53]   💰 Task cost: $3.9010 | Running total: $3.90 / $25.00
+[2026-04-18 18:21:53]   📊 Tokens: 662 in + 60,717 out | cache: 8,192,944 read + 140,429 create
+[2026-04-18 18:21:53]   🔨 Running build check...
+[2026-04-18 18:22:05]   ✅ Build passed
+[2026-04-18 18:22:05]   ✅ Task completed successfully
+[2026-04-18 18:22:05]   ⚠️  Task 1214125662501105 has 16 incomplete subtask(s) — NOT marking complete
+[2026-04-18 18:22:05]       Remaining: 📝 Audit: Log all permission changes, 🧪 Testing: Permission enforcement test suite, 📊 Seed: Default permission groups with sensible data category mappings, 🔔 UX: "Access Denied" messaging in dashboard builder, 👤 Admin UI: User permission assignment in User Management page (+11 more)
+[2026-04-18 18:22:06]   💤 Pausing 15s before next task...
+[2026-04-18 18:22:21] 
+────────────────────────────────────────────────────────────
+[2026-04-18 18:22:21] 📋 Iteration 2/10 | Spent so far: $3.90 / $25.00
+[2026-04-18 18:22:21] ────────────────────────────────────────────────────────────
+[2026-04-18 18:22:22] 📌 Task: Google OAuth integration (NextAuth.js)
+[2026-04-18 18:22:22]    Section: 🔐 Auth & Security | Priority: Normal
+[2026-04-18 18:22:22]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 18:28:12]   ⏱️  Claude Code finished in 350s (exit code: 0)
+[2026-04-18 18:28:12]   💰 Task cost: $1.1096 | Running total: $5.01 / $25.00
+[2026-04-18 18:28:12]   📊 Tokens: 375 in + 16,572 out | cache: 2,149,281 read + 56,756 create
+[2026-04-18 18:28:12]   🔨 Running build check...
+[2026-04-18 18:28:25]   ✅ Build passed
+[2026-04-18 18:28:25]   ✅ Task completed successfully
+[2026-04-18 18:28:26]   ✅ Subtask → completed: Login page with Google sign-in button
+[2026-04-18 18:28:26]   ✅ Subtask → completed: Session persistence with JWT strategy
+[2026-04-18 18:28:27]   ✅ Subtask → completed: Map roles from DB (default VIEWER, admin list for ADMIN)
+[2026-04-18 18:28:28]   ✅ Subtask → completed: Auto-create User record on first login
+[2026-04-18 18:28:29]   ✅ Subtask → completed: Domain restriction — only @uszoom.com emails allowed
+[2026-04-18 18:28:29]   ✅ Subtask → completed: Redirect flow — login → onboarding (first visit) or gallery
+[2026-04-18 18:28:29]   📋 Marked 6 subtask(s) complete in Asana
+[2026-04-18 18:28:31]   ✅ Asana task 1214122597291831 → completed
+[2026-04-18 18:28:31]   💤 Pausing 15s before next task...
+[2026-04-18 18:28:46] 
+────────────────────────────────────────────────────────────
+[2026-04-18 18:28:46] 📋 Iteration 3/10 | Spent so far: $5.01 / $25.00
+[2026-04-18 18:28:46] ────────────────────────────────────────────────────────────
+[2026-04-18 18:28:47] 📌 Task: Widget click-to-edit config panel
+[2026-04-18 18:28:47]    Section: 📊 Widget System | Priority: Normal
+[2026-04-18 18:28:47]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 18:33:14]   ⏱️  Claude Code finished in 267s (exit code: 0)
+[2026-04-18 18:33:14]   💰 Task cost: $0.8845 | Running total: $5.90 / $25.00
+[2026-04-18 18:33:14]   📊 Tokens: 254 in + 12,483 out | cache: 1,590,912 read + 57,880 create
+[2026-04-18 18:33:14]   🔨 Running build check...
+[2026-04-18 18:33:24]   ✅ Build passed
+[2026-04-18 18:33:24]   ✅ Task completed successfully
+[2026-04-18 18:33:25]   ✅ Subtask → completed: Threshold editor (value + color + label)
+[2026-04-18 18:33:25]   📋 Marked 1 subtask(s) complete in Asana
+[2026-04-18 18:33:26]   ✅ Asana task 1214124626650274 → completed
+[2026-04-18 18:33:27]   💤 Pausing 15s before next task...
+[2026-04-18 18:33:42] 
+────────────────────────────────────────────────────────────
+[2026-04-18 18:33:42] 📋 Iteration 4/10 | Spent so far: $5.90 / $25.00
+[2026-04-18 18:33:42] ────────────────────────────────────────────────────────────
+[2026-04-18 18:33:42] 📌 Task: Complete all widget renderers
+[2026-04-18 18:33:42]    Section: 📊 Widget System | Priority: Normal
+[2026-04-18 18:33:42]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 18:37:16]   ⏱️  Claude Code finished in 214s (exit code: 0)
+[2026-04-18 18:37:16]   💰 Task cost: $0.6398 | Running total: $6.53 / $25.00
+[2026-04-18 18:37:16]   📊 Tokens: 212 in + 11,381 out | cache: 991,998 read + 44,972 create
+[2026-04-18 18:37:16]   🔨 Running build check...
+[2026-04-18 18:37:26]   ✅ Build passed
+[2026-04-18 18:37:26]   ✅ Task completed successfully
+[2026-04-18 18:37:27]   ✅ Subtask → completed: PivotTable widget
+[2026-04-18 18:37:27]   📋 Marked 1 subtask(s) complete in Asana
+[2026-04-18 18:37:28]   ✅ Asana task 1214124626627909 → completed
+[2026-04-18 18:37:29]   💤 Pausing 15s before next task...
+[2026-04-18 18:37:44] 
+────────────────────────────────────────────────────────────
+[2026-04-18 18:37:44] 📋 Iteration 5/10 | Spent so far: $6.53 / $25.00
+[2026-04-18 18:37:44] ────────────────────────────────────────────────────────────
+[2026-04-18 18:37:44] 📌 Task: Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types
+[2026-04-18 18:37:44]    Section: 📊 Widget System | Priority: Normal
+[2026-04-18 18:37:44]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 18:39:57]   ⏱️  Claude Code finished in 133s (exit code: 0)
+[2026-04-18 18:39:57]   💰 Task cost: $0.4950 | Running total: $7.03 / $25.00
+[2026-04-18 18:39:57]   📊 Tokens: 114 in + 4,926 out | cache: 746,277 read + 51,899 create
+[2026-04-18 18:39:57]   🔨 Running build check...
+[2026-04-18 18:40:07]   ✅ Build passed

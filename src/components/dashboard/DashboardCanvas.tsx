@@ -681,6 +681,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               onClick={handleSave}
               disabled={saveStatus === 'saving'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
+              title="Save dashboard (⌘S / Ctrl+S)"
             >
               {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
               {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
@@ -699,6 +700,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   <button
                     onClick={handleSaveAs}
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
+                    title="Save as new dashboard (⌘⇧S / Ctrl+Shift+S)"
                   >
                     <Copy size={12} /> Save As…
                   </button>
