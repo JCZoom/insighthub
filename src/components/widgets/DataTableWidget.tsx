@@ -26,13 +26,8 @@ export function DataTableWidget({ config, data }: DataTableWidgetProps) {
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const responsive = useResponsiveWidget(containerRef);
 
-  if (!data.length) {
-    return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
-  }
-
-  const columns = Object.keys(data[0]);
+  const columns = data.length ? Object.keys(data[0]) : [];
   const isMobile = responsive.size === 'mobile';
-  const isTablet = responsive.size === 'tablet';
 
   // Check if horizontal scrolling is needed
   useEffect(() => {
@@ -61,6 +56,10 @@ export function DataTableWidget({ config, data }: DataTableWidgetProps) {
       resizeObserver.disconnect();
     };
   }, [data]);
+
+  if (!data.length) {
+    return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
+  }
 
   const textSize = isMobile ? "text-[10px]" : "text-xs";
   const headerTextSize = isMobile ? "text-[9px]" : "text-[10px]";
