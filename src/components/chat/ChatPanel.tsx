@@ -82,6 +82,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const hasLoadedHistoryRef = useRef(false);
 
   // Speech-to-text
   const onSpeechResult = useCallback((transcript: string) => {
@@ -113,9 +114,10 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
   // Load existing chat session if dashboardId is available
   useEffect(() => {
-    if (!dashboardId || isLoadingHistory) return;
+    if (!dashboardId || hasLoadedHistoryRef.current || isLoadingHistory) return;
 
     const loadChatHistory = async () => {
+      hasLoadedHistoryRef.current = true;
       setIsLoadingHistory(true);
       try {
         // Try to find existing session for this dashboard
@@ -157,7 +159,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     };
 
     loadChatHistory();
-  }, [dashboardId, isLoadingHistory]);
+  }, [dashboardId]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading || streamingState.isStreaming) return;

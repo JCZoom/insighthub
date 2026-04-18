@@ -318,3 +318,18 @@
 [2026-04-18 14:46:58] 📌 Task: [Review Fix] useDashboardStore.getState() inside setTimeout loses React context
 [2026-04-18 14:46:58]    Section: Untitled section | Priority: Normal
 [2026-04-18 14:46:58]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:48:36]   ⏱️  Claude Code finished in 98s (exit code: 0)
+[2026-04-18 14:48:36]   💰 Task cost: $0.2188 | Running total: $0.22 / $25.00
+[2026-04-18 14:48:36]   📊 Tokens: 65 in + 4,132 out | cache: 241,463 read + 21,890 create
+[2026-04-18 14:48:36]   🔨 Running build check...
+[2026-04-18 14:48:45]   ✅ Build passed
+[2026-04-18 14:48:45]   ✅ Task completed successfully
+[2026-04-18 14:48:47]   ✅ Asana task 1214122629497691 → completed
+[2026-04-18 14:48:47]   💤 Pausing 15s before next task...
+[2026-04-18 14:49:02] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:49:02] 📋 Iteration 2/10 | Spent so far: $0.22 / $25.00
+[2026-04-18 14:49:02] ────────────────────────────────────────────────────────────
+[2026-04-18 14:49:02] 📌 Task: [Review Fix] `useEffect` dependency causes infinite loop potential
+[2026-04-18 14:49:02]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:49:02]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
