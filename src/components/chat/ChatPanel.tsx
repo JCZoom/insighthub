@@ -9,6 +9,35 @@ import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
 
+// --- Rotating status messages while AI is working ---
+const AI_PHASES = [
+  'Understanding your request…',
+  'Analyzing available data sources…',
+  'Designing widget layout…',
+  'Selecting the right visualizations…',
+  'Building your dashboard…',
+];
+
+function AiStatusText({ patchCount }: { patchCount: number }) {
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    if (patchCount > 0) return; // stop cycling once patches arrive
+    const interval = setInterval(() => {
+      setPhase(p => (p + 1) % AI_PHASES.length);
+    }, 2400);
+    return () => clearInterval(interval);
+  }, [patchCount]);
+
+  if (patchCount > 0) {
+    return <span>Placing widgets on canvas…</span>;
+  }
+
+  return (
+    <span className="transition-opacity duration-300">{AI_PHASES[phase]}</span>
+  );
+}
+
 interface ChatPanelProps {
   initialPrompt?: string;
 }
@@ -481,27 +510,17 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         {(isLoading || streamingState.isStreaming) && (
           <div className="flex justify-start">
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-3 w-full max-w-[90%]">
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] mb-2">
-                <Loader2 size={14} className="animate-spin" />
-                {streamingState.isStreaming ? streamingState.message : 'Building your dashboard...'}
+              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                <Loader2 size={14} className="animate-spin shrink-0" />
+                <AiStatusText patchCount={streamingState.currentPatches.length} />
               </div>
-              {streamingState.isStreaming && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-[var(--text-muted)]">
-                    <span>Progress</span>
-                    <span>{Math.round(streamingState.progress)}%</span>
-                  </div>
-                  <div className="w-full bg-[var(--bg-primary)] rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-accent-blue h-full rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${Math.min(streamingState.progress, 100)}%` }}
-                    />
-                  </div>
-                  {streamingState.currentPatches.length > 0 && (
-                    <div className="text-xs text-accent-green">
-                      {streamingState.currentPatches.length} widget{streamingState.currentPatches.length !== 1 ? 's' : ''} added
-                    </div>
-                  )}
+              {/* Indeterminate shimmer bar */}
+              <div className="w-full bg-[var(--bg-primary)] rounded-full h-1 overflow-hidden mt-2">
+                <div className="h-full rounded-full bg-accent-blue/80 animate-[shimmer_1.5s_ease-in-out_infinite]" style={{ width: '40%' }} />
+              </div>
+              {streamingState.currentPatches.length > 0 && (
+                <div className="text-xs text-accent-green mt-1.5">
+                  {streamingState.currentPatches.length} widget{streamingState.currentPatches.length !== 1 ? 's' : ''} added
                 </div>
               )}
             </div>
