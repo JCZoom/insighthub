@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import type { WidgetConfig } from '@/types';
-import { queryData } from '@/lib/data/sample-data';
+import { queryDataSync } from '@/lib/data/sample-data';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 import { exportToCSV, exportToPNG, exportToSVG } from '@/lib/export-utils';
 
@@ -83,7 +83,7 @@ const FRIENDLY_NAMES: Record<string, string> = {
 
 function generateDetailSections(config: WidgetConfig): DetailSection[] {
   const source = config.dataConfig.source;
-  const { data: primaryData } = queryData(source, config.dataConfig.groupBy);
+  const { data: primaryData } = queryDataSync(source, config.dataConfig.groupBy);
   const sections: DetailSection[] = [];
 
   // Summary stats from primary data
@@ -112,7 +112,7 @@ function generateDetailSections(config: WidgetConfig): DetailSection[] {
   // Related drill-down data
   const relatedSources = RELATED_SOURCES[source] || [];
   for (const relSource of relatedSources.slice(0, 2)) {
-    const { data: relData } = queryData(relSource);
+    const { data: relData } = queryDataSync(relSource);
     if (relData.length > 0) {
       const hasMonth = Object.keys(relData[0]).some(k => k.includes('month') || k.includes('date'));
       sections.push({
@@ -367,7 +367,7 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
   const [activeTab, setActiveTab] = useState<TabId>('insights');
   const sections = generateDetailSections(config);
   const source = config.dataConfig.source;
-  const { data: primaryData } = queryData(source, config.dataConfig.groupBy);
+  const { data: primaryData } = queryDataSync(source, config.dataConfig.groupBy);
 
   // Close on Escape
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

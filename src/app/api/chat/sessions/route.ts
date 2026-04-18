@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/db/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +55,5 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch chat sessions' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

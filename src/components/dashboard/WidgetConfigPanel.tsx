@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Settings2, Database, Palette, ChevronDown } from 'lucide-react';
+import { X, Settings2, Database, Palette, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { getAvailableSources } from '@/lib/data/sample-data';
-import type { WidgetConfig, WidgetType } from '@/types';
+import type { WidgetConfig, WidgetType, ThresholdConfig } from '@/types';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -491,7 +491,27 @@ function VisualTab({
   };
 
   const isTextBlock = widget.type === 'text_block';
+  const supportsThresholds = ['kpi_card', 'gauge', 'line_chart', 'bar_chart', 'area_chart'].includes(widget.type);
   const cs = vc.customStyles ?? {};
+
+  // Threshold management functions
+  const addThreshold = () => {
+    const thresholds = vc.thresholds || [];
+    const newThreshold = { value: 0, color: '#6baaff', label: 'Threshold' };
+    updateVisual({ thresholds: [...thresholds, newThreshold] });
+  };
+
+  const updateThreshold = (index: number, changes: Partial<ThresholdConfig>) => {
+    const thresholds = vc.thresholds || [];
+    const updated = thresholds.map((t, i) => i === index ? { ...t, ...changes } : t);
+    updateVisual({ thresholds: updated });
+  };
+
+  const removeThreshold = (index: number) => {
+    const thresholds = vc.thresholds || [];
+    const filtered = thresholds.filter((_, i) => i !== index);
+    updateVisual({ thresholds: filtered.length > 0 ? filtered : undefined });
+  };
 
   // Text block gets a specialized panel
   if (isTextBlock) {
@@ -686,6 +706,137 @@ function VisualTab({
           label="Animate"
         />
       </div>
+
+      {/* Thresholds Section */}
+      {supportsThresholds && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <FieldLabel>Thresholds</FieldLabel>
+            <button
+              onClick={addThreshold}
+              className="p-1 rounded-md hover:bg-[var(--bg-card)] transition-colors group"
+              title="Add threshold"
+            >
+              <Plus size={12} className="text-[var(--text-muted)] group-hover:text-accent-cyan" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {(vc.thresholds || []).map((threshold, index) => (
+              <ThresholdEditor
+                key={index}
+                threshold={threshold}
+                index={index}
+                onUpdate={(changes) => updateThreshold(index, changes)}
+                onRemove={() => removeThreshold(index)}
+              />
+            ))}
+            {(!vc.thresholds || vc.thresholds.length === 0) && (
+              <p className="text-[10px] text-[var(--text-muted)] text-center py-2">
+                No thresholds defined. Click + to add one.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+// ── Threshold Editor ─────────────────────────────────────────────────────────
+
+interface ThresholdEditorProps {
+  threshold: ThresholdConfig;
+  index: number;
+  onUpdate: (changes: Partial<ThresholdConfig>) => void;
+  onRemove: () => void;
+}
+
+function ThresholdEditor({ threshold, index, onUpdate, onRemove }: ThresholdEditorProps) {
+  const THRESHOLD_COLORS = [
+    { value: '#f47670', label: 'Red' },
+    { value: '#dba644', label: 'Amber' },
+    { value: '#56c47a', label: 'Green' },
+    { value: '#6baaff', label: 'Blue' },
+    { value: '#4dcec2', label: 'Cyan' },
+    { value: '#b48eff', label: 'Purple' },
+    { value: '#666666', label: 'Gray' },
+  ];
+
+  return (
+    <div className="p-3 rounded-lg bg-[var(--bg-card)]/50 border border-[var(--border-color)]/50 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-[var(--text-secondary)]">
+          Threshold {index + 1}
+        </span>
+        <button
+          onClick={onRemove}
+          className="p-1 rounded-md hover:bg-[var(--bg-primary)]/50 transition-colors group"
+          title="Remove threshold"
+        >
+          <Trash2 size={11} className="text-[var(--text-muted)] group-hover:text-red-400" />
+        </button>
+      </div>
+
+      {/* Value and Label Row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">
+            Value
+          </label>
+          <input
+            type="number"
+            value={threshold.value}
+            onChange={(e) => onUpdate({ value: parseFloat(e.target.value) || 0 })}
+            step="any"
+            className="w-full px-2 py-1.5 text-xs rounded-md bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-accent-cyan/50 transition-colors"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">
+            Label
+          </label>
+          <input
+            type="text"
+            value={threshold.label || ''}
+            onChange={(e) => onUpdate({ label: e.target.value || undefined })}
+            placeholder="Optional"
+            className="w-full px-2 py-1.5 text-xs rounded-md bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-accent-cyan/50 transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Color Picker */}
+      <div>
+        <label className="block text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
+          Color
+        </label>
+        <div className="flex gap-2 flex-wrap">
+          {THRESHOLD_COLORS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => onUpdate({ color: value })}
+              title={label}
+              className={`w-6 h-6 rounded-full border-2 transition-all ${
+                threshold.color === value
+                  ? 'border-white scale-110 shadow-lg'
+                  : 'border-transparent hover:border-white/30 hover:scale-105'
+              }`}
+              style={{ backgroundColor: value }}
+            />
+          ))}
+          {/* Custom color input */}
+          <div className="relative">
+            <input
+              type="color"
+              value={threshold.color}
+              onChange={(e) => onUpdate({ color: e.target.value })}
+              className="w-6 h-6 rounded-full border-2 border-transparent hover:border-white/30 cursor-pointer"
+              title="Custom color"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

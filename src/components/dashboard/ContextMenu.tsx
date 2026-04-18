@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Copy, Trash2, GripVertical, Maximize2, Minimize2,
   PlusCircle, BarChart3, Table2, Gauge, Type, Library, Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLongPress } from '@/hooks/useLongPress';
+import { isTouchDevice } from '@/lib/touch-utils';
 
 export interface ContextMenuAction {
   label: string;
@@ -13,6 +15,25 @@ export interface ContextMenuAction {
   onClick: () => void;
   variant?: 'default' | 'danger';
   separator?: boolean;
+}
+
+interface LongPressRingProps {
+  visible: boolean;
+  x: number;
+  y: number;
+}
+
+function LongPressRing({ visible, x, y }: LongPressRingProps) {
+  if (!visible) return null;
+
+  return (
+    <div
+      className="fixed pointer-events-none z-50"
+      style={{ left: x - 20, top: y - 20 }}
+    >
+      <div className="w-10 h-10 rounded-full border-2 border-accent-blue/60 animate-ping" />
+    </div>
+  );
 }
 
 interface ContextMenuProps {
@@ -42,11 +63,30 @@ export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
     };
   }, [onClose]);
 
-  // Clamp to viewport
+  // Position menu appropriately for touch vs mouse
+  const isTouch = isTouchDevice();
+  const menuWidth = 220;
+  const itemHeight = 36;
+  const menuHeight = actions.length * itemHeight + 16;
+
+  // Detect scrollbar width for edge positioning
+  // On Windows, scrollbars are visible and take up layout space
+  // On Mac/mobile, scrollbars are overlay and don't affect layout
+  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+  const rightEdgeBuffer = scrollbarWidth > 0 ? scrollbarWidth + 8 : 8;
+  const bottomEdgeBuffer = 8;
+
+  // For touch devices, position menu above the touch point to avoid finger occlusion
+  // For mouse, position at cursor location, accounting for scrollbar width
+  const adjustedX = Math.min(x, window.innerWidth - menuWidth - rightEdgeBuffer);
+  const adjustedY = isTouch
+    ? Math.max(8, y - menuHeight - 20) // Position above touch point
+    : Math.min(y, window.innerHeight - menuHeight - bottomEdgeBuffer); // Standard positioning
+
   const style: React.CSSProperties = {
     position: 'fixed',
-    left: Math.min(x, window.innerWidth - 220),
-    top: Math.min(y, window.innerHeight - actions.length * 36 - 16),
+    left: adjustedX,
+    top: adjustedY,
     zIndex: 100,
   };
 
@@ -106,4 +146,51 @@ export function getWidgetActions(callbacks: {
     { label: 'Drag to Reposition', icon: GripVertical, onClick: () => {}, separator: true },
     { label: 'Delete Widget', icon: Trash2, onClick: callbacks.delete, variant: 'danger', separator: true },
   ];
+}
+
+/**
+ * Hook to add long-press context menu support to any element
+ */
+export function useLongPressContextMenu() {
+  const [showRing, setShowRing] = useState(false);
+  const [ringPosition, setRingPosition] = useState({ x: 0, y: 0 });
+
+  const longPressProps = useLongPress({
+    threshold: 500,
+    onLongPress: (event) => {
+      // This will be overridden by the component using this hook
+    },
+    onLongPressStart: () => {
+      setShowRing(true);
+    },
+    onLongPressEnd: () => {
+      setShowRing(false);
+    },
+  });
+
+  const createLongPressHandler = (onContextMenu: (event: PointerEvent) => void) => ({
+    ...longPressProps,
+    onPointerDown: (e: React.PointerEvent) => {
+      setRingPosition({ x: e.clientX, y: e.clientY });
+
+      // Override the onLongPress in longPressProps
+      const modifiedProps = useLongPress({
+        threshold: 500,
+        onLongPress: onContextMenu,
+        onLongPressStart: () => setShowRing(true),
+        onLongPressEnd: () => setShowRing(false),
+      });
+
+      modifiedProps.onPointerDown(e);
+    },
+  });
+
+  const LongPressRingComponent = () => (
+    <LongPressRing visible={showRing} x={ringPosition.x} y={ringPosition.y} />
+  );
+
+  return {
+    createLongPressHandler,
+    LongPressRing: LongPressRingComponent,
+  };
 }

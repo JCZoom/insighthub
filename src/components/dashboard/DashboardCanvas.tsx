@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { WidgetRenderer } from './WidgetRenderer';
 import { WidgetErrorBoundary } from './WidgetErrorBoundary';
@@ -8,32 +8,42 @@ import { WidgetDetailOverlay } from './WidgetDetailOverlay';
 import { WidgetConfigPanel } from './WidgetConfigPanel';
 import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 import { ShareModal } from './ShareModal';
-import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
+import { ContextMenu, getCanvasActions, getWidgetActions, useLongPressContextMenu, type ContextMenuAction } from './ContextMenu';
 import { MetricExplanationModal } from './MetricExplanationModal';
 import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { createTouchDragHandler } from '@/hooks/useTouchDrag';
+import { useViewport } from '@/hooks/useViewport';
+import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
+import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG, exportToSVG } from '@/lib/export-utils';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
   isLibraryOpen?: boolean;
+  onToggleGlossary?: () => void;
+  isGlossaryOpen?: boolean;
+  onToggleChatDrawer?: () => void;
+  isChatDrawerOpen?: boolean;
 }
 
-export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
+export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen }: DashboardCanvasProps) {
   const {
-    schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
+    schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
   } = useDashboardStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { widgets, layout } = schema;
+  const viewport = useViewport();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const { toast } = useToast();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actions: ContextMenuAction[] } | null>(null);
@@ -62,12 +72,49 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [marqueeState, setMarqueeState] = useState<{
+    startX: number; startY: number;
+    currentX: number; currentY: number;
+    containerRect: DOMRect;
+  } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isTouch] = useState(() => isTouchDevice());
+  const [dragHoldState, setDragHoldState] = useState<{
+    widgetId: string;
+    isHolding: boolean;
+  } | null>(null);
+
+  // Track active event listeners for cleanup on unmount
+  const activeListenersRef = useRef<{
+    pointermove?: (event: PointerEvent) => void;
+    pointerup?: (event: PointerEvent) => void;
+  }>({});
 
   const router = useRouter();
+
+  // Long press context menu support
+  const { createLongPressHandler, LongPressRing } = useLongPressContextMenu();
+
+  // Cleanup event listeners on unmount
+  useEffect(() => {
+    return () => {
+      // Remove any remaining event listeners
+      if (activeListenersRef.current.pointermove) {
+        document.removeEventListener('pointermove', activeListenersRef.current.pointermove);
+      }
+      if (activeListenersRef.current.pointerup) {
+        document.removeEventListener('pointerup', activeListenersRef.current.pointerup);
+      }
+      // Reset body styles
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onSave: () => handleSave(),
+    onSaveAs: () => handleSaveAs(),
     onToggleHelp: () => setShowHelp(prev => !prev),
   });
 
@@ -216,7 +263,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         duplicate: () => duplicateWidget(widget.id),
         delete: () => removeWidget(widget.id),
         widen: () => {
-          const newW = Math.min(widget.position.w + 3, layout.columns - widget.position.x);
+          const newW = Math.min(widget.position.w + 3, viewport.gridColumns - widget.position.x);
           updateWidget(widget.id, { position: { ...widget.position, w: newW } });
         },
         narrow: () => {
@@ -227,51 +274,179 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     });
   };
 
-  // --- Drag-and-drop ---
-  const handleDragStart = (e: React.PointerEvent, widget: WidgetConfig) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragState({
-      widgetId: widget.id,
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: widget.position.x,
-      origY: widget.position.y,
-      ghostX: widget.position.x,
-      ghostY: widget.position.y,
-    });
+  // --- Marquee (lasso) multi-select with touch optimization ---
+  const handleMarqueeStart = (e: React.PointerEvent) => {
+    // For touch devices, require longer hold to distinguish from scroll
+    const isTouch = e.pointerType !== 'mouse';
+
+    // Only start marquee on primary pointer (left-click or first touch)
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Don't start if clicking on a widget or interactive element
+    if (target.closest('[data-widget-id]') || target.closest('button') || target.closest('a')) return;
+    // Only start on the container or grid background
+    if (!scrollContainerRef.current) return;
+
+    const containerRect = scrollContainerRef.current.getBoundingClientRect();
+    const startTime = Date.now();
+    const holdThreshold = isTouch ? 200 : 0; // Require short hold on touch to avoid conflict with scroll
+    let hasStartedMarquee = false;
+
+    const startMarquee = () => {
+      if (hasStartedMarquee) return;
+      hasStartedMarquee = true;
+      setMarqueeState({
+        startX: e.clientX,
+        startY: e.clientY,
+        currentX: e.clientX,
+        currentY: e.clientY,
+        containerRect,
+      });
+    };
+
+    // For mouse, start immediately
+    if (!isTouch) {
+      startMarquee();
+    }
 
     const handleMove = (me: PointerEvent) => {
-      if (!gridRef.current) return;
-      const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / layout.columns;
-      const cellH = layout.rowHeight + layout.gap;
-      const dx = me.clientX - e.clientX;
-      const dy = me.clientY - e.clientY;
-      const newX = Math.max(0, Math.min(layout.columns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
-      const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
-      setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
+      const timeSinceStart = Date.now() - startTime;
+      const dx = Math.abs(me.clientX - e.clientX);
+      const dy = Math.abs(me.clientY - e.clientY);
+      const movement = Math.sqrt(dx * dx + dy * dy);
+
+      // For touch, check if we should start marquee based on time and movement
+      if (isTouch && !hasStartedMarquee && timeSinceStart >= holdThreshold && movement < 20) {
+        startMarquee();
+      }
+
+      // If marquee has started, update it
+      if (hasStartedMarquee) {
+        setMarqueeState(prev => prev ? { ...prev, currentX: me.clientX, currentY: me.clientY } : null);
+      }
     };
 
-    const handleUp = (ue: PointerEvent) => {
+    const handleUp = () => {
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
-      if (!gridRef.current) { setDragState(null); return; }
-      const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / layout.columns;
-      const cellH = layout.rowHeight + layout.gap;
-      const dx = ue.clientX - e.clientX;
-      const dy = ue.clientY - e.clientY;
-      const newX = Math.max(0, Math.min(layout.columns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
-      const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
-      if (newX !== widget.position.x || newY !== widget.position.y) {
-        moveWidget(widget.id, newX, newY);
-      }
-      setDragState(null);
+      activeListenersRef.current.pointermove = undefined;
+      activeListenersRef.current.pointerup = undefined;
+
+      // Compute which widgets are inside the marquee
+      setMarqueeState(prev => {
+        if (!prev || !gridRef.current) return null;
+        const minX = Math.min(prev.startX, prev.currentX);
+        const maxX = Math.max(prev.startX, prev.currentX);
+        const minY = Math.min(prev.startY, prev.currentY);
+        const maxY = Math.max(prev.startY, prev.currentY);
+        // Only count as marquee if dragged at least 10px
+        if (maxX - minX < 10 && maxY - minY < 10) {
+          // This was a click, not a drag — deselect
+          selectWidget(null);
+          setConfigWidgetId(null);
+          return null;
+        }
+        const selected: string[] = [];
+        for (const w of widgets) {
+          const el = document.getElementById(`widget-${w.id}`);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          // Check overlap (not full containment — partial overlap selects)
+          if (rect.right > minX && rect.left < maxX && rect.bottom > minY && rect.top < maxY) {
+            selected.push(w.id);
+          }
+        }
+        if (selected.length > 0) {
+          selectWidgets(selected);
+        } else {
+          selectWidget(null);
+        }
+        return null;
+      });
     };
 
+    activeListenersRef.current.pointermove = handleMove;
+    activeListenersRef.current.pointerup = handleUp;
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
+  };
+
+  // --- Drag-and-drop (supports multi-selection) with touch optimization ---
+  const createDragHandler = (widget: WidgetConfig) => {
+    const isMultiDrag = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(widget.id);
+
+    return createTouchDragHandler({
+      holdThreshold: isTouch ? 300 : 0,
+      onHoldStart: () => {
+        setDragHoldState({ widgetId: widget.id, isHolding: true });
+        // Haptic feedback for hold start
+        if ('vibrate' in navigator) {
+          navigator.vibrate([20]);
+        }
+      },
+      onHoldEnd: () => {
+        setDragHoldState(null);
+      },
+      onDragStart: (e: PointerEvent) => {
+        setDragHoldState(null);
+        setDragState({
+          widgetId: widget.id,
+          startX: e.clientX,
+          startY: e.clientY,
+          origX: widget.position.x,
+          origY: widget.position.y,
+          ghostX: widget.position.x,
+          ghostY: widget.position.y,
+        });
+      },
+      onDragMove: (me: PointerEvent) => {
+        if (!gridRef.current || !dragState) return;
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const cellW = gridRect.width / viewport.gridColumns;
+        const cellH = layout.rowHeight + layout.gap;
+        const dx = me.clientX - dragState.startX;
+        const dy = me.clientY - dragState.startY;
+        const newX = Math.max(0, Math.min(viewport.gridColumns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
+        const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
+        setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
+      },
+      onDragEnd: (ue: PointerEvent) => {
+        if (!gridRef.current || !dragState) {
+          setDragState(null);
+          return;
+        }
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const cellW = gridRect.width / viewport.gridColumns;
+        const cellH = layout.rowHeight + layout.gap;
+        const dx = ue.clientX - dragState.startX;
+        const dy = ue.clientY - dragState.startY;
+        const deltaCol = Math.round(dx / cellW);
+        const deltaRow = Math.round(dy / cellH);
+
+        if (deltaCol !== 0 || deltaRow !== 0) {
+          if (isMultiDrag) {
+            // Move all selected widgets by the same delta
+            const store = useDashboardStore.getState();
+            const moves = selectedWidgetIds.map(id => {
+              const w = store.schema.widgets.find(wg => wg.id === id);
+              if (!w) return null;
+              return {
+                id,
+                x: Math.max(0, Math.min(viewport.gridColumns - w.position.w, w.position.x + deltaCol)),
+                y: Math.max(0, w.position.y + deltaRow),
+              };
+            }).filter((m): m is {id: string; x: number; y: number} => m !== null);
+            if (moves.length > 0) moveWidgets(moves);
+          } else {
+            const newX = Math.max(0, Math.min(viewport.gridColumns - widget.position.w, widget.position.x + deltaCol));
+            const newY = Math.max(0, widget.position.y + deltaRow);
+            moveWidget(widget.id, newX, newY);
+          }
+        }
+        setDragState(null);
+      },
+      enableMouseDrag: true,
+    });
   };
 
   // --- Enhanced resize with multiple directions ---
@@ -297,7 +472,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       };
 
       const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / layout.columns;
+      const cellW = gridRect.width / viewport.gridColumns;
       const cellH = layout.rowHeight + layout.gap;
 
       // Current widget bounds in pixels
@@ -314,11 +489,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       // Handle different resize directions
       switch (direction) {
         case 'se': // Southeast - resize width and height
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
           newH = Math.max(minH, Math.round((py - currentTop) / cellH));
           break;
         case 'e': // East - resize width only
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
           break;
         case 's': // South - resize height only
           newH = Math.max(minH, Math.round((py - currentTop) / cellH));
@@ -348,7 +523,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
           newY = Math.max(0, widget.position.y + widget.position.h - newH);
           break;
         case 'ne': // Northeast - resize width and height, move y
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
           const newHeightNE = Math.max(minH, Math.round((currentBottom - py) / cellH));
           newH = Math.min(newHeightNE, widget.position.y + widget.position.h);
           newY = Math.max(0, widget.position.y + widget.position.h - newH);
@@ -372,6 +547,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     const handleUp = (ue: PointerEvent) => {
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
+      // Clear from active listeners tracking
+      activeListenersRef.current.pointermove = undefined;
+      activeListenersRef.current.pointerup = undefined;
+
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
 
@@ -396,6 +575,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
 
     document.body.style.cursor = cursors[direction];
     document.body.style.userSelect = 'none';
+
+    // Track listeners for cleanup
+    activeListenersRef.current.pointermove = handleMove;
+    activeListenersRef.current.pointerup = handleUp;
+
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
   };
@@ -474,7 +658,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             onClick={undo}
             disabled={!canUndo}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title="Undo (⌘Z)"
+            title={`Undo ${formatShortcut(['mod', 'z'])}`}
           >
             <Undo2 size={16} className="text-[var(--text-secondary)]" />
           </button>
@@ -482,7 +666,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             onClick={redo}
             disabled={!canRedo}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title="Redo (⌘⇧Z)"
+            title={`Redo ${formatShortcut(['mod', 'shift', 'z'])}`}
           >
             <Redo2 size={16} className="text-[var(--text-secondary)]" />
           </button>
@@ -495,10 +679,24 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   ? 'bg-accent-purple/10 text-accent-purple'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
               }`}
-              title="Browse Widget Library"
+              title="Browse Widget Library (L)"
             >
               <Library size={14} />
-              <span className="hidden lg:inline">Widgets</span>
+              {!viewport.isToolbarCompact && <span>Widgets</span>}
+            </button>
+          )}
+          {onToggleGlossary && (
+            <button
+              onClick={onToggleGlossary}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                isGlossaryOpen
+                  ? 'bg-accent-purple/10 text-accent-purple'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
+              }`}
+              title="Glossary reference panel"
+            >
+              <BookOpen size={14} />
+              {!viewport.isToolbarCompact && <span>Glossary</span>}
             </button>
           )}
           <button
@@ -507,7 +705,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             title="Share dashboard"
           >
             <Share2 size={14} />
-            <span className="hidden lg:inline">Share</span>
+            {!viewport.isToolbarCompact && <span>Share</span>}
           </button>
           <div className="relative">
             <button
@@ -516,7 +714,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               title="Export dashboard"
             >
               <Download size={14} />
-              <span className="hidden lg:inline">Export</span>
+              {!viewport.isToolbarCompact && <span>Export</span>}
             </button>
             {showExportMenu && (
               <>
@@ -541,7 +739,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
-            title="Keyboard shortcuts (?)"
+            title={`Keyboard shortcuts (?) • ${formatShortcut(['mod', 'k'])} palette`}
           >
             <Keyboard size={14} className="text-[var(--text-muted)]" />
           </button>
@@ -550,13 +748,14 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               onClick={handleSave}
               disabled={saveStatus === 'saving'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
+              title={`Save dashboard ${formatShortcut(['mod', 's'])}`}
             >
               {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
-              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+              {!viewport.isToolbarCompact && (saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save')}
             </button>
             <button
               onClick={() => setShowSaveMenu(prev => !prev)}
-              className="flex items-center px-1.5 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
+              className="flex items-center px-2 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
               title="Save options"
             >
               <ChevronDown size={12} />
@@ -568,6 +767,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   <button
                     onClick={handleSaveAs}
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
+                    title={`Save as new dashboard ${formatShortcut(['mod', 'shift', 's'])}`}
                   >
                     <Copy size={12} /> Save As…
                   </button>
@@ -586,15 +786,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
 
       {/* Widget grid */}
       <div
+        ref={scrollContainerRef}
         className="flex-1 overflow-auto p-4 relative"
-        onContextMenu={handleCanvasContextMenu}
-        onClick={(e) => {
-          // Click on empty canvas deselects
-          if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-grid]')) {
-            selectWidget(null);
-            setConfigWidgetId(null);
-          }
-        }}
+        onContextMenu={viewport.isViewOnly ? (e) => e.preventDefault() : handleCanvasContextMenu}
+        onPointerDown={viewport.isViewOnly ? undefined : handleMarqueeStart}
       >
         {/* AI working shimmer overlay */}
         {isAiWorking && (
@@ -627,14 +822,35 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             id="dashboard-grid"
             className="grid gap-4"
             style={{
-              gridTemplateColumns: `repeat(${layout.columns}, 1fr)`,
+              gridTemplateColumns: `repeat(${viewport.gridColumns}, 1fr)`,
               gridAutoRows: `${layout.rowHeight}px`,
             }}
           >
-            {/* Drag ghost outline */}
+            {/* Drag ghost outline(s) — shows destination for all selected widgets during multi-drag */}
             {dragState && (() => {
               const draggedWidget = widgets.find(w => w.id === dragState.widgetId);
               if (!draggedWidget) return null;
+              const deltaCol = dragState.ghostX - draggedWidget.position.x;
+              const deltaRow = dragState.ghostY - draggedWidget.position.y;
+              const isMulti = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(dragState.widgetId);
+              if (isMulti) {
+                return selectedWidgetIds.map(id => {
+                  const w = widgets.find(wg => wg.id === id);
+                  if (!w) return null;
+                  const ghostX = Math.max(0, Math.min(viewport.gridColumns - w.position.w, w.position.x + deltaCol));
+                  const ghostY = Math.max(0, w.position.y + deltaRow);
+                  return (
+                    <div
+                      key={`ghost-${id}`}
+                      style={{
+                        gridColumn: `${ghostX + 1} / span ${w.position.w}`,
+                        gridRow: `${ghostY + 1} / span ${w.position.h}`,
+                      }}
+                      className="rounded-xl border-2 border-dashed border-accent-blue/50 bg-accent-blue/5 pointer-events-none transition-all duration-100"
+                    />
+                  );
+                });
+              }
               return (
                 <div
                   style={{
@@ -646,68 +862,135 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               );
             })()}
 
-            {widgets.map((widget: WidgetConfig) => (
+            {widgets.map((widget: WidgetConfig) => {
+              const isSelected = selectedWidgetIds.includes(widget.id);
+              const isMultiSelected = isSelected && selectedWidgetIds.length > 1;
+              const isDragging = dragState?.widgetId === widget.id;
+              const isMultiDragging = isDragging && selectedWidgetIds.length > 1 && isSelected;
+              const isResizing = resizeState?.widgetId === widget.id;
+              return (
               <div
                 key={widget.id}
                 id={`widget-${widget.id}`}
-                onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); }}
-                onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
-                onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
+                data-widget-id={widget.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!viewport.isViewOnly) {
+                    if (e.shiftKey || e.metaKey) {
+                      toggleSelection(widget.id);
+                    } else {
+                      selectWidget(widget.id);
+                    }
+                  }
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  if (!viewport.isViewOnly) {
+                    selectWidget(widget.id);
+                    setConfigWidgetId(widget.id);
+                  }
+                }}
+                onContextMenu={(e) => {
+                  if (!viewport.isViewOnly) {
+                    handleWidgetContextMenu(e, widget);
+                  } else {
+                    e.preventDefault();
+                  }
+                }}
                 style={{
-                  gridColumn: `${(resizeState?.widgetId === widget.id ? resizeState.previewX : widget.position.x) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
-                  gridRow: `${(resizeState?.widgetId === widget.id ? resizeState.previewY : widget.position.y) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewH : widget.position.h}`,
+                  gridColumn: `${(isResizing ? resizeState.previewX : widget.position.x) + 1} / span ${isResizing ? resizeState.previewW : widget.position.w}`,
+                  gridRow: `${(isResizing ? resizeState.previewY : widget.position.y) + 1} / span ${isResizing ? resizeState.previewH : widget.position.h}`,
                 }}
                 className={`min-h-0 relative group transition-shadow ${
-                  dragState?.widgetId === widget.id ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
-                }${resizeState?.widgetId === widget.id ? ' ring-2 ring-accent-purple rounded-xl' : ''
-                }${selectedWidgetId === widget.id && !dragState && !resizeState ? ' ring-2 ring-accent-cyan rounded-xl' : ''}`}
+                  isDragging ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
+                }${isMultiDragging ? '' : ''}${
+                  isResizing ? ' ring-2 ring-accent-purple rounded-xl' : ''
+                }${isSelected && !isDragging && !isResizing ? (isMultiSelected ? ' ring-2 ring-accent-blue rounded-xl' : ' ring-2 ring-accent-cyan rounded-xl') : ''
+                }${isMultiDragging === false && isSelected && selectedWidgetIds.length > 1 && dragState && !isDragging ? ' opacity-60 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''}`}
               >
-                {/* Drag handle */}
-                <div
-                  onPointerDown={(e) => handleDragStart(e, widget)}
-                  className="absolute top-1 left-1 z-10 p-1 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
-                  title="Drag to reposition"
-                >
-                  <GripVertical size={12} className="text-[var(--text-muted)]" />
-                </div>
-                {/* Download/export button (top-right, fourth) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
-                  className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
-                  title="Export widget as PNG"
-                >
-                  <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
-                </button>
-                {/* Info/Explain button (top-right, third) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
-                  className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
-                  title="Explain this metric"
-                >
-                  <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
-                </button>
-                {/* Edit config button (top-right, second) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
-                  className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
-                  title="Edit widget config"
-                >
-                  <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
-                </button>
-                {/* Delete button (top-right) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
-                  className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
-                  title={`Delete ${widget.title}`}
-                >
-                  <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
-                </button>
-                {/* Enhanced resize handles (all edges and corners) */}
-                <ResizeHandles
-                  widget={widget}
-                  isActive={resizeState?.widgetId === widget.id}
-                  onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
-                />
+                {/* Drag handle - larger and more accessible for touch (hidden in view-only mode) */}
+                {!viewport.isViewOnly && (
+                  <div
+                    {...createDragHandler(widget)}
+                    {...createLongPressHandler((e: PointerEvent) => {
+                      handleWidgetContextMenu(
+                        { clientX: e.clientX, clientY: e.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
+                        widget
+                      );
+                    })}
+                    className={cn(
+                      "absolute top-1 left-1 z-10 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] cursor-grab active:cursor-grabbing transition-all",
+                      isTouch
+                        ? "p-2 opacity-80" // Always visible and larger on touch
+                        : "p-1 opacity-0 group-hover:opacity-100", // Hover behavior on desktop
+                      dragHoldState?.widgetId === widget.id && dragHoldState.isHolding
+                        ? "scale-110 bg-accent-blue/20 border-accent-blue/40"
+                        : ""
+                    )}
+                    style={{
+                      minWidth: isTouch ? getTouchTargetSize() + 'px' : 'auto',
+                      minHeight: isTouch ? getTouchTargetSize() + 'px' : 'auto',
+                    }}
+                    title={isTouch ? "Drag to reposition • Long press for menu" : "Drag to reposition"}
+                  >
+                    <GripVertical size={isTouch ? 16 : 12} className="text-[var(--text-muted)]" />
+                  </div>
+                )}
+                {/* Glossary terms badge */}
+                {widget.glossaryTermIds && widget.glossaryTermIds.length > 0 && (
+                  <div
+                    className="absolute bottom-1 left-1 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent-purple/10 border border-accent-purple/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title={`${widget.glossaryTermIds.length} glossary term${widget.glossaryTermIds.length !== 1 ? 's' : ''} linked`}
+                  >
+                    <BookOpen size={9} className="text-accent-purple" />
+                    <span className="text-[9px] font-medium text-accent-purple">{widget.glossaryTermIds.length}</span>
+                  </div>
+                )}
+                {/* Action buttons - hidden in view-only mode */}
+                {!viewport.isViewOnly && (
+                  <>
+                    {/* Download/export button (top-right, fourth) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
+                      className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
+                      title="Export widget as PNG"
+                    >
+                      <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
+                    </button>
+                    {/* Info/Explain button (top-right, third) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
+                      className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
+                      title="Explain this metric"
+                    >
+                      <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
+                    </button>
+                    {/* Edit config button (top-right, second) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
+                      className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
+                      title="Edit widget config"
+                    >
+                      <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
+                    </button>
+                    {/* Delete button (top-right) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
+                      className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
+                      title={`Delete ${widget.title} (Del)`}
+                    >
+                      <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
+                    </button>
+                  </>
+                )}
+                {/* Enhanced resize handles (all edges and corners) - hidden in view-only mode */}
+                {!viewport.isViewOnly && (
+                  <ResizeHandles
+                    widget={widget}
+                    isActive={resizeState?.widgetId === widget.id}
+                    onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
+                  />
+                )}
                 <WidgetErrorBoundary
                   key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
                   widgetTitle={widget.title}
@@ -720,7 +1003,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   />
                 </WidgetErrorBoundary>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -737,6 +1021,44 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         {/* Widget detail overlay */}
         {detailWidget && (
           <WidgetDetailOverlay config={detailWidget} onClose={() => setDetailWidget(null)} />
+        )}
+
+        {/* Marquee selection rectangle */}
+        {marqueeState && (() => {
+          const left = Math.min(marqueeState.startX, marqueeState.currentX) - marqueeState.containerRect.left;
+          const top = Math.min(marqueeState.startY, marqueeState.currentY) - marqueeState.containerRect.top + (scrollContainerRef.current?.scrollTop || 0);
+          const width = Math.abs(marqueeState.currentX - marqueeState.startX);
+          const height = Math.abs(marqueeState.currentY - marqueeState.startY);
+          if (width < 5 && height < 5) return null;
+          return (
+            <div
+              className="absolute border-2 border-accent-blue/60 bg-accent-blue/10 rounded-sm pointer-events-none z-40"
+              style={{ left, top, width, height }}
+            />
+          );
+        })()}
+
+        {/* Multi-selection count badge */}
+        {selectedWidgetIds.length > 1 && !dragState && (
+          <div className="absolute top-2 left-2 z-40 px-2 py-1 rounded-lg bg-accent-blue/90 text-white text-xs font-medium shadow-lg pointer-events-none">
+            {selectedWidgetIds.length} widgets selected
+          </div>
+        )}
+
+        {/* Long press ring indicator */}
+        <LongPressRing />
+
+        {/* Floating chat toggle button for tablet/mobile */}
+        {viewport.isChatDrawer && onToggleChatDrawer && (
+          <button
+            onClick={onToggleChatDrawer}
+            className="fixed bottom-6 right-6 z-30 p-3 rounded-full bg-accent-blue text-white shadow-lg hover:bg-accent-blue/90 transition-colors"
+            title="Toggle Chat"
+          >
+            <MessageCircle size={20} />
+            {/* Notification badge for new messages - could be expanded later */}
+            {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent-red rounded-full" /> */}
+          </button>
         )}
 
       </div>

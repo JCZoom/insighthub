@@ -39,6 +39,7 @@ interface DashboardState {
   isSaving: boolean;
   isAiWorking: boolean;
   selectedWidgetId: string | null;
+  selectedWidgetIds: string[];
 
   // Undo/redo
   history: HistoryEntry[];
@@ -58,6 +59,10 @@ interface DashboardState {
   setTitle: (title: string) => void;
   setAiWorking: (working: boolean) => void;
   selectWidget: (id: string | null) => void;
+  selectWidgets: (ids: string[]) => void;
+  toggleSelection: (id: string) => void;
+  moveWidgets: (moves: Array<{id: string; x: number; y: number}>) => void;
+  removeWidgets: (ids: string[]) => void;
   jumpToHistory: (index: number) => void;
   undo: () => void;
   redo: () => void;
@@ -78,6 +83,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   isSaving: false,
   isAiWorking: false,
   selectedWidgetId: null,
+  selectedWidgetIds: [],
   history: [{ schema: EMPTY_DASHBOARD_SCHEMA, note: 'Initial state', timestamp: new Date() }],
   historyIndex: 0,
   canUndo: false,
@@ -208,7 +214,39 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   setAiWorking: (working) => set({ isAiWorking: working }),
 
-  selectWidget: (id) => set({ selectedWidgetId: id }),
+  selectWidget: (id) => set({ selectedWidgetId: id, selectedWidgetIds: id ? [id] : [] }),
+
+  selectWidgets: (ids) => set({ selectedWidgetIds: ids, selectedWidgetId: ids[0] || null }),
+
+  toggleSelection: (id) => {
+    const { selectedWidgetIds } = get();
+    const next = selectedWidgetIds.includes(id)
+      ? selectedWidgetIds.filter(wid => wid !== id)
+      : [...selectedWidgetIds, id];
+    set({ selectedWidgetIds: next, selectedWidgetId: next[0] || null });
+  },
+
+  moveWidgets: (moves) => {
+    const { schema, history, historyIndex } = get();
+    const moveMap = new Map(moves.map(m => [m.id, m]));
+    const newSchema = {
+      ...schema,
+      widgets: schema.widgets.map(w => {
+        const move = moveMap.get(w.id);
+        return move ? { ...w, position: { ...w.position, x: move.x, y: move.y } } : w;
+      }),
+    };
+    const next = pushHistory(history, historyIndex, { schema: newSchema, note: `Moved ${moves.length} widgets`, timestamp: new Date() });
+    set({ schema: newSchema, isDirty: true, ...next, canUndo: next.historyIndex > 0, canRedo: false });
+  },
+
+  removeWidgets: (ids) => {
+    const { schema, history, historyIndex } = get();
+    const idSet = new Set(ids);
+    const newSchema = { ...schema, widgets: schema.widgets.filter(w => !idSet.has(w.id)) };
+    const next = pushHistory(history, historyIndex, { schema: newSchema, note: `Removed ${ids.length} widgets`, timestamp: new Date() });
+    set({ schema: newSchema, isDirty: true, selectedWidgetId: null, selectedWidgetIds: [], ...next, canUndo: next.historyIndex > 0, canRedo: false });
+  },
 
   jumpToHistory: (index) => {
     const { history } = get();
@@ -257,6 +295,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     isDirty: false,
     isSaving: false,
     selectedWidgetId: null,
+    selectedWidgetIds: [],
     history: [{ schema: EMPTY_DASHBOARD_SCHEMA, note: 'Initial state', timestamp: new Date() }],
     historyIndex: 0,
     canUndo: false,

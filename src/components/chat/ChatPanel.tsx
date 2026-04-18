@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic } from 'lucide-react';
+import { handleVirtualKeyboard, isMobileDevice } from '@/lib/touch-utils';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
 
 // --- Rotating status messages while AI is working ---
@@ -81,7 +83,11 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const hasLoadedHistoryRef = useRef(false);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isMobile] = useState(() => isMobileDevice());
 
   // Speech-to-text
   const onSpeechResult = useCallback((transcript: string) => {
@@ -94,6 +100,28 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError, audioStream } = useSpeechToText({
     onResult: onSpeechResult,
   });
+
+  // Virtual keyboard handling for mobile devices
+  useEffect(() => {
+    if (!isMobile || !inputContainerRef.current) return;
+
+    const cleanup = handleVirtualKeyboard(
+      inputContainerRef.current,
+      (height, isVisible) => {
+        setKeyboardHeight(isVisible ? height : 0);
+
+        // Ensure input stays visible when keyboard appears
+        if (isVisible && inputRef.current) {
+          // Small delay to let the keyboard animation settle
+          setTimeout(() => {
+            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 150);
+        }
+      }
+    );
+
+    return cleanup || undefined;
+  }, [isMobile]);
 
   // Cmd+Shift+M global shortcut for mic
   useEffect(() => {
@@ -113,9 +141,10 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
   // Load existing chat session if dashboardId is available
   useEffect(() => {
-    if (!dashboardId || isLoadingHistory) return;
+    if (!dashboardId || hasLoadedHistoryRef.current || isLoadingHistory) return;
 
     const loadChatHistory = async () => {
+      hasLoadedHistoryRef.current = true;
       setIsLoadingHistory(true);
       try {
         // Try to find existing session for this dashboard
@@ -157,15 +186,15 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     };
 
     loadChatHistory();
-  }, [dashboardId, isLoadingHistory]);
+  }, [dashboardId]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading || streamingState.isStreaming) return;
 
-    // Clean up any existing EventSource
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+    // Clean up any existing abort controller
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
 
     const userMessage: ChatMessageUI = {
@@ -196,198 +225,204 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         .slice(-10)
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-      // Create EventSource with POST data as query parameters for streaming
-      const searchParams = new URLSearchParams({
-        message: text,
-        currentSchema: JSON.stringify(schema),
-        conversationHistory: JSON.stringify(recentMessages),
-        sessionId: sessionId || '',
-        dashboardId: dashboardId || '',
-        stream: 'true'
+      // Use fetch with POST to avoid URL length limits and security issues
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          currentSchema: schema,
+          conversationHistory: recentMessages,
+          sessionId: sessionId || undefined,
+          dashboardId: dashboardId || undefined,
+          stream: true
+        }),
+        signal: abortController.signal
       });
 
-      const eventSource = new EventSource(`/api/chat?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
-      eventSourceRef.current = eventSource;
+      if (!response.body) {
+        throw new Error('No response body received');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
 
       let allPatches: SchemaPatch[] = [];
       let finalQuickActions: QuickAction[] = [];
       let finalExplanation = '';
 
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('SSE message:', event.type, data); // Debug log
-        } catch (error) {
-          console.error('Failed to parse SSE data:', error);
-        }
-      };
+      // Process server-sent events from the readable stream
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
 
-      // Handle progress events
-      eventSource.addEventListener('progress', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          setStreamingState(prev => ({
-            ...prev,
-            progress: data.progress || 0,
-            message: data.message || 'Processing...'
-          }));
-        } catch (error) {
-          console.error('Failed to parse progress data:', error);
-        }
-      });
+        if (done) break;
 
-      // Handle patch events (progressive widget updates)
-      eventSource.addEventListener('patch', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const patch = data.patch;
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
 
-          if (patch) {
-            allPatches.push(patch);
-            // Apply patch immediately for real-time updates
-            const changeSummary = `AI: Progressive update ${data.index + 1}/${data.total}`;
-            applyPatch([patch], changeSummary);
+        // Look for complete SSE events
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || ''; // Keep incomplete event in buffer
 
-            setStreamingState(prev => ({
-              ...prev,
-              currentPatches: [...prev.currentPatches, patch],
-              progress: data.progress || prev.progress
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to parse patch data:', error);
-        }
-      });
+        for (const eventBlock of events) {
+          if (!eventBlock.trim()) continue;
 
-      // Handle explanation event
-      eventSource.addEventListener('explanation', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          finalExplanation = data.explanation || '';
-          finalQuickActions = data.quickActions || [];
+          const eventLines = eventBlock.split('\n');
+          let eventType = 'message';
+          let eventData = '';
 
-          setStreamingState(prev => ({
-            ...prev,
-            explanation: finalExplanation,
-            currentQuickActions: finalQuickActions,
-            progress: data.progress || 100
-          }));
-        } catch (error) {
-          console.error('Failed to parse explanation data:', error);
-        }
-      });
-
-      // Handle completion
-      eventSource.addEventListener('complete', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          // Update session ID if returned
-          if (data.sessionId && !sessionId) {
-            setSessionId(data.sessionId);
+          for (const line of eventLines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7);
+            } else if (line.startsWith('data: ')) {
+              eventData = line.slice(6);
+            }
           }
 
-          // Auto-save version for significant AI changes (if dashboard exists)
-          if (dashboardId && allPatches.length > 0 && shouldAutoSavePatches(allPatches)) {
-            setTimeout(async () => {
-              try {
-                const currentSchema = useDashboardStore.getState().schema;
-                const changeSummary = generateChangeSummary(allPatches, finalExplanation);
-                await fetch(`/api/dashboards/${dashboardId}/versions`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    schema: currentSchema,
-                    changeNote: `AI: ${changeSummary}`
-                  }),
-                });
-              } catch (error) {
-                console.warn('Auto-save failed:', error);
-              }
-            }, 100);
+          if (!eventData) continue;
+
+          try {
+            const data = JSON.parse(eventData);
+
+            // Handle different event types
+            switch (eventType) {
+              case 'progress':
+                setStreamingState(prev => ({
+                  ...prev,
+                  progress: data.progress || 0,
+                  message: data.message || 'Processing...'
+                }));
+                break;
+
+              case 'token':
+                setStreamingState(prev => ({
+                  ...prev,
+                  explanation: prev.explanation + (data.text || ''),
+                  progress: data.progress || prev.progress,
+                  message: 'Streaming response...'
+                }));
+                break;
+
+              case 'patch':
+                const patch = data.patch;
+                if (patch) {
+                  allPatches.push(patch);
+                  // Apply patch immediately for real-time updates
+                  const changeSummary = `AI: Progressive update ${data.index + 1}/${data.total}`;
+                  applyPatch([patch], changeSummary);
+
+                  setStreamingState(prev => ({
+                    ...prev,
+                    currentPatches: [...prev.currentPatches, patch],
+                    progress: data.progress || prev.progress
+                  }));
+                }
+                break;
+
+              case 'explanation':
+                finalExplanation = data.explanation || '';
+                finalQuickActions = data.quickActions || [];
+
+                setStreamingState(prev => ({
+                  ...prev,
+                  explanation: finalExplanation,
+                  currentQuickActions: finalQuickActions,
+                  progress: data.progress || 100
+                }));
+                break;
+
+              case 'complete':
+                // Update session ID if returned
+                if (data.sessionId && !sessionId) {
+                  setSessionId(data.sessionId);
+                }
+
+                // Auto-save version for significant AI changes (if dashboard exists)
+                if (dashboardId && allPatches.length > 0 && shouldAutoSavePatches(allPatches)) {
+                  // Capture schema from store state (not closure) to get post-patch version
+                  const schemaToSave = useDashboardStore.getState().schema;
+                  setTimeout(async () => {
+                    try {
+                      const changeSummary = generateChangeSummary(allPatches, finalExplanation);
+                      await fetch(`/api/dashboards/${dashboardId}/versions`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          schema: schemaToSave,
+                          changeNote: `AI: ${changeSummary}`
+                        }),
+                      });
+                    } catch (error) {
+                      console.warn('Auto-save failed:', error);
+                    }
+                  }, 100);
+                }
+
+                // Add final assistant message
+                const assistantMessage: ChatMessageUI = {
+                  id: `assistant-${Date.now()}`,
+                  role: 'assistant',
+                  content: finalExplanation || 'Done!',
+                  schemaPatches: allPatches,
+                  quickActions: finalQuickActions,
+                  createdAt: new Date(),
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+
+                // Clean up
+                abortControllerRef.current = null;
+                setIsLoading(false);
+                setAiWorking(false);
+                setStreamingState(prev => ({ ...prev, isStreaming: false }));
+                return; // Exit the loop on completion
+
+              case 'error':
+                const rawMsg = data.error || 'An unexpected error occurred.';
+
+                // Provide actionable guidance based on the error type
+                const isApiKeyMissing = rawMsg.includes('ANTHROPIC_API_KEY');
+                const guidance = isApiKeyMissing
+                  ? 'To fix this, add your Anthropic API key to the .env.local file and restart the dev server.'
+                  : 'You can try rephrasing your request, or check the browser console for details.';
+
+                const errorMessage: ChatMessageUI = {
+                  id: `error-${Date.now()}`,
+                  role: 'assistant',
+                  content: `**Something went wrong:** ${rawMsg}\n\n${guidance}`,
+                  createdAt: new Date(),
+                };
+                setMessages(prev => [...prev, errorMessage]);
+
+                // Clean up
+                abortControllerRef.current = null;
+                setIsLoading(false);
+                setAiWorking(false);
+                setStreamingState(prev => ({ ...prev, isStreaming: false }));
+                return; // Exit the loop on error
+            }
+          } catch (parseError) {
+            console.error('Failed to parse event data:', parseError);
           }
-
-          // Add final assistant message
-          const assistantMessage: ChatMessageUI = {
-            id: `assistant-${Date.now()}`,
-            role: 'assistant',
-            content: finalExplanation || 'Done!',
-            schemaPatches: allPatches,
-            quickActions: finalQuickActions,
-            createdAt: new Date(),
-          };
-          setMessages(prev => [...prev, assistantMessage]);
-
-          // Clean up
-          eventSource.close();
-          eventSourceRef.current = null;
-          setIsLoading(false);
-          setAiWorking(false);
-          setStreamingState(prev => ({ ...prev, isStreaming: false }));
-        } catch (error) {
-          console.error('Failed to parse completion data:', error);
         }
-      });
-
-      // Handle errors
-      eventSource.addEventListener('error', (event) => {
-        try {
-          const data = JSON.parse((event as MessageEvent).data);
-          const rawMsg = data.error || 'An unexpected error occurred.';
-
-          // Provide actionable guidance based on the error type
-          const isApiKeyMissing = rawMsg.includes('ANTHROPIC_API_KEY');
-          const guidance = isApiKeyMissing
-            ? 'To fix this, add your Anthropic API key to the .env.local file and restart the dev server.'
-            : 'You can try rephrasing your request, or check the browser console for details.';
-
-          const errorMessage: ChatMessageUI = {
-            id: `error-${Date.now()}`,
-            role: 'assistant',
-            content: `**Something went wrong:** ${rawMsg}\n\n${guidance}`,
-            createdAt: new Date(),
-          };
-          setMessages(prev => [...prev, errorMessage]);
-        } catch (parseError) {
-          // Fallback for unparseable errors
-          const errorMessage: ChatMessageUI = {
-            id: `error-${Date.now()}`,
-            role: 'assistant',
-            content: '**Something went wrong:** Connection error. Please try again.',
-            createdAt: new Date(),
-          };
-          setMessages(prev => [...prev, errorMessage]);
-        }
-
-        // Clean up
-        eventSource.close();
-        eventSourceRef.current = null;
-        setIsLoading(false);
-        setAiWorking(false);
-        setStreamingState(prev => ({ ...prev, isStreaming: false }));
-      });
-
-      // Handle connection errors
-      eventSource.onerror = () => {
-        console.error('EventSource connection error');
-        const errorMessage: ChatMessageUI = {
-          id: `error-${Date.now()}`,
-          role: 'assistant',
-          content: '**Connection error:** The stream disconnected. Please try again.',
-          createdAt: new Date(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
-
-        // Clean up
-        eventSource.close();
-        eventSourceRef.current = null;
-        setIsLoading(false);
-        setAiWorking(false);
-        setStreamingState(prev => ({ ...prev, isStreaming: false }));
-      };
+      }
 
     } catch (error) {
+      // Handle abort errors gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request was aborted');
+        return;
+      }
+
       const rawMsg = error instanceof Error ? error.message : 'An unexpected error occurred.';
 
       // Provide actionable guidance based on the error type
@@ -404,17 +439,19 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       };
       setMessages(prev => [...prev, errorMessage]);
 
+      // Clean up
+      abortControllerRef.current = null;
       setIsLoading(false);
       setAiWorking(false);
       setStreamingState(prev => ({ ...prev, isStreaming: false }));
     }
   };
 
-  // Clean up EventSource on unmount
+  // Clean up AbortController on unmount
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, []);
@@ -531,7 +568,13 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-[var(--border-color)]">
+      <div
+        ref={inputContainerRef}
+        className="p-3 border-t border-[var(--border-color)]"
+        style={{
+          paddingBottom: isMobile && keyboardHeight > 0 ? '20px' : '12px',
+        }}
+      >
         <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2">
           <textarea
             ref={inputRef}
@@ -553,7 +596,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                   ? 'bg-accent-red/15 text-accent-red'
                   : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
               )}
-              title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+              title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
             >
               <Mic size={14} />
               {isListening && (
@@ -599,7 +642,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           </p>
         )}
         <p className="text-[10px] text-[var(--text-muted)] mt-1.5 text-center">
-          Enter to send · Shift+Enter new line{micSupported ? ' · ⇧⌘M voice' : ''}
+          Enter to send · Shift+Enter new line{micSupported ? ` · ${formatShortcut(['shift', 'mod', 'm'])} voice` : ''}
         </p>
       </div>
     </div>

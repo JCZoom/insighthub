@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus } from 'lucide-react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // Use fixed dates to avoid SSR/client hydration mismatches (Date.now() differs between server and client)
 const INITIAL_DASHBOARDS: DashboardCardData[] = [
@@ -82,14 +83,137 @@ function sortDashboards(items: DashboardCardData[], mode: SortMode): DashboardCa
   });
 }
 
+const FAVORITES_KEY = 'insighthub-favorites';
+const RECENT_KEY = 'insighthub-recently-viewed';
+const MAX_RECENT = 8;
+
+function getRecentlyViewedIds(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  } catch { return []; }
+}
+
+export function trackRecentlyViewed(id: string) {
+  try {
+    const ids = getRecentlyViewedIds().filter(r => r !== id);
+    ids.unshift(id);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, MAX_RECENT)));
+  } catch {}
+}
+
+function loadFavoriteIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveFavoriteIds(ids: Set<string>) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...ids]));
+}
+
+function applyFavorites(items: DashboardCardData[], favIds: Set<string>): DashboardCardData[] {
+  return items.map(d => ({ ...d, isFavorite: favIds.has(d.id) }));
+}
+
 export function GalleryPage() {
-  const [dashboards, setDashboards] = useState<DashboardCardData[]>(INITIAL_DASHBOARDS);
+  const [dashboards, setDashboards] = useState<DashboardCardData[]>(() => {
+    if (typeof window === 'undefined') return INITIAL_DASHBOARDS;
+    return applyFavorites(INITIAL_DASHBOARDS, loadFavoriteIds());
+  });
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [showSort, setShowSort] = useState(false);
+  const [favoritesCollapsed, setFavoritesCollapsed] = useState(false);
+  const [recentCollapsed, setRecentCollapsed] = useState(false);
+  const [allCollapsed, setAllCollapsed] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterOwner, setFilterOwner] = useState<string>('');
+  const [filterDepartment, setFilterDepartment] = useState<string>('');
+  const [filterTag, setFilterTag] = useState<string>('');
+  const [filterDateRange, setFilterDateRange] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const { toast } = useToast();
+
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
+  const galleryRouter = useRouter();
+
+  const hasActiveFilters = filterOwner || filterDepartment || filterTag || filterDateRange !== 'all';
+
+  // Gallery keyboard shortcuts: Alt+arrows for tabs, j/k to nav, Enter to open, n for new, Esc to deselect, 1-5 for tabs
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // Alt+Arrow Left/Right to cycle tabs
+      if (e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          if (isInput) return;
+          e.preventDefault();
+          const ids = TABS.map(t => t.id);
+          setActiveTab(prev => {
+            const idx = ids.indexOf(prev);
+            if (e.key === 'ArrowRight') return ids[(idx + 1) % ids.length];
+            return ids[(idx - 1 + ids.length) % ids.length];
+          });
+          setSelectedCardIndex(-1);
+          return;
+        }
+      }
+
+      // Skip all below if in input
+      if (isInput) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+
+      // 1-5: switch tabs
+      const tabIdx = parseInt(e.key) - 1;
+      if (tabIdx >= 0 && tabIdx < TABS.length) {
+        e.preventDefault();
+        setActiveTab(TABS[tabIdx].id);
+        setSelectedCardIndex(-1);
+        return;
+      }
+
+      // j / ArrowDown: next card
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedCardIndex(prev => Math.min(prev + 1, filteredRef.current.length - 1));
+        return;
+      }
+
+      // k / ArrowUp: previous card
+      if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedCardIndex(prev => Math.max(prev - 1, -1));
+        return;
+      }
+
+      // Enter: open selected card
+      if (e.key === 'Enter' && selectedCardIndex >= 0 && selectedCardIndex < filteredRef.current.length) {
+        e.preventDefault();
+        galleryRouter.push(`/dashboard/${filteredRef.current[selectedCardIndex].id}`);
+        return;
+      }
+
+      // n: new dashboard
+      if (e.key === 'n') {
+        e.preventDefault();
+        galleryRouter.push('/dashboard/new');
+        return;
+      }
+
+      // Escape: deselect
+      if (e.key === 'Escape') {
+        setSelectedCardIndex(-1);
+        return;
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [selectedCardIndex, galleryRouter]);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -106,6 +230,10 @@ export function GalleryPage() {
         const res = await fetch('/api/dashboards?limit=50');
         if (!res.ok) return;
         const { dashboards: dbDashboards } = await res.json();
+        // Detect current user from the first owned dashboard, or from API
+        const userId = dbDashboards?.[0]?.owner?.id || null;
+        if (userId) setCurrentUserId(userId);
+
         const fromDb: DashboardCardData[] = (dbDashboards || []).map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (d: any) => ({
@@ -113,10 +241,13 @@ export function GalleryPage() {
             title: d.title,
             description: d.description || '',
             tags: typeof d.tags === 'string' ? (d.tags ? d.tags.split(',').map((t: string) => t.trim()) : []) : (d.tags || []),
+            ownerId: d.owner?.id || undefined,
             ownerName: d.owner?.name || 'Unknown',
             updatedAt: new Date(d.updatedAt),
             widgetCount: d._count?.versions || 0,
             isTemplate: d.isTemplate || false,
+            isPublic: d.isPublic || false,
+            isShared: userId ? d.owner?.id !== userId : false,
             isFavorite: false,
           }),
         );
@@ -127,7 +258,7 @@ export function GalleryPage() {
           ...userDashboards,
           ...INITIAL_DASHBOARDS,
         ];
-        setDashboards(merged);
+        setDashboards(applyFavorites(merged, loadFavoriteIds()));
       } catch {
         // API unreachable (no DB running) — just show templates
       }
@@ -136,9 +267,12 @@ export function GalleryPage() {
   }, []);
 
   const toggleFavorite = useCallback((id: string) => {
-    setDashboards(prev =>
-      prev.map(d => d.id === id ? { ...d, isFavorite: !d.isFavorite } : d)
-    );
+    setDashboards(prev => {
+      const updated = prev.map(d => d.id === id ? { ...d, isFavorite: !d.isFavorite } : d);
+      const favIds = new Set(updated.filter(d => d.isFavorite).map(d => d.id));
+      saveFavoriteIds(favIds);
+      return updated;
+    });
   }, []);
 
   const handleDelete = useCallback(async (id: string) => {
@@ -156,6 +290,32 @@ export function GalleryPage() {
       toast({ type: 'error', title: 'Delete failed', description: 'Network error.' });
     }
   }, [dashboards, toast]);
+
+  const handleDuplicate = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/dashboards/${id}/duplicate`, { method: 'POST' });
+      if (res.ok) {
+        const { dashboard } = await res.json();
+        const newCard: DashboardCardData = {
+          id: dashboard.id,
+          title: dashboard.title,
+          description: dashboard.description || '',
+          tags: typeof dashboard.tags === 'string' ? (dashboard.tags ? dashboard.tags.split(',').map((t: string) => t.trim()) : []) : (dashboard.tags || []),
+          ownerName: dashboard.owner?.name || 'You',
+          updatedAt: new Date(dashboard.updatedAt),
+          widgetCount: dashboard.versions?.length || 1,
+          isTemplate: false,
+          isFavorite: false,
+        };
+        setDashboards(prev => [newCard, ...prev]);
+        toast({ type: 'success', title: 'Dashboard duplicated', description: `"${newCard.title}" created.` });
+      } else {
+        toast({ type: 'error', title: 'Duplicate failed', description: 'Could not clone this dashboard.' });
+      }
+    } catch {
+      toast({ type: 'error', title: 'Duplicate failed', description: 'Network error.' });
+    }
+  }, [toast]);
 
   const handleRename = useCallback(async (id: string, currentTitle: string) => {
     const newTitle = window.prompt('Rename dashboard:', currentTitle);
@@ -175,22 +335,56 @@ export function GalleryPage() {
     }
   }, [toast]);
 
+  // Derive unique values for filter dropdowns
+  const ownerOptions = useMemo(() => [...new Set(dashboards.map(d => d.ownerName).filter(Boolean))].sort(), [dashboards]);
+  const departmentOptions = useMemo(() => {
+    const deps = dashboards.map(d => (d as DashboardCardData & { department?: string }).department).filter(Boolean) as string[];
+    return [...new Set(deps)].sort();
+  }, [dashboards]);
+  const tagOptions = useMemo(() => [...new Set(dashboards.flatMap(d => d.tags))].sort(), [dashboards]);
+
   const matchesSearch = (d: DashboardCardData) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return d.title.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q) || d.tags.some(t => t.includes(q));
   };
 
+  const matchesFilters = (d: DashboardCardData) => {
+    if (filterOwner && d.ownerName !== filterOwner) return false;
+    if (filterTag && !d.tags.includes(filterTag)) return false;
+    if (filterDateRange !== 'all') {
+      const now = Date.now();
+      const ms = { '7d': 7, '30d': 30, '90d': 90 }[filterDateRange] * 86400000;
+      if (now - d.updatedAt.getTime() > ms) return false;
+    }
+    return true;
+  };
+
+  const clearFilters = () => { setFilterOwner(''); setFilterDepartment(''); setFilterTag(''); setFilterDateRange('all'); };
+
   const filtered = sortDashboards(dashboards.filter(d => {
     if (activeTab === 'templates' && !d.isTemplate) return false;
-    if (activeTab === 'company') return matchesSearch(d);
-    if (activeTab === 'my' && d.isTemplate) return false;
-    if (activeTab === 'shared') return false;
-    return matchesSearch(d);
+    if (activeTab === 'company') return matchesSearch(d) && matchesFilters(d);
+    if (activeTab === 'my' && (d.isTemplate || d.isShared)) return false;
+    if (activeTab === 'shared') return !!d.isShared && !d.isTemplate && matchesSearch(d) && matchesFilters(d);
+    if (!matchesSearch(d) || !matchesFilters(d)) return false;
+    return true;
   }), sortMode);
 
-  const favorites = dashboards.filter(d => d.isFavorite && matchesSearch(d));
+  const favorites = dashboards.filter(d => d.isFavorite && matchesSearch(d) && matchesFilters(d));
   const showFavorites = (activeTab === 'all' || activeTab === 'templates') && favorites.length > 0;
+
+  // Recently viewed
+  const recentlyViewed = useMemo(() => {
+    if (typeof window === 'undefined') return [];
+    const ids = getRecentlyViewedIds();
+    return ids.map(id => dashboards.find(d => d.id === id)).filter(Boolean) as DashboardCardData[];
+  }, [dashboards]);
+  const showRecent = activeTab === 'all' && recentlyViewed.length > 0 && !search && !hasActiveFilters;
+
+  // Keep a ref so the keyboard handler always sees current filtered list
+  const filteredRef = useRef(filtered);
+  filteredRef.current = filtered;
 
   return (
     <main className="flex-1 w-full px-4 sm:px-6 py-6">
@@ -204,22 +398,24 @@ export function GalleryPage() {
 
       {/* Tabs + search bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-1 bg-[var(--bg-card)] rounded-lg p-1 border border-[var(--border-color)]">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'bg-accent-blue/10 text-accent-blue'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <tab.icon size={13} />
-              {tab.label}
-            </button>
-          ))}
+        <div className="bg-[var(--bg-card)] rounded-lg p-1 border border-[var(--border-color)] overflow-hidden">
+          <div className="flex items-center gap-1 overflow-x-auto sm:overflow-x-visible scrollbar-hide snap-x snap-mandatory">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap snap-start flex-shrink-0',
+                  activeTab === tab.id
+                    ? 'bg-accent-blue/10 text-accent-blue'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                )}
+              >
+                <tab.icon size={13} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -229,14 +425,15 @@ export function GalleryPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search dashboards..."
-              className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-56 transition-colors"
+              className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-full sm:w-56 transition-colors"
             />
           </div>
           {/* Sort dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowSort(!showSort)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              tabIndex={-1}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors min-h-[44px]"
             >
               <ArrowUpDown size={12} />
               {SORT_OPTIONS.find(s => s.id === sortMode)?.label}
@@ -258,15 +455,34 @@ export function GalleryPage() {
               </div>
             )}
           </div>
+          <button
+            onClick={() => setShowFilters(prev => !prev)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border transition-colors min-h-[44px]',
+              hasActiveFilters
+                ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
+                : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            )}
+          >
+            <Filter size={12} />
+            Filters
+            {hasActiveFilters && (
+              <span className="ml-0.5 w-4 h-4 rounded-full bg-accent-blue text-white text-[9px] font-bold flex items-center justify-center">
+                {[filterOwner, filterDepartment, filterTag, filterDateRange !== 'all' ? '1' : ''].filter(Boolean).length}
+              </span>
+            )}
+          </button>
           <div className="flex items-center gap-0.5 border border-[var(--border-color)] rounded-lg p-0.5">
             <button
               onClick={() => setViewMode('grid')}
+              tabIndex={-1}
               className={cn('p-1.5 rounded', viewMode === 'grid' ? 'bg-accent-blue/10 text-accent-blue' : 'text-[var(--text-muted)]')}
             >
               <LayoutGrid size={14} />
             </button>
             <button
               onClick={() => setViewMode('list')}
+              tabIndex={-1}
               className={cn('p-1.5 rounded', viewMode === 'list' ? 'bg-accent-blue/10 text-accent-blue' : 'text-[var(--text-muted)]')}
             >
               <List size={14} />
@@ -275,31 +491,119 @@ export function GalleryPage() {
         </div>
       </div>
 
+      {/* Filter bar */}
+      {showFilters && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]/50">
+          <select
+            value={filterOwner}
+            onChange={e => setFilterOwner(e.target.value)}
+            className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+          >
+            <option value="">All Owners</option>
+            {ownerOptions.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          {departmentOptions.length > 0 && (
+            <select
+              value={filterDepartment}
+              onChange={e => setFilterDepartment(e.target.value)}
+              className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+            >
+              <option value="">All Departments</option>
+              {departmentOptions.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          )}
+          <select
+            value={filterTag}
+            onChange={e => setFilterTag(e.target.value)}
+            className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+          >
+            <option value="">All Tags</option>
+            {tagOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select
+            value={filterDateRange}
+            onChange={e => setFilterDateRange(e.target.value as 'all' | '7d' | '30d' | '90d')}
+            className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+          >
+            <option value="all">Any Date</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+          </select>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
+            >
+              <X size={12} />
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Recently Viewed section */}
+      {showRecent && (
+        <section className="mb-8">
+          <button
+            onClick={() => setRecentCollapsed(prev => !prev)}
+            className="flex items-center gap-2 mb-3 group cursor-pointer"
+          >
+            {recentCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
+            <Clock size={14} className="text-accent-blue" />
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider group-hover:text-[var(--text-primary)] transition-colors">Recently Viewed ({recentlyViewed.length})</h2>
+          </button>
+          {!recentCollapsed && (
+            <div className={cn(
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                : 'flex flex-col gap-2'
+            )}>
+              {recentlyViewed.map(d => (
+                <DashboardCard key={`recent-${d.id}`} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Favorites section — only visible on All/Templates tabs and when there are favorites matching search */}
       {showFavorites && (
         <section className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={() => setFavoritesCollapsed(prev => !prev)}
+            className="flex items-center gap-2 mb-3 group cursor-pointer"
+          >
+            {favoritesCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
             <Star size={14} className="text-accent-amber fill-accent-amber" />
-            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Favorites</h2>
-          </div>
-          <div className={cn(
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-              : 'flex flex-col gap-2'
-          )}>
-            {favorites.map(d => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
-            ))}
-          </div>
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider group-hover:text-[var(--text-primary)] transition-colors">Favorites ({favorites.length})</h2>
+          </button>
+          {!favoritesCollapsed && (
+            <div className={cn(
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                : 'flex flex-col gap-2'
+            )}>
+              {favorites.map(d => (
+                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
       {/* All dashboards */}
       <section>
-        <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">
-          {activeTab === 'templates' ? 'Templates' : activeTab === 'my' ? 'My Dashboards' : activeTab === 'company' ? 'Company Dashboards' : activeTab === 'shared' ? 'Shared with Me' : 'All Dashboards'} ({filtered.length})
-        </h2>
-        {filtered.length === 0 ? (
+        <button
+          onClick={() => setAllCollapsed(prev => !prev)}
+          className="flex items-center gap-2 mb-3 group cursor-pointer"
+        >
+          {allCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
+          <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider group-hover:text-[var(--text-primary)] transition-colors">
+            {activeTab === 'templates' ? 'Templates' : activeTab === 'my' ? 'My Dashboards' : activeTab === 'company' ? 'Company Dashboards' : activeTab === 'shared' ? 'Shared with Me' : 'All Dashboards'} ({filtered.length})
+          </h2>
+        </button>
+        {allCollapsed ? null : filtered.length === 0 ? (
           <div className="text-center py-16">
             {activeTab === 'my' ? (
               <>
@@ -344,8 +648,8 @@ export function GalleryPage() {
                 <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Describe it in plain English</p>
               </div>
             </Link>
-            {filtered.map(d => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
+            {filtered.map((d, i) => (
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
             ))}
           </div>
         )}

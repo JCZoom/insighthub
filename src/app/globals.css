@@ -56,21 +56,66 @@ html.light body,
   background-image: none;
 }
 
-/* Suppress browser focus outlines on chart SVGs and widget containers */
-.recharts-wrapper, .recharts-wrapper *, .recharts-surface,
-.card *:focus, .card *:focus-visible {
+/* Suppress browser focus outlines only on non-interactive chart elements */
+.recharts-wrapper *, .recharts-surface * {
   outline: none !important;
-  box-shadow: none !important;
+}
+
+/* Custom focus-visible styling for accessibility and platform consistency */
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgba(88, 166, 255, 0.8);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.15);
+}
+
+/* Focus visible styling for light mode */
+.light button:focus-visible,
+.light [role="button"]:focus-visible,
+.light input:focus-visible,
+.light textarea:focus-visible,
+.light select:focus-visible,
+.light [tabindex]:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.8);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
 /* Card glassmorphism */
 .card {
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: 14px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Backdrop-filter support with fallbacks */
+@supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+  .card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+/* Fallback for older browsers without backdrop-filter support */
+@supports not ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .card {
+    background: rgba(22, 27, 34, 0.95); /* More opaque fallback for dark mode */
+  }
+  .light .card {
+    background: rgba(255, 255, 255, 0.95); /* More opaque fallback for light mode */
+  }
+
+  /* Context menu and other backdrop-blur components */
+  .backdrop-blur-xl {
+    background: rgba(22, 27, 34, 0.95) !important;
+  }
+  .light .backdrop-blur-xl {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
 }
 .card:hover {
   transform: translateY(-2px);
@@ -171,3 +216,21 @@ html.light body,
 ::-webkit-scrollbar-thumb:hover { background: #484f58; }
 .light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 .light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #30363d transparent;
+}
+.light * {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

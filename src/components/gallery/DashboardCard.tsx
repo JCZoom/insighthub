@@ -11,17 +11,20 @@ export interface DashboardCardData {
   title: string;
   description?: string;
   tags: string[];
+  ownerId?: string;
   ownerName: string;
   updatedAt: Date;
   widgetCount: number;
   isTemplate?: boolean;
   isPublic?: boolean;
+  isShared?: boolean;
   isFavorite?: boolean;
 }
 
 interface DashboardCardProps {
   dashboard: DashboardCardData;
   viewMode?: 'grid' | 'list';
+  isSelected?: boolean;
   onToggleFavorite?: (id: string) => void;
   onDelete?: (id: string) => void;
   onRename?: (id: string, currentTitle: string) => void;
@@ -33,7 +36,7 @@ interface CtxMenu {
   y: number;
 }
 
-export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, onDelete, onRename, onDuplicate }: DashboardCardProps) {
+export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onToggleFavorite, onDelete, onRename, onDuplicate }: DashboardCardProps) {
   const router = useRouter();
   const [timeLabel, setTimeLabel] = useState('');
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
@@ -81,7 +84,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
   const listRow = (
     <Link
       href={`/dashboard/${dashboard.id}`}
-      className="block group"
+      className={`block group ${isSelected ? 'ring-2 ring-accent-blue rounded-xl' : ''}`}
       onContextMenu={handleContextMenu}
     >
       <div className="card p-0 overflow-hidden flex items-center gap-4 px-4 py-3">
@@ -117,6 +120,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={handleFavoriteClick}
+            tabIndex={-1}
             className="p-1 rounded-md hover:bg-black/10 transition-colors"
             title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -132,6 +136,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
           {isOwned && onDelete && (
             <button
               onClick={handleDeleteClick}
+              tabIndex={-1}
               className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
               title="Delete dashboard"
             >
@@ -146,7 +151,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
   const gridCard = (
     <Link
       href={`/dashboard/${dashboard.id}`}
-      className="block group"
+      className={`block group ${isSelected ? 'ring-2 ring-accent-blue rounded-xl' : ''}`}
       onContextMenu={handleContextMenu}
     >
       <div className="card p-0 overflow-hidden h-full flex flex-col">
@@ -156,6 +161,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
           {/* Favorite button */}
           <button
             onClick={handleFavoriteClick}
+            tabIndex={-1}
             className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 transition-colors"
             title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
@@ -172,6 +178,7 @@ export function DashboardCard({ dashboard, viewMode = 'grid', onToggleFavorite, 
           {isOwned && onDelete && (
             <button
               onClick={handleDeleteClick}
+              tabIndex={-1}
               className="absolute top-2 right-8 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
               title="Delete dashboard"
             >

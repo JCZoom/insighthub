@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
+import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
 
 interface ResizableDividerProps {
   /** Current panel width in pixels */
@@ -21,6 +22,7 @@ export function ResizableDivider({
   side = 'right',
 }: ResizableDividerProps) {
   const isDragging = useRef(false);
+  const isTouch = isTouchDevice();
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -54,16 +56,24 @@ export function ResizableDivider({
     [width, onWidthChange, minWidth, maxWidth, side],
   );
 
+  const touchTargetSize = isTouch ? getTouchTargetSize() : 20;
+
   return (
     <div
       onPointerDown={handlePointerDown}
       className="w-1 shrink-0 cursor-col-resize relative group z-20 select-none"
-      title="Drag to resize"
+      title={isTouch ? "Touch and drag to resize" : "Drag to resize"}
     >
       {/* Visible bar */}
       <div className="absolute inset-y-0 -left-px w-[3px] bg-[var(--border-color)] group-hover:bg-accent-blue/60 group-active:bg-accent-blue transition-colors" />
-      {/* Wider invisible hit area */}
-      <div className="absolute inset-y-0 -left-2 w-5" />
+      {/* Touch-optimized hit area */}
+      <div
+        className="absolute inset-y-0"
+        style={{
+          left: -(touchTargetSize / 2) + 'px',
+          width: touchTargetSize + 'px',
+        }}
+      />
     </div>
   );
 }

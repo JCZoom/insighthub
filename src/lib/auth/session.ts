@@ -8,6 +8,7 @@ export interface SessionUser {
   name: string;
   role: 'VIEWER' | 'CREATOR' | 'POWER_USER' | 'ADMIN';
   department: string;
+  hasOnboarded?: boolean;
 }
 
 export async function getCurrentUser(): Promise<SessionUser> {
@@ -20,6 +21,7 @@ export async function getCurrentUser(): Promise<SessionUser> {
       name: dev.name,
       role: dev.role,
       department: dev.department,
+      hasOnboarded: true, // Dev user is always onboarded
     };
   }
 
@@ -39,6 +41,7 @@ export async function getCurrentUser(): Promise<SessionUser> {
     name: sessionUser.name as string || '',
     role: (sessionUser.role as SessionUser['role']) || 'VIEWER',
     department: sessionUser.department as string || '',
+    hasOnboarded: sessionUser.hasOnboarded as boolean,
   };
 }
 
@@ -52,6 +55,7 @@ export function getCurrentUserSync(): SessionUser {
       name: dev.name,
       role: dev.role,
       department: dev.department,
+      hasOnboarded: true, // Dev user is always onboarded
     };
   }
 

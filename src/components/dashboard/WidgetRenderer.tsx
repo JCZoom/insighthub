@@ -1,7 +1,7 @@
 'use client';
 
 import type { WidgetConfig } from '@/types';
-import { queryData } from '@/lib/data/sample-data';
+import { queryDataSync } from '@/lib/data/sample-data';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { LineChartWidget } from '@/components/widgets/LineChartWidget';
 import { BarChartWidget } from '@/components/widgets/BarChartWidget';
@@ -14,6 +14,7 @@ import { FunnelWidget } from '@/components/widgets/FunnelWidget';
 import { MetricRowWidget } from '@/components/widgets/MetricRowWidget';
 import { ScatterPlotWidget } from '@/components/widgets/ScatterPlotWidget';
 import { HeatmapWidget } from '@/components/widgets/HeatmapWidget';
+import { PivotTableWidget } from '@/components/widgets/PivotTableWidget';
 import { MIN_WIDGET_HEIGHTS } from '@/components/widgets/widget-utils';
 
 interface WidgetRendererProps {
@@ -53,7 +54,7 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
 
   let data: Record<string, unknown>[] = [];
   try {
-    const result = queryData(source, config.dataConfig.groupBy);
+    const result = queryDataSync(source, config.dataConfig.groupBy);
     data = sanitizeData(result.data);
   } catch (err) {
     console.warn(`[WidgetRenderer] queryData failed for source="${source}":`, err);
@@ -94,8 +95,10 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
       widget = <PieChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'table':
-    case 'pivot_table':
       widget = <DataTableWidget config={config} data={data} />;
+      break;
+    case 'pivot_table':
+      widget = <PivotTableWidget config={config} data={data} />;
       break;
     case 'gauge':
       widget = <GaugeWidget config={config} data={data} />;

@@ -5,6 +5,7 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 
 interface KeyboardShortcutOptions {
   onSave?: () => void;
+  onSaveAs?: () => void;
   onSearch?: () => void;
   onFocusChat?: () => void;
   onToggleHelp?: () => void;
@@ -37,8 +38,15 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
       return;
     }
 
+    // Save As: Cmd+Shift+S
+    if (meta && e.shiftKey && e.key === 's') {
+      e.preventDefault();
+      optionsRef.current.onSaveAs?.();
+      return;
+    }
+
     // Save: Cmd+S
-    if (meta && e.key === 's') {
+    if (meta && !e.shiftKey && e.key === 's') {
       e.preventDefault();
       optionsRef.current.onSave?.();
       return;
@@ -55,7 +63,9 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
     // Delete: Backspace or Delete
     if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
       e.preventDefault();
-      if (store.selectedWidgetId) {
+      if (store.selectedWidgetIds.length > 1) {
+        store.removeWidgets(store.selectedWidgetIds);
+      } else if (store.selectedWidgetId) {
         store.removeWidget(store.selectedWidgetId);
         store.selectWidget(null);
       }
@@ -70,20 +80,36 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
       }
     }
 
-    // Arrow keys: nudge selected widget
+    // Arrow keys: nudge selected widget(s)
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !isInput) {
-      const wid = store.selectedWidgetId;
-      if (!wid) return;
-      const widget = store.schema.widgets.find(w => w.id === wid);
-      if (!widget) return;
+      const ids = store.selectedWidgetIds;
+      if (ids.length === 0) return;
       e.preventDefault();
-      const { x, y } = widget.position;
       const cols = store.schema.layout.columns;
-      switch (e.key) {
-        case 'ArrowUp':    store.moveWidget(wid, x, Math.max(0, y - 1)); break;
-        case 'ArrowDown':  store.moveWidget(wid, x, y + 1); break;
-        case 'ArrowLeft':  store.moveWidget(wid, Math.max(0, x - 1), y); break;
-        case 'ArrowRight': store.moveWidget(wid, Math.min(cols - widget.position.w, x + 1), y); break;
+      if (ids.length > 1) {
+        const moves = ids.map(id => {
+          const w = store.schema.widgets.find(wg => wg.id === id);
+          if (!w) return null;
+          const { x, y } = w.position;
+          switch (e.key) {
+            case 'ArrowUp':    return { id, x, y: Math.max(0, y - 1) };
+            case 'ArrowDown':  return { id, x, y: y + 1 };
+            case 'ArrowLeft':  return { id, x: Math.max(0, x - 1), y };
+            case 'ArrowRight': return { id, x: Math.min(cols - w.position.w, x + 1), y };
+            default: return null;
+          }
+        }).filter((m): m is {id: string; x: number; y: number} => m !== null);
+        if (moves.length > 0) store.moveWidgets(moves);
+      } else {
+        const widget = store.schema.widgets.find(w => w.id === ids[0]);
+        if (!widget) return;
+        const { x, y } = widget.position;
+        switch (e.key) {
+          case 'ArrowUp':    store.moveWidget(ids[0], x, Math.max(0, y - 1)); break;
+          case 'ArrowDown':  store.moveWidget(ids[0], x, y + 1); break;
+          case 'ArrowLeft':  store.moveWidget(ids[0], Math.max(0, x - 1), y); break;
+          case 'ArrowRight': store.moveWidget(ids[0], Math.min(cols - widget.position.w, x + 1), y); break;
+        }
       }
       return;
     }

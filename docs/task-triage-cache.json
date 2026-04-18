@@ -1,5 +1,5 @@
 {
-  "cached_at": "2026-04-18T01:29:17.005701",
+  "cached_at": "2026-04-18T18:05:55.603153",
   "decisions": {
     "1214122597260608:f5e938d1bfaa": {
       "automatable": true,
@@ -288,6 +288,74 @@
     "1214127917553411:a6b503d84c7d": {
       "automatable": true,
       "reason": "Can write user documentation"
+    },
+    "1214122629497691:dc6b84ef618d": {
+      "automatable": true,
+      "reason": "Fix React hook context issue in setTimeout"
+    },
+    "1214122629529165:bfd9cbd799f0": {
+      "automatable": true,
+      "reason": "Fix useEffect dependency loop issue"
+    },
+    "1214124658812877:8727eeefbf98": {
+      "automatable": true,
+      "reason": "Refactor duplicated response parsing logic"
+    },
+    "1214127949380975:17d4e42bcc6d": {
+      "automatable": true,
+      "reason": "Fix inconsistent indentation in code"
+    },
+    "1214125694511334:dde64db2701d": {
+      "automatable": true,
+      "reason": "Remove debug console.log statements"
+    },
+    "1214133173777130:c4829defac2d": {
+      "automatable": true,
+      "reason": "Implement real streaming instead of artificial delays"
+    },
+    "1214125694553722:b14688705cf6": {
+      "automatable": true,
+      "reason": "Fix event listener cleanup on unmount"
+    },
+    "1214127949394614:b16ff674bba8": {
+      "automatable": true,
+      "reason": "Add input validation for message length"
+    },
+    "1214124658813050:64d99bf2e4c6": {
+      "automatable": true,
+      "reason": "Fix schema sent as query parameters"
+    },
+    "1214122629468934:9e1185b3632f": {
+      "automatable": true,
+      "reason": "Use existing PrismaClient singleton"
+    },
+    "1214133173671683:f2e0b3e33db0": {
+      "automatable": true,
+      "reason": "Add proper authentication to endpoints"
+    },
+    "1214124658812867:a3d78f6244b0": {
+      "automatable": true,
+      "reason": "Fix CORS wildcard security issue"
+    },
+    "1214133173750334:67311fbd553c": {
+      "automatable": true,
+      "reason": "Sanitize error messages for clients"
+    },
+    "1214124634484185:1d9a0034608c": {
+      "automatable": true,
+      "reason": "Implement Whisper API for speech-to-text"
+    },
+    "1214125691559387:c37092173303": {
+      "automatable": false,
+      "reason": "Requires business analysis and external collaboration"
+    },
+    "1214125662501105:97bd3f0059c5": {
+      "automatable": true,
+      "reason": "Code implementation of RBAC system and permissions"
+    },
+    "1214125691559387:070406162972": {
+      "automatable": false,
+      "reason": "Business decision requiring external human input/consultation"
     }
   }
 }

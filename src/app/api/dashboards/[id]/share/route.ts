@@ -75,6 +75,41 @@ export async function POST(request: NextRequest, context: RouteContext) {
   });
 }
 
+// DELETE /api/dashboards/[id]/share — remove a share
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  return withRateLimit(request, dashboardRateLimiter, 'dashboards:share:delete', async () => {
+    try {
+      const { id } = await context.params;
+      const user = await getCurrentUser();
+      const { userId } = (await request.json()) as { userId: string };
+
+      if (!userId) {
+        return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      }
+
+      // Only owner or the user themselves can remove a share
+      const dashboard = await prisma.dashboard.findFirst({
+        where: { id, ownerId: user.id },
+      });
+
+      const isSelf = userId === user.id;
+
+      if (!dashboard && !isSelf) {
+        return NextResponse.json({ error: 'Only the owner can remove shares' }, { status: 403 });
+      }
+
+      await prisma.dashboardShare.deleteMany({
+        where: { dashboardId: id, userId },
+      });
+
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      console.error('Remove share error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+  });
+}
+
 // GET /api/dashboards/[id]/share — list shares for a dashboard
 export async function GET(request: NextRequest, context: RouteContext) {
   return withRateLimit(request, dashboardRateLimiter, 'dashboards:share:list', async () => {
