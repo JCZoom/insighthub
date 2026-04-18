@@ -87,8 +87,7 @@ export default function Home() {
       <nav className="relative z-10 flex items-center justify-between px-6 py-3">
         <Link href="/" className="flex items-center gap-2 text-accent-blue font-bold text-lg tracking-tight">
           <Sparkles size={20} />
-          <span className="hidden sm:inline">iPostal1 InsightHub</span>
-          <span className="sm:hidden">InsightHub</span>
+          <span>InsightHub</span>
         </Link>
         <div className="flex items-center gap-3">
           <Link

@@ -67,7 +67,7 @@ export function buildSystemPrompt(
     ? JSON.stringify(currentSchema, null, 2)
     : '{ "layout": { "columns": 12, "rowHeight": 80, "gap": 16 }, "globalFilters": [], "widgets": [] }';
 
-  return `You are iPostal1 InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
+  return `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
 
 CRITICAL: You must use the company's official terminology definitions when interpreting user requests. The glossary below contains agreed-upon definitions for all business metrics. NEVER invent your own definitions.
 

@@ -150,7 +150,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-accent-blue" />
-          <span className="text-sm font-semibold text-[var(--text-primary)]">iPostal1 InsightHub AI</span>
+          <span className="text-sm font-semibold text-[var(--text-primary)]">InsightHub AI</span>
         </div>
         <button
           onClick={() => setIsCollapsed(true)}
