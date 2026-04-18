@@ -1,0 +1,371 @@
+- term: "Churn Rate"
+  category: "Retention"
+  definition: >
+    The percentage of customers who cancel their subscription within a given
+    period, divided by the total active customers at the start of that period.
+    Excludes trial accounts (< 14 days) and internal test accounts.
+  formula: "(cancelled_in_period / active_at_period_start) * 100"
+  data_source: "sample_subscriptions"
+  exclusions:
+    - "Trial accounts (< 14 days)"
+    - "Internal test accounts"
+  related_terms: ["MRR", "LTV", "Retention Rate", "NRR"]
+  approved_by: "J. Smith"
+  last_reviewed: "2026-03-15"
+
+- term: "Monthly Recurring Revenue (MRR)"
+  category: "Revenue"
+  definition: >
+    The sum of all active subscription fees normalized to a monthly amount.
+    Includes base subscription + add-ons. Excludes one-time fees and usage
+    overages.
+  formula: "SUM(monthly_amount) WHERE status = 'active'"
+  data_source: "sample_subscriptions"
+  related_terms: ["ARR", "Churn Rate", "NRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-03-15"
+
+- term: "Annual Recurring Revenue (ARR)"
+  category: "Revenue"
+  definition: >
+    MRR multiplied by 12. Represents the annualized value of all active
+    recurring subscriptions.
+  formula: "MRR * 12"
+  data_source: "sample_subscriptions"
+  related_terms: ["MRR", "NRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-03-15"
+
+- term: "Net Revenue Retention (NRR)"
+  category: "Revenue"
+  definition: >
+    The percentage of recurring revenue retained from existing customers over a
+    period, including expansions and contractions but excluding new customers.
+    NRR > 100% means expansion revenue exceeds lost revenue.
+  formula: "(MRR_end - MRR_new) / MRR_start * 100"
+  data_source: "sample_revenue"
+  related_terms: ["MRR", "Churn Rate", "Gross Revenue Retention"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-03-15"
+
+- term: "Customer Lifetime Value (LTV)"
+  category: "Revenue"
+  definition: >
+    The average total revenue expected from a single customer account over
+    their entire relationship. Calculated as ARPU divided by churn rate.
+  formula: "ARPU / churn_rate"
+  data_source: "sample_subscriptions"
+  related_terms: ["Churn Rate", "ARPU", "CAC"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-03-15"
+
+- term: "Average Revenue Per User (ARPU)"
+  category: "Revenue"
+  definition: >
+    Total MRR divided by the number of active paying customers. Excludes
+    trial and free-tier accounts.
+  formula: "MRR / active_paying_customers"
+  data_source: "sample_subscriptions"
+  related_terms: ["MRR", "LTV"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-03-15"
+
+- term: "Retention Rate"
+  category: "Retention"
+  definition: >
+    The percentage of customers who remain active at the end of a period
+    compared to the start. This is the complement of churn rate.
+    Retention Rate = 100% - Churn Rate.
+  formula: "100 - churn_rate"
+  data_source: "sample_subscriptions"
+  related_terms: ["Churn Rate", "NRR"]
+  approved_by: "J. Smith"
+  last_reviewed: "2026-03-15"
+
+- term: "First Response Time (FRT)"
+  category: "Support"
+  definition: >
+    The elapsed time in minutes from when a support ticket is created to
+    when the first agent response is sent. Measured during business hours
+    only (Mon-Fri 8am-8pm ET).
+  formula: "AVG(first_response_minutes)"
+  data_source: "sample_tickets"
+  related_terms: ["Resolution Time", "CSAT"]
+  approved_by: "A. Chen"
+  last_reviewed: "2026-03-15"
+
+- term: "Resolution Time"
+  category: "Support"
+  definition: >
+    The elapsed time from ticket creation to final resolution. Only includes
+    tickets with status 'resolved' or 'closed'. Measured in hours.
+  formula: "AVG(resolved_at - created_at) in hours"
+  data_source: "sample_tickets"
+  related_terms: ["FRT", "CSAT"]
+  approved_by: "A. Chen"
+  last_reviewed: "2026-03-15"
+
+- term: "Customer Satisfaction Score (CSAT)"
+  category: "Support"
+  definition: >
+    The percentage of support interactions rated 4 or 5 on a 1-5 scale.
+    Only includes tickets where a satisfaction score was provided.
+  formula: "(ratings_4_or_5 / total_rated) * 100"
+  data_source: "sample_tickets"
+  related_terms: ["FRT", "Resolution Time", "NPS"]
+  approved_by: "A. Chen"
+  last_reviewed: "2026-03-15"
+
+- term: "Win Rate"
+  category: "Sales"
+  definition: >
+    The percentage of deals that reached 'closed_won' status out of all
+    deals that reached a terminal state (closed_won + closed_lost) within
+    the period.
+  formula: "(closed_won / (closed_won + closed_lost)) * 100"
+  data_source: "sample_deals"
+  related_terms: ["Pipeline Value", "Average Deal Size"]
+  approved_by: "T. Rivera"
+  last_reviewed: "2026-03-15"
+
+- term: "Pipeline Value"
+  category: "Sales"
+  definition: >
+    The total weighted value of all open deals in the sales pipeline.
+    Weighted by probability percentage assigned to each deal stage.
+  formula: "SUM(amount * probability / 100) WHERE stage NOT IN ('closed_won', 'closed_lost')"
+  data_source: "sample_deals"
+  related_terms: ["Win Rate", "Average Deal Size"]
+  approved_by: "T. Rivera"
+  last_reviewed: "2026-03-15"
+
+- term: "Average Deal Size"
+  category: "Sales"
+  definition: >
+    The mean contract value of closed-won deals within a given period.
+  formula: "AVG(amount) WHERE stage = 'closed_won'"
+  data_source: "sample_deals"
+  related_terms: ["Win Rate", "Pipeline Value"]
+  approved_by: "T. Rivera"
+  last_reviewed: "2026-03-15"
+
+- term: "Daily Active Usage"
+  category: "Product"
+  definition: >
+    The count of unique customers who used at least one product feature
+    on a given day.
+  formula: "COUNT(DISTINCT customer_id) per day"
+  data_source: "sample_usage"
+  related_terms: ["Feature Adoption Rate"]
+  approved_by: "L. Park"
+  last_reviewed: "2026-03-15"
+
+- term: "Feature Adoption Rate"
+  category: "Product"
+  definition: >
+    The percentage of active customers who have used a specific feature
+    at least once in the past 30 days.
+  formula: "(customers_using_feature / total_active_customers) * 100"
+  data_source: "sample_usage"
+  related_terms: ["Daily Active Usage"]
+  approved_by: "L. Park"
+  last_reviewed: "2026-03-15"
+
+- term: "Customer Acquisition Cost (CAC)"
+  category: "Revenue"
+  definition: >
+    Total sales and marketing spend in a period divided by the number of
+    new customers acquired in that same period. Includes salaries, ad spend,
+    tooling costs, and event expenses attributed to acquisition.
+  formula: "(sales_marketing_spend) / new_customers_acquired"
+  data_source: "sample_revenue"
+  related_terms: ["LTV", "CAC Payback Period", "MRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "CAC Payback Period"
+  category: "Revenue"
+  definition: >
+    The number of months it takes for gross profit from a new customer
+    to recoup the cost of acquiring them. A shorter payback period
+    indicates more efficient growth.
+  formula: "CAC / (ARPU * gross_margin_pct)"
+  data_source: "sample_revenue"
+  related_terms: ["CAC", "ARPU", "Gross Margin"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Gross Margin"
+  category: "Revenue"
+  definition: >
+    Revenue minus cost of goods sold (COGS), expressed as a percentage
+    of revenue. COGS for SaaS includes hosting, third-party API costs,
+    and customer success team salaries directly tied to service delivery.
+  formula: "((revenue - COGS) / revenue) * 100"
+  data_source: "sample_revenue"
+  related_terms: ["MRR", "ARR", "Operating Margin"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Gross Revenue Retention (GRR)"
+  category: "Retention"
+  definition: >
+    The percentage of recurring revenue retained from existing customers,
+    excluding any expansion revenue. GRR can never exceed 100%. Measures
+    how well the company retains its base revenue.
+  formula: "(MRR_start - MRR_contraction - MRR_churn) / MRR_start * 100"
+  data_source: "sample_revenue"
+  related_terms: ["NRR", "Churn Rate", "MRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Expansion Revenue"
+  category: "Revenue"
+  definition: >
+    Additional recurring revenue generated from existing customers
+    through upsells, cross-sells, or add-on purchases. Excludes
+    revenue from new customers.
+  formula: "SUM(MRR_increase) WHERE customer_is_existing = true"
+  data_source: "sample_subscriptions"
+  related_terms: ["NRR", "ARPU", "Contraction Revenue"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Contraction Revenue"
+  category: "Revenue"
+  definition: >
+    Revenue lost from existing customers who downgraded their plan
+    or removed add-ons, but did not fully churn. Tracked monthly.
+  formula: "SUM(MRR_decrease) WHERE customer_is_existing = true AND status = 'active'"
+  data_source: "sample_subscriptions"
+  related_terms: ["Expansion Revenue", "NRR", "GRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Net Promoter Score (NPS)"
+  category: "Support"
+  definition: >
+    A measure of customer loyalty based on survey responses to
+    "How likely are you to recommend us?" on a 0-10 scale.
+    Promoters (9-10) minus Detractors (0-6), expressed as a number from -100 to 100.
+  formula: "(%promoters - %detractors)"
+  data_source: "sample_surveys"
+  related_terms: ["CSAT", "Retention Rate"]
+  approved_by: "A. Chen"
+  last_reviewed: "2026-04-01"
+
+- term: "Ticket Backlog"
+  category: "Support"
+  definition: >
+    The count of open support tickets that have not yet been resolved
+    or closed. Includes tickets in all priority levels. Monitored
+    daily to track support team capacity.
+  formula: "COUNT(*) WHERE status IN ('open', 'pending', 'in_progress')"
+  data_source: "sample_tickets"
+  related_terms: ["FRT", "Resolution Time", "CSAT"]
+  approved_by: "A. Chen"
+  last_reviewed: "2026-04-01"
+
+- term: "Sales Cycle Length"
+  category: "Sales"
+  definition: >
+    The average number of days from initial opportunity creation
+    to deal close (won or lost). Helps forecast revenue timing
+    and identify pipeline bottlenecks.
+  formula: "AVG(close_date - created_date) WHERE stage IN ('closed_won', 'closed_lost')"
+  data_source: "sample_deals"
+  related_terms: ["Win Rate", "Pipeline Value", "Average Deal Size"]
+  approved_by: "T. Rivera"
+  last_reviewed: "2026-04-01"
+
+- term: "Lead Conversion Rate"
+  category: "Sales"
+  definition: >
+    The percentage of marketing-qualified leads (MQLs) that convert
+    into paying customers within a defined attribution window (default 90 days).
+  formula: "(converted_leads / total_MQLs) * 100"
+  data_source: "sample_deals"
+  related_terms: ["Win Rate", "CAC", "Sales Cycle Length"]
+  approved_by: "T. Rivera"
+  last_reviewed: "2026-04-01"
+
+- term: "Quota Attainment"
+  category: "Sales"
+  definition: >
+    The percentage of a sales rep's or team's revenue target
+    achieved in a given period. Measured against closed-won ARR.
+  formula: "(closed_won_ARR / quota_target) * 100"
+  data_source: "sample_deals"
+  related_terms: ["Win Rate", "Average Deal Size", "Pipeline Value"]
+  approved_by: "T. Rivera"
+  last_reviewed: "2026-04-01"
+
+- term: "Employee Headcount"
+  category: "Operations"
+  definition: >
+    The total number of active full-time equivalent (FTE) employees
+    at a point in time. Includes full-time and part-time staff
+    converted to FTE. Excludes contractors.
+  formula: "COUNT(*) WHERE employment_status = 'active'"
+  data_source: "sample_hr"
+  related_terms: ["Revenue Per Employee", "Burn Rate"]
+  approved_by: "S. Garcia"
+  last_reviewed: "2026-04-01"
+
+- term: "Revenue Per Employee"
+  category: "Operations"
+  definition: >
+    Annualized recurring revenue divided by total FTE headcount.
+    A key efficiency metric for SaaS companies — benchmarks vary
+    by stage but $150K-$250K ARR per employee is typical at scale.
+  formula: "ARR / employee_headcount"
+  data_source: "sample_revenue"
+  related_terms: ["ARR", "Employee Headcount", "Gross Margin"]
+  approved_by: "S. Garcia"
+  last_reviewed: "2026-04-01"
+
+- term: "Burn Rate"
+  category: "Operations"
+  definition: >
+    The net amount of cash spent per month. Calculated as total
+    monthly operating expenses minus total monthly revenue. Negative
+    burn rate means the company is cash-flow positive.
+  formula: "monthly_expenses - monthly_revenue"
+  data_source: "sample_revenue"
+  related_terms: ["Runway", "Gross Margin", "MRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Runway"
+  category: "Operations"
+  definition: >
+    The number of months the company can continue operating at its
+    current burn rate before running out of cash.
+  formula: "cash_on_hand / monthly_burn_rate"
+  data_source: "sample_revenue"
+  related_terms: ["Burn Rate", "MRR"]
+  approved_by: "M. Johnson"
+  last_reviewed: "2026-04-01"
+
+- term: "Time to Value (TTV)"
+  category: "Product"
+  definition: >
+    The elapsed time from a customer's first login to the moment
+    they complete their first key activation milestone (e.g. first
+    dashboard created, first integration connected). Measured in days.
+  formula: "AVG(activation_date - first_login_date)"
+  data_source: "sample_usage"
+  related_terms: ["Feature Adoption Rate", "Daily Active Usage", "Onboarding Completion Rate"]
+  approved_by: "L. Park"
+  last_reviewed: "2026-04-01"
+
+- term: "Onboarding Completion Rate"
+  category: "Product"
+  definition: >
+    The percentage of new accounts that complete all steps in the
+    guided onboarding flow within their first 14 days.
+  formula: "(completed_onboarding / new_signups) * 100"
+  data_source: "sample_usage"
+  related_terms: ["Time to Value", "Feature Adoption Rate", "Churn Rate"]
+  approved_by: "L. Park"
+  last_reviewed: "2026-04-01"

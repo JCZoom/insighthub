@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InsightHub — AI-Powered Dashboard Builder
 
-## Getting Started
+An internal self-service BI platform where any employee can build, customize, and share rich data dashboards using natural language. Powered by Claude AI.
 
-First, run the development server:
+## Quick Start
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start PostgreSQL (via Docker)
+docker compose up -d db
+
+# 3. Generate Prisma client
+npm run db:generate
+
+# 4. Push schema to database
+npm run db:push
+
+# 5. Copy env and add your Anthropic API key
+cp .env.example .env.local
+# Edit .env.local → set ANTHROPIC_API_KEY
+
+# 6. Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Key Features (Phase 1)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **AI Chat → Dashboard** — Describe what you want in plain English, Claude builds it
+- **Widget System** — KPI cards, line/bar/area/pie charts, data tables, gauges
+- **Undo/Redo** — Full version history with instant revert
+- **Glossary** — Company-defined metric terminology that the AI enforces
+- **Dark/Light Theme** — Beautiful glassmorphism design system
+- **Template Gallery** — Pre-built Executive, Support, Churn, Sales dashboards
+- **Sample Data** — 18 months of realistic demo data (Snowflake connector in Phase 3)
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14+ (App Router) |
+| Language | TypeScript (strict) |
+| Styling | Tailwind CSS v4 |
+| Charts | Recharts |
+| AI | Anthropic Claude API |
+| Database | PostgreSQL (Prisma ORM) |
+| State | Zustand (with undo/redo) |
+| Icons | Lucide React |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/                    # Next.js App Router pages + API routes
+│   ├── api/chat/           # Claude AI chat endpoint
+│   ├── api/data/           # Sample data query endpoint
+│   ├── api/glossary/       # Glossary terms endpoint
+│   ├── dashboard/[id]/     # Dashboard editor
+│   ├── dashboard/new/      # New blank dashboard
+│   └── glossary/           # Terminology bible browser
+├── components/
+│   ├── chat/               # AI chat panel
+│   ├── dashboard/          # Canvas + widget renderer
+│   ├── gallery/            # Dashboard card grid
+│   ├── layout/             # Navbar, theme toggle
+│   ├── versioning/         # Version timeline
+│   └── widgets/            # KPI, charts, tables, gauge
+├── lib/
+│   ├── ai/                 # Claude prompts + schema patcher
+│   ├── auth/               # Auth config + session helpers
+│   ├── data/               # Sample data + templates
+│   └── db/                 # Prisma client
+├── stores/                 # Zustand stores
+└── types/                  # TypeScript interfaces
+glossary/
+└── terms.yaml              # Canonical company glossary
+docs/
+└── DASHBOARD_BUILDER_SPEC.md  # Full product specification
+```
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See `.env.example` for all required variables. The critical one for Phase 1:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+ANTHROPIC_API_KEY="your-key-here"
+```
+
+## Roadmap
+
+See `docs/DASHBOARD_BUILDER_SPEC.md` Section 9 for the full phased plan.

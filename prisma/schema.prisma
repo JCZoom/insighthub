@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String           @id @default(cuid())
+  email       String           @unique
+  name        String
+  avatarUrl   String?
+  role        String           @default("VIEWER")
+  department  String?
+  hasOnboarded Boolean         @default(false)
+  createdAt   DateTime         @default(now())
+  lastLoginAt DateTime?
+  dashboards  Dashboard[]      @relation("owner")
+  sharedWith  DashboardShare[]
+  chatSessions ChatSession[]
+  auditLogs        AuditLog[]
+  publishedWidgets WidgetTemplate[] @relation("publishedWidgets")
+}
+
+// Role values: VIEWER, CREATOR, POWER_USER, ADMIN (stored as String for SQLite)
+
+model Dashboard {
+  id             String             @id @default(cuid())
+  title          String
+  description    String?
+  thumbnailUrl   String?
+  ownerId        String
+  owner          User               @relation("owner", fields: [ownerId], references: [id])
+  folderId       String?
+  folder         Folder?            @relation(fields: [folderId], references: [id])
+  currentVersion Int                @default(1)
+  versions       DashboardVersion[]
+  shares         DashboardShare[]
+  tags           String             @default("")
+  isTemplate     Boolean            @default(false)
+  isPublic       Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  archivedAt     DateTime?
+
+  @@index([ownerId])
+  @@index([folderId])
+}
+
+model DashboardVersion {
+  id          String    @id @default(cuid())
+  dashboardId String
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  version     Int
+  schema      String
+  changeNote  String?
+  createdAt   DateTime  @default(now())
+  createdBy   String
+
+  @@index([dashboardId, version])
+}
+
+model DashboardShare {
+  id          String          @id @default(cuid())
+  dashboardId String
+  dashboard   Dashboard       @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  permission  String          @default("VIEW")
+  createdAt   DateTime        @default(now())
+
+  @@unique([dashboardId, userId])
+}
+
+// SharePermission values: VIEW, COMMENT, EDIT
+
+model Folder {
+  id         String           @id @default(cuid())
+  name       String
+  parentId   String?
+  parent     Folder?          @relation("children", fields: [parentId], references: [id])
+  children   Folder[]         @relation("children")
+  dashboards Dashboard[]
+  ownerId    String
+  visibility String           @default("PRIVATE")
+  createdAt  DateTime         @default(now())
+}
+
+// FolderVisibility values: PRIVATE, TEAM, PUBLIC
+
+model ChatSession {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  dashboardId String?
+  messages    ChatMessage[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id           String      @id @default(cuid())
+  sessionId    String
+  session      ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role         String
+  content      String
+  schemaChange String?
+  createdAt    DateTime    @default(now())
+}
+
+// MessageRole values: USER, ASSISTANT, SYSTEM
+
+model GlossaryTerm {
+  id             String   @id @default(cuid())
+  term           String   @unique
+  definition     String
+  formula        String?
+  category       String
+  examples       String?
+  relatedTerms   String             @default("")
+  dataSource     String?
+  lastReviewedAt DateTime?
+  approvedBy     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([category])
+}
+
+model WidgetTemplate {
+  id                   String    @id @default(cuid())
+  title                String
+  description          String?
+  type                 String
+  tags                 String             @default("")
+  config               String
+  sourceDashboardId    String?
+  sourceDashboardTitle String?
+  publishedById        String?
+  publishedBy          User?     @relation("publishedWidgets", fields: [publishedById], references: [id])
+  usageCount           Int       @default(0)
+  isPublic             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([type])
+  @@index([publishedById])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String
+  metadata     String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+}

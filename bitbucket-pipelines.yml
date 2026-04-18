@@ -1,0 +1,129 @@
+# BitBucket Pipelines Configuration
+# InsightHub — AI Dashboard Builder
+# Created: April 17, 2026
+
+image: node:20
+
+definitions:
+  caches:
+    npm: ~/.npm
+    nextbuild: .next/cache
+
+  steps:
+    - step: &typecheck
+        name: Type Check & Lint
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npx tsc --noEmit
+          - npm run lint
+
+    - step: &build
+        name: Build
+        caches:
+          - npm
+          - nextbuild
+        script:
+          - npm ci
+          - npm run build
+        artifacts:
+          - .next/**
+
+    - step: &deploy-ec2
+        name: Deploy to EC2
+        deployment: production
+        caches:
+          - npm
+        script:
+          - echo "🚀 Deploying InsightHub to EC2..."
+          # Install SSH key (configured in BB repo settings as SSH_PRIVATE_KEY)
+          - mkdir -p ~/.ssh
+          - echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+          - chmod 600 ~/.ssh/id_ed25519
+          - echo "$EC2_KNOWN_HOSTS" >> ~/.ssh/known_hosts 2>/dev/null || true
+          - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Sync files to EC2
+          - apt-get update -qq && apt-get install -y -qq rsync > /dev/null
+          - >
+            rsync -az --delete
+            --exclude '.git'
+            --exclude 'node_modules'
+            --exclude '.next'
+            --exclude '.env.local'
+            --exclude 'prisma/dev.db'
+            --exclude 'prisma/dev.db-journal'
+            ./ $EC2_USER@$EC2_HOST:$APP_DIR/
+          - echo "  ✓ Files synced"
+          # Install, generate, build, restart on EC2
+          - >
+            ssh $EC2_USER@$EC2_HOST "
+              cd $APP_DIR &&
+              npm ci --production=false 2>&1 | tail -3 &&
+              echo '  ✓ Dependencies installed' &&
+              DATABASE_URL='file:$APP_DIR/prisma/dev.db' npx prisma db push --accept-data-loss 2>&1 | tail -3 &&
+              echo '  ✓ Schema pushed' &&
+              npm run build 2>&1 | tail -5 &&
+              echo '  ✓ Build complete' &&
+              cp -r public .next/standalone/public 2>/dev/null || true &&
+              cp -r .next/static .next/standalone/.next/static &&
+              cp -r glossary .next/standalone/glossary &&
+              cp -r prisma .next/standalone/prisma &&
+              ln -sf $APP_DIR/prisma/dev.db .next/standalone/prisma/dev.db 2>/dev/null || true &&
+              cp -r node_modules/.prisma .next/standalone/node_modules/.prisma 2>/dev/null || true &&
+              cp -r node_modules/@prisma .next/standalone/node_modules/@prisma 2>/dev/null || true &&
+              echo '  ✓ Standalone packaged' &&
+              sudo systemctl restart insighthub &&
+              echo '  ✓ Service restarted'
+            "
+          # Health check with retry
+          - echo "⏳ Waiting for server to start..."
+          - sleep 5
+          - >
+            for i in 1 2 3 4 5; do
+              if curl -sf --max-time 10 "https://$SITE_DOMAIN/api/health" > /dev/null 2>&1; then
+                echo "✅ Health check passed on attempt $i"
+                break
+              fi
+              echo "  Attempt $i failed, retrying in 5s..."
+              sleep 5
+            done
+          - curl -sf "https://$SITE_DOMAIN/api/health" || echo "⚠️ Final health check failed"
+
+pipelines:
+  # Every push — typecheck + lint only (fast feedback)
+  default:
+    - step: *typecheck
+
+  # Push to main — full pipeline: check → build → deploy
+  branches:
+    main:
+      - step: *typecheck
+      - step: *build
+      - step: *deploy-ec2
+
+  # Manual triggers
+  custom:
+    # Deploy without rebuilding (e.g. config-only changes)
+    deploy-only:
+      - step: *deploy-ec2
+
+    # Full pipeline from any branch
+    full-pipeline:
+      - step: *typecheck
+      - step: *build
+      - step: *deploy-ec2
+
+# ===================================================================
+# REQUIRED REPOSITORY VARIABLES (Repository Settings → Repository variables)
+# ===================================================================
+#
+# SSH_PRIVATE_KEY  — Base64-encoded ED25519 private key for EC2 SSH
+#                    Generate: cat ~/.ssh/id_ed25519 | base64 | pbcopy
+# EC2_HOST         — EC2 hostname (e.g. autoqa or IP address)
+# EC2_USER         — SSH username (e.g. jeffreycoy)
+# EC2_KNOWN_HOSTS  — Output of ssh-keyscan for the EC2 host (optional)
+# APP_DIR          — App directory on EC2 (e.g. /opt/insighthub)
+# SITE_DOMAIN      — Production domain (e.g. dashboards.jeffcoy.net)
+#
+# ===================================================================
