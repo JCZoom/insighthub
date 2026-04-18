@@ -1,4 +1,5 @@
 import type { WidgetConfig } from '@/types';
+import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 
 // Base color palette — order matches the colorScheme names
 const BASE_COLORS: Record<string, string> = {
@@ -42,6 +43,7 @@ export const TOOLTIP_STYLE = {
     borderRadius: '8px',
     fontSize: '12px',
     boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+    backdropFilter: 'blur(8px)',
   },
   labelStyle: { color: 'var(--text-primary)', fontWeight: 600 },
   itemStyle: { color: 'var(--text-secondary)' },
@@ -99,14 +101,74 @@ export function getMinWidgetSize(widgetType: string): { minW: number; minH: numb
   };
 }
 
+/** Enhanced tooltip value formatter using existing utility functions */
+function formatTooltipValue(value: any, name: string | number | undefined): [string, string] {
+  const displayName = String(name || 'Value');
+  if (value == null) return ['—', displayName];
+
+  // Convert to number if possible
+  const numValue = typeof value === 'number' ? value : Number(value);
+  if (isNaN(numValue)) return [String(value), displayName];
+
+  // Format based on field name patterns
+  const lowerName = displayName.toLowerCase();
+  const isPercent = lowerName.includes('rate') || lowerName.includes('percent') ||
+                   lowerName.includes('csat') || lowerName.includes('adoption') ||
+                   lowerName.includes('win_rate') || lowerName.endsWith('%');
+  const isCurrency = lowerName.includes('mrr') || lowerName.includes('arr') ||
+                    lowerName.includes('revenue') || lowerName.includes('amount') ||
+                    lowerName.includes('value') || lowerName.includes('deal_size') ||
+                    lowerName.startsWith('$');
+
+  let formattedValue: string;
+  if (isPercent) {
+    formattedValue = formatPercent(numValue);
+  } else if (isCurrency) {
+    formattedValue = formatCurrency(numValue, { compact: true });
+  } else {
+    // Use compact formatting for large numbers
+    formattedValue = formatNumber(numValue, {
+      decimals: numValue % 1 !== 0 ? 1 : 0,
+      compact: Math.abs(numValue) >= 1000
+    });
+  }
+
+  // Clean up field name for display
+  const cleanDisplayName = displayName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .trim();
+
+  return [formattedValue, cleanDisplayName];
+}
+
 /** Get responsive tooltip configuration for touch vs desktop */
 export function getTooltipConfig(isTouchDevice: boolean) {
+  const baseConfig = {
+    ...TOOLTIP_STYLE,
+    formatter: formatTooltipValue,
+    labelFormatter: (label: any) => {
+      // Format labels (usually dates/categories) nicely
+      if (typeof label === 'string' && label.includes('-')) {
+        // Looks like a date
+        const date = new Date(label);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short'
+          });
+        }
+      }
+      return String(label).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    },
+  };
+
   if (isTouchDevice) {
     return {
-      ...TOOLTIP_STYLE,
+      ...baseConfig,
       trigger: 'click' as const,
       allowEscapeViewBox: { x: true, y: true },
     };
   }
-  return TOOLTIP_STYLE;
+  return baseConfig;
 }

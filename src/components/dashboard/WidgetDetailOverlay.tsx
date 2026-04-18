@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Database, BarChart3, Copy, Check, Table2, Filter, Layers } from 'lucide-react';
+import { X, Database, BarChart3, Copy, Check, Table2, Filter, Layers, Download, FileText, Camera } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -13,6 +13,73 @@ import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 interface WidgetDetailOverlayProps {
   config: WidgetConfig;
   onClose: () => void;
+}
+
+// --- CSV Export Utilities ---
+
+function escapeCSVField(field: unknown): string {
+  if (field == null) return '';
+  const str = String(field);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function exportToCSV(data: Record<string, unknown>[], filename: string): void {
+  if (!data.length) return;
+
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.map(escapeCSVField).join(','),
+    ...data.map(row => headers.map(header => escapeCSVField(row[header])).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// PNG export function - requires html2canvas to be installed
+// TODO: Install html2canvas with: npm install html2canvas
+async function exportToPNG(elementId: string, filename: string): Promise<void> {
+  alert('PNG export requires html2canvas package to be installed. Please run: npm install html2canvas');
+
+  // Once html2canvas is installed, uncomment the code below:
+  /*
+  try {
+    const html2canvas = (await import('html2canvas')).default;
+    const element = document.getElementById(elementId);
+    if (!element) {
+      console.error('Element not found for PNG export');
+      return;
+    }
+
+    const canvas = await html2canvas(element, {
+      backgroundColor: 'var(--bg-primary)',
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+    });
+
+    const url = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `${filename}.png`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('PNG export failed:', error);
+    alert('PNG export failed. Please try again or contact support.');
+  }
+  */
 }
 
 // --- Detail data generators per widget type ---
@@ -391,7 +458,7 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
       />
 
       {/* Overlay panel */}
-      <div className="relative z-10 w-full max-w-4xl max-h-[90vh] mt-[5vh] mx-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] shadow-2xl shadow-black/20 overflow-y-auto fade-in">
+      <div id="widget-detail-overlay" className="relative z-10 w-full max-w-4xl max-h-[90vh] mt-[5vh] mx-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] shadow-2xl shadow-black/20 overflow-y-auto fade-in">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
           <div className="flex items-center justify-between px-6 py-4">
@@ -401,12 +468,30 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
                 {config.subtitle || `${config.type.replace(/_/g, ' ')} · ${primaryData.length} records · Source: ${source}`}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => exportToCSV(primaryData, `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_data`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                title="Export data as CSV"
+              >
+                <FileText size={14} />
+                CSV
+              </button>
+              <button
+                onClick={() => exportToPNG('widget-detail-overlay', `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                title="Export widget as PNG image"
+              >
+                <Camera size={14} />
+                PNG
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
           {/* Tabs */}
           <div className="flex gap-1 px-6 pb-0">

@@ -7,9 +7,10 @@ import { getColorPalette, getAnimationDuration, TOOLTIP_STYLE } from './widget-u
 interface AreaChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
-export function AreaChartWidget({ config, data }: AreaChartWidgetProps) {
+export function AreaChartWidget({ config, data, onChartClick }: AreaChartWidgetProps) {
   const COLORS = getColorPalette(config.visualConfig.colorScheme);
   const animDuration = getAnimationDuration(config);
   const showGrid = config.visualConfig.showGrid !== false;
@@ -41,7 +42,17 @@ export function AreaChartWidget({ config, data }: AreaChartWidgetProps) {
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+            onClick={onChartClick ? (data: any) => {
+              // When clicking an area chart, filter by the X-axis value at the click point
+              if (data && data.activeLabel !== undefined) {
+                onChartClick(xKey, data.activeLabel);
+              }
+            } : undefined}
+            style={onChartClick ? { cursor: 'pointer' } : undefined}
+          >
             <defs>
               {areaKeys.map((key, i) => (
                 <linearGradient key={key} id={`gradient-${key}`} x1="0" y1="0" x2="0" y2="1">

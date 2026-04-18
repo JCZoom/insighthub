@@ -12,9 +12,9 @@ import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction
 import { MetricExplanationModal } from './MetricExplanationModal';
 import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
-import type { WidgetConfig } from '@/types';
+import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
@@ -27,7 +27,7 @@ interface DashboardCanvasProps {
 export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
   } = useDashboardStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -72,6 +72,20 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const handleExplainMetric = useCallback((widget: WidgetConfig) => {
     setExplainWidget(widget);
   }, []);
+
+  // Handle chart clicks for filtering
+  const handleChartClick = useCallback((field: string, value: unknown) => {
+    // Create a filter config for the clicked data point
+    const filterConfig: FilterConfig = {
+      field,
+      label: `${field}: ${String(value)}`,
+      type: 'select',
+      defaultValue: value,
+      options: [{ label: String(value), value: String(value) }],
+    };
+    addGlobalFilter(filterConfig);
+    toast({ type: 'success', title: 'Filter applied', description: `Filtering by ${field}: ${String(value)}` });
+  }, [addGlobalFilter, toast]);
 
   const handleSave = async () => {
     const store = useDashboardStore.getState();
@@ -396,6 +410,32 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               AI working…
             </span>
           )}
+          {schema.globalFilters.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              {schema.globalFilters.map((filter) => (
+                <span key={filter.field} className="flex items-center gap-1 pill pill-cyan text-xs">
+                  <Filter size={10} />
+                  {filter.label}
+                  <button
+                    onClick={() => removeGlobalFilter(filter.field)}
+                    className="ml-1 hover:bg-white/20 rounded px-1 transition-colors"
+                    title="Remove filter"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {schema.globalFilters.length > 1 && (
+                <button
+                  onClick={clearGlobalFilters}
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  title="Clear all filters"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -583,6 +623,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                     config={widget}
                     onDetailClick={setDetailWidget}
                     onExplainMetric={handleExplainMetric}
+                    onChartClick={handleChartClick}
                   />
                 </WidgetErrorBoundary>
               </div>

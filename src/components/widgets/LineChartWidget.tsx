@@ -9,9 +9,10 @@ import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 interface LineChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
-export function LineChartWidget({ config, data }: LineChartWidgetProps) {
+export function LineChartWidget({ config, data, onChartClick }: LineChartWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const responsive = useResponsiveWidget(containerRef);
 
@@ -59,7 +60,17 @@ export function LineChartWidget({ config, data }: LineChartWidgetProps) {
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={responsive.margin}>
+          <LineChart
+            data={data}
+            margin={responsive.margin}
+            onClick={onChartClick ? (data: any) => {
+              // When clicking a line chart, filter by the X-axis value at the click point
+              if (data && data.activeLabel !== undefined) {
+                onChartClick(xKey, data.activeLabel);
+              }
+            } : undefined}
+            style={onChartClick ? { cursor: 'pointer' } : undefined}
+          >
             {showGrid && (
               <CartesianGrid
                 strokeDasharray="3 3"

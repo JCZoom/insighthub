@@ -9,9 +9,10 @@ import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 interface PieChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
-export function PieChartWidget({ config, data }: PieChartWidgetProps) {
+export function PieChartWidget({ config, data, onChartClick }: PieChartWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const responsive = useResponsiveWidget(containerRef);
 
@@ -57,6 +58,16 @@ export function PieChartWidget({ config, data }: PieChartWidgetProps) {
               nameKey={nameKey}
               paddingAngle={isMobile ? 1 : 2}
               animationDuration={animDuration}
+              onClick={onChartClick ? (data: any, index: number) => {
+                // When clicking a pie slice, filter by the name key
+                if (data && data.payload) {
+                  const nameValue = data.payload[nameKey];
+                  if (nameValue !== undefined) {
+                    onChartClick(nameKey, nameValue);
+                  }
+                }
+              } : undefined}
+              style={onChartClick ? { cursor: 'pointer' } : undefined}
             >
               {data.map((_, index) => (
                 <Cell key={index} fill={COLORS[index % COLORS.length]} />

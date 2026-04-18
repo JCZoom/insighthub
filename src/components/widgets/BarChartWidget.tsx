@@ -9,9 +9,10 @@ import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 interface BarChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
-export function BarChartWidget({ config, data }: BarChartWidgetProps) {
+export function BarChartWidget({ config, data, onChartClick }: BarChartWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const responsive = useResponsiveWidget(containerRef);
 
@@ -101,6 +102,16 @@ export function BarChartWidget({ config, data }: BarChartWidgetProps) {
                 radius={isMobile ? [2, 2, 0, 0] : [4, 4, 0, 0]}
                 animationDuration={animDuration}
                 stackId={config.visualConfig.stacked ? 'stack' : undefined}
+                onClick={onChartClick ? (data: any) => {
+                  // When clicking a bar, filter by the X-axis category
+                  if (data && data.payload) {
+                    const xValue = data.payload[xKey];
+                    if (xValue !== undefined) {
+                      onChartClick(xKey, xValue);
+                    }
+                  }
+                } : undefined}
+                style={onChartClick ? { cursor: 'pointer' } : undefined}
               />
             ))}
           </BarChart>

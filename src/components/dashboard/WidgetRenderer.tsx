@@ -20,6 +20,7 @@ interface WidgetRendererProps {
   config: WidgetConfig;
   onDetailClick?: (config: WidgetConfig) => void;
   onExplainMetric?: (config: WidgetConfig) => void;
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
 /**
@@ -40,7 +41,7 @@ function sanitizeData(rows: Record<string, unknown>[]): Record<string, unknown>[
   });
 }
 
-export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetric }: WidgetRendererProps) {
+export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetric, onChartClick }: WidgetRendererProps) {
   // Normalize: ensure dataConfig and visualConfig always exist as objects.
   // The AI frequently omits these, causing "Cannot read properties of undefined" crashes.
   const config: WidgetConfig = {
@@ -79,18 +80,18 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
       widget = <KpiCard config={config} data={data} />;
       break;
     case 'line_chart':
-      widget = <LineChartWidget config={config} data={data} />;
+      widget = <LineChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'bar_chart':
     case 'stacked_bar':
-      widget = <BarChartWidget config={config} data={data} />;
+      widget = <BarChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'area_chart':
-      widget = <AreaChartWidget config={config} data={data} />;
+      widget = <AreaChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'pie_chart':
     case 'donut_chart':
-      widget = <PieChartWidget config={config} data={data} />;
+      widget = <PieChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'table':
     case 'pivot_table':

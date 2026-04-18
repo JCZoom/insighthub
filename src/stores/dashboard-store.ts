@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { DashboardSchema, SchemaPatch, WidgetConfig } from '@/types';
+import type { DashboardSchema, SchemaPatch, WidgetConfig, FilterConfig } from '@/types';
 import { EMPTY_DASHBOARD_SCHEMA } from '@/types';
 import { applyPatches } from '@/lib/ai/schema-patcher';
 
@@ -63,6 +63,11 @@ interface DashboardState {
   redo: () => void;
   markSaved: () => void;
   reset: () => void;
+  // Global filters
+  addGlobalFilter: (filter: FilterConfig) => void;
+  removeGlobalFilter: (field: string) => void;
+  clearGlobalFilters: () => void;
+  updateGlobalFilter: (field: string, value: unknown) => void;
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -257,4 +262,45 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     canUndo: false,
     canRedo: false,
   }),
+
+  // Global filter actions
+  addGlobalFilter: (filter) => {
+    const { schema, history, historyIndex } = get();
+    const newFilters = [...schema.globalFilters];
+    // Replace if filter with same field exists, otherwise add
+    const existingIndex = newFilters.findIndex(f => f.field === filter.field);
+    if (existingIndex >= 0) {
+      newFilters[existingIndex] = filter;
+    } else {
+      newFilters.push(filter);
+    }
+    const newSchema = { ...schema, globalFilters: newFilters };
+    const next = pushHistory(history, historyIndex, { schema: newSchema, note: `Added filter: ${filter.label}`, timestamp: new Date() });
+    set({ schema: newSchema, isDirty: true, ...next, canUndo: next.historyIndex > 0, canRedo: false });
+  },
+
+  removeGlobalFilter: (field) => {
+    const { schema, history, historyIndex } = get();
+    const filter = schema.globalFilters.find(f => f.field === field);
+    const newSchema = { ...schema, globalFilters: schema.globalFilters.filter(f => f.field !== field) };
+    const next = pushHistory(history, historyIndex, { schema: newSchema, note: `Removed filter: ${filter?.label || field}`, timestamp: new Date() });
+    set({ schema: newSchema, isDirty: true, ...next, canUndo: next.historyIndex > 0, canRedo: false });
+  },
+
+  clearGlobalFilters: () => {
+    const { schema, history, historyIndex } = get();
+    if (schema.globalFilters.length === 0) return;
+    const newSchema = { ...schema, globalFilters: [] };
+    const next = pushHistory(history, historyIndex, { schema: newSchema, note: 'Cleared all filters', timestamp: new Date() });
+    set({ schema: newSchema, isDirty: true, ...next, canUndo: next.historyIndex > 0, canRedo: false });
+  },
+
+  updateGlobalFilter: (field, value) => {
+    const { schema } = get();
+    const updatedFilters = schema.globalFilters.map(f =>
+      f.field === field ? { ...f, defaultValue: value } : f
+    );
+    const newSchema = { ...schema, globalFilters: updatedFilters };
+    set({ schema: newSchema, isDirty: true });
+  },
 }));
