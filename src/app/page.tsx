@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, MicOff, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
+import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import Link from 'next/link';
@@ -61,7 +61,7 @@ export default function Home() {
     });
   }, []);
 
-  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript } = useSpeechToText({
+  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError } = useSpeechToText({
     onResult: onSpeechResult,
   });
 
@@ -200,14 +200,20 @@ export default function Home() {
               {micSupported && (
                 <button
                   onClick={toggleMic}
-                  className={`p-2 rounded-xl transition-all ${
+                  className={`relative p-2 rounded-xl transition-all ${
                     isListening
-                      ? 'bg-accent-red/20 text-accent-red animate-pulse'
+                      ? 'bg-accent-red/15 text-accent-red'
                       : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
                   }`}
                   title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
                 >
-                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  <Mic size={18} />
+                  {isListening && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-red opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-red" />
+                    </span>
+                  )}
                 </button>
               )}
               <button
@@ -219,9 +225,14 @@ export default function Home() {
               </button>
             </div>
           </div>
-          {isListening && interimTranscript && (
-            <p className="text-xs text-accent-purple mb-4 italic truncate">
-              {interimTranscript}…
+          {isListening && (
+            <p className="text-xs text-accent-red mb-4 italic truncate animate-pulse">
+              {interimTranscript ? `${interimTranscript}…` : 'Listening — speak now...'}
+            </p>
+          )}
+          {micError && !isListening && (
+            <p className="text-xs text-accent-red mb-4">
+              {micError}
             </p>
           )}
 

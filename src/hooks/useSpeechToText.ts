@@ -28,6 +28,8 @@ interface SpeechToTextReturn {
   isSupported: boolean;
   /** Current interim transcript while user is speaking. */
   interimTranscript: string;
+  /** Human-readable error message, or null if no error. Cleared on next start(). */
+  error: string | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToText
 
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
@@ -78,6 +81,7 @@ export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToText
     recognition.onstart = () => {
       setIsListening(true);
       setInterimTranscript('');
+      setError(null);
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -107,6 +111,14 @@ export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToText
       // 'aborted' is expected when calling stop() — don't log it
       if (event.error !== 'aborted') {
         console.warn('Speech recognition error:', event.error);
+        const messages: Record<string, string> = {
+          'not-allowed': 'Microphone access denied. Check your browser permissions.',
+          'no-speech': 'No speech detected. Try again.',
+          'network': 'Speech recognition needs an internet connection.',
+          'audio-capture': 'No microphone found. Check your audio input device.',
+          'service-not-allowed': 'Speech service not available. Try a different browser.',
+        };
+        setError(messages[event.error] || `Speech error: ${event.error}`);
       }
       setIsListening(false);
       setInterimTranscript('');
@@ -137,5 +149,5 @@ export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToText
     }
   }, [isListening, start, stop]);
 
-  return { isListening, start, stop, toggle, isSupported, interimTranscript };
+  return { isListening, start, stop, toggle, isSupported, interimTranscript, error };
 }

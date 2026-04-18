@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic, MicOff } from 'lucide-react';
+import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
@@ -40,7 +40,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     });
   }, []);
 
-  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript } = useSpeechToText({
+  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError } = useSpeechToText({
     onResult: onSpeechResult,
   });
 
@@ -259,14 +259,20 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             <button
               onClick={toggleMic}
               className={cn(
-                'p-1.5 rounded-lg transition-all',
+                'relative p-1.5 rounded-lg transition-all',
                 isListening
-                  ? 'bg-accent-red/20 text-accent-red animate-pulse'
+                  ? 'bg-accent-red/15 text-accent-red'
                   : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
               )}
               title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
             >
-              {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+              <Mic size={14} />
+              {isListening && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-red opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-red" />
+                </span>
+              )}
             </button>
           )}
           <button
@@ -282,9 +288,14 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             <Send size={14} />
           </button>
         </div>
-        {isListening && interimTranscript && (
-          <p className="text-[10px] text-accent-purple mt-1 px-1 truncate italic">
-            {interimTranscript}…
+        {isListening && (
+          <p className="text-[10px] text-accent-red mt-1 px-1 truncate italic animate-pulse">
+            {interimTranscript ? `${interimTranscript}…` : 'Listening — speak now...'}
+          </p>
+        )}
+        {micError && !isListening && (
+          <p className="text-[10px] text-accent-red mt-1 px-1">
+            {micError}
           </p>
         )}
         <p className="text-[10px] text-[var(--text-muted)] mt-1.5 text-center">
