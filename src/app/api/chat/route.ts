@@ -115,65 +115,76 @@ function parseAIResponse(rawText: string, isSqlMode: boolean): {
   }
 }
 
-// Simulate streaming by breaking response processing into chunks
-async function* processResponseStream(
-  rawText: string,
-  message: string,
+// Process real streaming response from Anthropic
+async function* processRealStream(
+  stream: any,
   isSqlMode: boolean
 ): AsyncGenerator<{ event: string; data: any }> {
-  // Simulate processing delay and send progress updates
-  yield { event: 'progress', data: { message: 'Processing your request...', progress: 10 } };
-  await new Promise(resolve => setTimeout(resolve, 100));
+  let accumulatedText = '';
+  let progress = 0;
 
-  yield { event: 'progress', data: { message: 'Analyzing requirements...', progress: 30 } };
-  await new Promise(resolve => setTimeout(resolve, 150));
+  yield { event: 'progress', data: { message: 'Starting response stream...', progress: 5 } };
 
-  // Parse the response using shared parsing logic
-  if (isSqlMode) {
-    yield { event: 'progress', data: { message: 'Generating SQL query...', progress: 60 } };
-    await new Promise(resolve => setTimeout(resolve, 100));
-  } else {
-    yield { event: 'progress', data: { message: 'Generating dashboard schema...', progress: 60 } };
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
+  try {
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
+        accumulatedText += chunk.delta.text;
+        progress = Math.min(progress + 2, 85); // Gradually increase progress
 
-  const parsed = parseAIResponse(rawText, isSqlMode);
-
-  yield { event: 'progress', data: { message: 'Finalizing response...', progress: 90 } };
-  await new Promise(resolve => setTimeout(resolve, 50));
-
-  // Stream patches one by one if available
-  if (parsed.patches && Array.isArray(parsed.patches) && parsed.patches.length > 0) {
-    for (let i = 0; i < parsed.patches.length; i++) {
-      const patch = parsed.patches[i];
-      yield {
-        event: 'patch',
-        data: {
-          patch,
-          index: i,
-          total: parsed.patches.length,
-          progress: 95 + (i / parsed.patches.length) * 5
-        }
-      };
-      // Small delay between patches to show progressive updates
-      await new Promise(resolve => setTimeout(resolve, 50));
+        // Send token-level streaming updates
+        yield {
+          event: 'token',
+          data: {
+            text: chunk.delta.text,
+            accumulated: accumulatedText,
+            progress
+          }
+        };
+      } else if (chunk.type === 'message_start') {
+        yield { event: 'progress', data: { message: 'Response started...', progress: 10 } };
+      } else if (chunk.type === 'content_block_start') {
+        const message = isSqlMode ? 'Generating SQL...' : 'Building dashboard schema...';
+        yield { event: 'progress', data: { message, progress: 20 } };
+      }
     }
-  }
 
-  // Send explanation and completion
-  yield {
-    event: 'explanation',
-    data: {
-      explanation: parsed.explanation,
-      quickActions: parsed.quickActions || [],
-      sql: parsed.sql || undefined,
-      sqlType: parsed.sqlType || undefined,
-      isSqlMode,
-      progress: 100
+    yield { event: 'progress', data: { message: 'Processing final response...', progress: 90 } };
+
+    // Parse the complete response
+    const parsed = parseAIResponse(accumulatedText, isSqlMode);
+
+    // Stream patches one by one if available
+    if (parsed.patches && Array.isArray(parsed.patches) && parsed.patches.length > 0) {
+      for (let i = 0; i < parsed.patches.length; i++) {
+        const patch = parsed.patches[i];
+        yield {
+          event: 'patch',
+          data: {
+            patch,
+            index: i,
+            total: parsed.patches.length,
+            progress: 92 + (i / parsed.patches.length) * 6
+          }
+        };
+      }
     }
-  };
 
-  yield { event: 'complete', data: { sessionId: null } }; // Will be updated with actual sessionId
+    // Send final explanation
+    yield {
+      event: 'explanation',
+      data: {
+        explanation: parsed.explanation,
+        quickActions: parsed.quickActions || [],
+        sql: parsed.sql || undefined,
+        sqlType: parsed.sqlType || undefined,
+        isSqlMode,
+        progress: 100
+      }
+    };
+
+  } catch (error) {
+    throw error; // Re-throw to be handled by the caller
+  }
 }
 
 // Handle GET requests for EventSource streaming
@@ -349,24 +360,25 @@ async function handleChatRequest({
       const readable = new ReadableStream({
         async start(controller) {
           try {
-            // Call Anthropic API
-            const response = await anthropic.messages.create({
+            // Use Anthropic streaming API for real token-by-token streaming
+            const stream = await anthropic.messages.stream({
               model: 'claude-sonnet-4-20250514',
               max_tokens: 4096,
               system: systemPrompt,
               messages,
             });
 
-            const textBlock = response.content.find(b => b.type === 'text');
-            const rawText = textBlock?.type === 'text' ? textBlock.text : '';
-
-            // Process response and stream updates
+            // Process real stream and forward updates
             let finalParsedData: any = null;
-            for await (const chunk of processResponseStream(rawText, message, isSqlMode)) {
+            let collectedPatches: any[] = [];
+
+            for await (const chunk of processRealStream(stream, isSqlMode)) {
               if (chunk.event === 'explanation') {
                 finalParsedData = chunk.data;
                 // Update sessionId in the completion data
                 finalParsedData.sessionId = chatSession?.id;
+              } else if (chunk.event === 'patch') {
+                collectedPatches.push(chunk.data.patch);
               }
               controller.enqueue(new TextEncoder().encode(formatSSE(chunk.event, chunk.data)));
             }
@@ -374,15 +386,17 @@ async function handleChatRequest({
             // Save assistant message to database
             if (chatSession && finalParsedData) {
               try {
-                // We need to collect all patches from the stream to save
                 const explanation = finalParsedData.explanation || '';
+                const schemaChangeString = collectedPatches.length > 0
+                  ? JSON.stringify(collectedPatches)
+                  : null;
 
                 await prisma.chatMessage.create({
                   data: {
                     sessionId: chatSession.id,
                     role: 'assistant',
                     content: explanation,
-                    schemaChange: null, // Will be updated if patches were streamed
+                    schemaChange: schemaChangeString,
                   }
                 });
 

@@ -378,3 +378,18 @@
 [2026-04-18 14:57:07] 📌 Task: [Review Fix] Debug console.log left in production code
 [2026-04-18 14:57:07]    Section: Untitled section | Priority: Normal
 [2026-04-18 14:57:07]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:58:25]   ⏱️  Claude Code finished in 78s (exit code: 0)
+[2026-04-18 14:58:25]   💰 Task cost: $0.2001 | Running total: $1.34 / $25.00
+[2026-04-18 14:58:25]   📊 Tokens: 65 in + 2,743 out | cache: 237,948 read + 22,740 create
+[2026-04-18 14:58:25]   🔨 Running build check...
+[2026-04-18 14:58:35]   ✅ Build passed
+[2026-04-18 14:58:35]   ✅ Task completed successfully
+[2026-04-18 14:58:36]   ✅ Asana task 1214125694511334 → completed
+[2026-04-18 14:58:37]   💤 Pausing 15s before next task...
+[2026-04-18 14:58:52] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:58:52] 📋 Iteration 6/10 | Spent so far: $1.34 / $25.00
+[2026-04-18 14:58:52] ────────────────────────────────────────────────────────────
+[2026-04-18 14:58:52] 📌 Task: [Review Fix] Artificial delays in SSE stream are fake progress, not real streaming
+[2026-04-18 14:58:52]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:58:52]   🤖 Running Claude Code (claude-sonnet-4-20250514)...

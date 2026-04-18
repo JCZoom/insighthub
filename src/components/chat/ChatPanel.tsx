@@ -241,6 +241,21 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         }
       });
 
+      // Handle real-time token streaming
+      eventSource.addEventListener('token', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setStreamingState(prev => ({
+            ...prev,
+            explanation: data.accumulated || '',
+            progress: data.progress || prev.progress,
+            message: 'Streaming response...'
+          }));
+        } catch (error) {
+          console.error('Failed to parse token data:', error);
+        }
+      });
+
       // Handle patch events (progressive widget updates)
       eventSource.addEventListener('patch', (event) => {
         try {
