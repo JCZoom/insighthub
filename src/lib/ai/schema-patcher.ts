@@ -12,8 +12,14 @@ export function applyPatches(
     result = applySinglePatch(result, patch);
   }
 
-  // Auto-arrange widgets if the AI produced a chaotic layout
-  if (needsAutoLayout(result.widgets)) {
+  // Always auto-arrange after AI patches — the layout engine is type-aware
+  // and will produce a clean, prioritised grid regardless of what the AI emits.
+  // needsAutoLayout is kept as a secondary check for edge-case manual additions.
+  const hasStructuralChange = patches.some(p =>
+    p.type === 'add_widget' || p.type === 'use_widget' || p.type === 'replace_all'
+  );
+
+  if (hasStructuralChange || needsAutoLayout(result.widgets)) {
     result = {
       ...result,
       widgets: autoLayoutWidgets(result.widgets, result.layout.columns),
