@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
+import { CommandPalette } from './CommandPalette';
 
 export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
   const [showHelp, setShowHelp] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -22,6 +24,13 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
         setShowHelp(prev => !prev);
         return;
       }
+    }
+
+    // ⌘K — toggle command palette
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      setShowCommandPalette(prev => !prev);
+      return;
     }
 
     // ⌘+1 through ⌘+4 — navigation (always active)
@@ -82,6 +91,7 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {showHelp && <GlobalShortcutOverlay onClose={() => setShowHelp(false)} />}
+      {showCommandPalette && <CommandPalette onClose={() => setShowCommandPalette(false)} />}
     </>
   );
 }

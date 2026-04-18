@@ -1,6 +1,8 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { logUserAction, AuditAction } from '@/lib/audit';
+import prisma from '@/lib/db/prisma';
 
 const DEV_USER = {
   id: 'dev-admin-user',
@@ -11,8 +13,27 @@ const DEV_USER = {
   image: null,
 };
 
+// Admin user list - emails that should get ADMIN role
+const ADMIN_EMAILS = [
+  'jeff.coy@uszoom.com',
+  // Add other admin emails here
+];
+
+// Helper function to determine user role based on email
+function determineUserRole(email: string): 'VIEWER' | 'CREATOR' | 'POWER_USER' | 'ADMIN' {
+  if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+    return 'ADMIN';
+  }
+  return 'VIEWER'; // Default role
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    // Keep dev provider for development
     CredentialsProvider({
       name: 'Dev Login',
       credentials: {
@@ -32,31 +53,82 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        // TODO: When Google OAuth is wired up, query the DB for the user's actual role:
-        //   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-        //   token.role = dbUser?.role || 'VIEWER';
-        //   token.department = dbUser?.department || null;
-        // For now, use the dev user's role from the constant (only CredentialsProvider is active)
-        token.role = DEV_USER.role;
-        token.department = DEV_USER.department;
-        token.iat = Math.floor(Date.now() / 1000); // Set issued at time
+    async signIn({ user, account }) {
+      // Domain restriction - only allow @uszoom.com emails
+      if (account?.provider === 'google') {
+        const email = user.email;
+        if (!email || !email.toLowerCase().endsWith(`@${process.env.ALLOWED_DOMAIN || 'uszoom.com'}`)) {
+          return false; // Reject sign in
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (user && account) {
+        const email = user.email!;
 
-        // Log user login for audit
+        // Check if this is a dev mode login
+        if (account.provider === 'credentials' && process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+          token.role = DEV_USER.role;
+          token.department = DEV_USER.department;
+          token.iat = Math.floor(Date.now() / 1000);
+          return token;
+        }
+
+        // For Google OAuth, find or create user in database
         try {
-          await logUserAction(
-            user.id,
-            AuditAction.USER_LOGIN,
-            user.id,
-            {
-              email: user.email,
-              name: user.name,
-              loginTime: new Date().toISOString(),
-            }
-          );
+          let dbUser = await prisma.user.findUnique({
+            where: { email: email.toLowerCase() },
+          });
+
+          // Auto-create user record on first login
+          if (!dbUser) {
+            const role = determineUserRole(email);
+            dbUser = await prisma.user.create({
+              data: {
+                email: email.toLowerCase(),
+                name: user.name || '',
+                avatarUrl: user.image,
+                role,
+                department: '', // Could be mapped from email domain or set later
+                hasOnboarded: false,
+                lastLoginAt: new Date(),
+              },
+            });
+          } else {
+            // Update last login time
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { lastLoginAt: new Date() },
+            });
+          }
+
+          token.sub = dbUser.id; // Set user ID in token
+          token.role = dbUser.role;
+          token.department = dbUser.department;
+          token.hasOnboarded = dbUser.hasOnboarded;
+          token.iat = Math.floor(Date.now() / 1000);
+
+          // Log user login for audit
+          try {
+            await logUserAction(
+              dbUser.id,
+              AuditAction.USER_LOGIN,
+              dbUser.id,
+              {
+                email: dbUser.email,
+                name: dbUser.name,
+                loginTime: new Date().toISOString(),
+                provider: account.provider,
+              }
+            );
+          } catch (error) {
+            console.error('Failed to log user login audit:', error);
+          }
         } catch (error) {
-          console.error('Failed to log user login audit:', error);
+          console.error('Failed to create/update user:', error);
+          // In case of error, we still need to return the token but can mark it as invalid
+          return token; // Return token to avoid type error
         }
       }
       return token;
@@ -66,6 +138,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).id = token.sub;
         (session.user as Record<string, unknown>).role = token.role;
         (session.user as Record<string, unknown>).department = token.department;
+        (session.user as Record<string, unknown>).hasOnboarded = token.hasOnboarded;
       }
       return session;
     },

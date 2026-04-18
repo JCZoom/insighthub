@@ -14,6 +14,7 @@ import { TEMPLATE_SCHEMAS } from '@/lib/data/templates';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useToast } from '@/components/ui/toast';
+import { trackRecentlyViewed } from '@/app/gallery-client';
 
 interface EditorClientProps {
   dashboardId: string;
@@ -57,6 +58,9 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
+    // Track this dashboard in recently viewed
+    trackRecentlyViewed(dashboardId);
+
     const template = TEMPLATE_SCHEMAS[dashboardId];
     if (template) {
       initialize(dashboardId, template.title, template.schema);

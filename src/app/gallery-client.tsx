@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
@@ -83,6 +83,22 @@ function sortDashboards(items: DashboardCardData[], mode: SortMode): DashboardCa
 }
 
 const FAVORITES_KEY = 'insighthub-favorites';
+const RECENT_KEY = 'insighthub-recently-viewed';
+const MAX_RECENT = 8;
+
+function getRecentlyViewedIds(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  } catch { return []; }
+}
+
+export function trackRecentlyViewed(id: string) {
+  try {
+    const ids = getRecentlyViewedIds().filter(r => r !== id);
+    ids.unshift(id);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, MAX_RECENT)));
+  } catch {}
+}
 
 function loadFavoriteIds(): Set<string> {
   try {
@@ -110,9 +126,17 @@ export function GalleryPage() {
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [showSort, setShowSort] = useState(false);
   const [favoritesCollapsed, setFavoritesCollapsed] = useState(false);
+  const [recentCollapsed, setRecentCollapsed] = useState(false);
   const [allCollapsed, setAllCollapsed] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterOwner, setFilterOwner] = useState<string>('');
+  const [filterDepartment, setFilterDepartment] = useState<string>('');
+  const [filterTag, setFilterTag] = useState<string>('');
+  const [filterDateRange, setFilterDateRange] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const { toast } = useToast();
+
+  const hasActiveFilters = filterOwner || filterDepartment || filterTag || filterDateRange !== 'all';
 
   // Option+Arrow Left/Right to cycle tabs
   useEffect(() => {
@@ -253,22 +277,52 @@ export function GalleryPage() {
     }
   }, [toast]);
 
+  // Derive unique values for filter dropdowns
+  const ownerOptions = useMemo(() => [...new Set(dashboards.map(d => d.ownerName).filter(Boolean))].sort(), [dashboards]);
+  const departmentOptions = useMemo(() => {
+    const deps = dashboards.map(d => (d as DashboardCardData & { department?: string }).department).filter(Boolean) as string[];
+    return [...new Set(deps)].sort();
+  }, [dashboards]);
+  const tagOptions = useMemo(() => [...new Set(dashboards.flatMap(d => d.tags))].sort(), [dashboards]);
+
   const matchesSearch = (d: DashboardCardData) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return d.title.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q) || d.tags.some(t => t.includes(q));
   };
 
+  const matchesFilters = (d: DashboardCardData) => {
+    if (filterOwner && d.ownerName !== filterOwner) return false;
+    if (filterTag && !d.tags.includes(filterTag)) return false;
+    if (filterDateRange !== 'all') {
+      const now = Date.now();
+      const ms = { '7d': 7, '30d': 30, '90d': 90 }[filterDateRange] * 86400000;
+      if (now - d.updatedAt.getTime() > ms) return false;
+    }
+    return true;
+  };
+
+  const clearFilters = () => { setFilterOwner(''); setFilterDepartment(''); setFilterTag(''); setFilterDateRange('all'); };
+
   const filtered = sortDashboards(dashboards.filter(d => {
     if (activeTab === 'templates' && !d.isTemplate) return false;
-    if (activeTab === 'company') return matchesSearch(d);
+    if (activeTab === 'company') return matchesSearch(d) && matchesFilters(d);
     if (activeTab === 'my' && (d.isTemplate || d.isShared)) return false;
-    if (activeTab === 'shared') return !!d.isShared && !d.isTemplate && matchesSearch(d);
-    return matchesSearch(d);
+    if (activeTab === 'shared') return !!d.isShared && !d.isTemplate && matchesSearch(d) && matchesFilters(d);
+    if (!matchesSearch(d) || !matchesFilters(d)) return false;
+    return true;
   }), sortMode);
 
-  const favorites = dashboards.filter(d => d.isFavorite && matchesSearch(d));
+  const favorites = dashboards.filter(d => d.isFavorite && matchesSearch(d) && matchesFilters(d));
   const showFavorites = (activeTab === 'all' || activeTab === 'templates') && favorites.length > 0;
+
+  // Recently viewed
+  const recentlyViewed = useMemo(() => {
+    if (typeof window === 'undefined') return [];
+    const ids = getRecentlyViewedIds();
+    return ids.map(id => dashboards.find(d => d.id === id)).filter(Boolean) as DashboardCardData[];
+  }, [dashboards]);
+  const showRecent = activeTab === 'all' && recentlyViewed.length > 0 && !search && !hasActiveFilters;
 
   return (
     <main className="flex-1 w-full px-4 sm:px-6 py-6">
@@ -337,6 +391,23 @@ export function GalleryPage() {
               </div>
             )}
           </div>
+          <button
+            onClick={() => setShowFilters(prev => !prev)}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-colors',
+              hasActiveFilters
+                ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
+                : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            )}
+          >
+            <Filter size={12} />
+            Filters
+            {hasActiveFilters && (
+              <span className="ml-0.5 w-4 h-4 rounded-full bg-accent-blue text-white text-[9px] font-bold flex items-center justify-center">
+                {[filterOwner, filterDepartment, filterTag, filterDateRange !== 'all' ? '1' : ''].filter(Boolean).length}
+              </span>
+            )}
+          </button>
           <div className="flex items-center gap-0.5 border border-[var(--border-color)] rounded-lg p-0.5">
             <button
               onClick={() => setViewMode('grid')}
@@ -355,6 +426,82 @@ export function GalleryPage() {
           </div>
         </div>
       </div>
+
+      {/* Filter bar */}
+      {showFilters && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 p-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]/50">
+          <select
+            value={filterOwner}
+            onChange={e => setFilterOwner(e.target.value)}
+            className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+          >
+            <option value="">All Owners</option>
+            {ownerOptions.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          {departmentOptions.length > 0 && (
+            <select
+              value={filterDepartment}
+              onChange={e => setFilterDepartment(e.target.value)}
+              className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+            >
+              <option value="">All Departments</option>
+              {departmentOptions.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          )}
+          <select
+            value={filterTag}
+            onChange={e => setFilterTag(e.target.value)}
+            className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+          >
+            <option value="">All Tags</option>
+            {tagOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select
+            value={filterDateRange}
+            onChange={e => setFilterDateRange(e.target.value as 'all' | '7d' | '30d' | '90d')}
+            className="text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] px-2.5 py-1.5 outline-none focus:border-accent-blue/50"
+          >
+            <option value="all">Any Date</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+          </select>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors"
+            >
+              <X size={12} />
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Recently Viewed section */}
+      {showRecent && (
+        <section className="mb-8">
+          <button
+            onClick={() => setRecentCollapsed(prev => !prev)}
+            className="flex items-center gap-2 mb-3 group cursor-pointer"
+          >
+            {recentCollapsed ? <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" /> : <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />}
+            <Clock size={14} className="text-accent-blue" />
+            <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider group-hover:text-[var(--text-primary)] transition-colors">Recently Viewed ({recentlyViewed.length})</h2>
+          </button>
+          {!recentCollapsed && (
+            <div className={cn(
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                : 'flex flex-col gap-2'
+            )}>
+              {recentlyViewed.map(d => (
+                <DashboardCard key={`recent-${d.id}`} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Favorites section — only visible on All/Templates tabs and when there are favorites matching search */}
       {showFavorites && (
