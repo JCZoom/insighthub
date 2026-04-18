@@ -363,3 +363,18 @@
 [2026-04-18 14:53:40] 📌 Task: [Review Fix] Inconsistent indentation in handleChatRequest
 [2026-04-18 14:53:40]    Section: Untitled section | Priority: Normal
 [2026-04-18 14:53:40]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 14:56:40]   ⏱️  Claude Code finished in 180s (exit code: 0)
+[2026-04-18 14:56:40]   💰 Task cost: $0.4196 | Running total: $1.14 / $25.00
+[2026-04-18 14:56:40]   📊 Tokens: 142 in + 9,228 out | cache: 579,263 read + 27,982 create
+[2026-04-18 14:56:40]   🔨 Running build check...
+[2026-04-18 14:56:51]   ✅ Build passed
+[2026-04-18 14:56:51]   ✅ Task completed successfully
+[2026-04-18 14:56:51]   ✅ Asana task 1214127949380975 → completed
+[2026-04-18 14:56:52]   💤 Pausing 15s before next task...
+[2026-04-18 14:57:07] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:57:07] 📋 Iteration 5/10 | Spent so far: $1.14 / $25.00
+[2026-04-18 14:57:07] ────────────────────────────────────────────────────────────
+[2026-04-18 14:57:07] 📌 Task: [Review Fix] Debug console.log left in production code
+[2026-04-18 14:57:07]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:57:07]   🤖 Running Claude Code (claude-sonnet-4-20250514)...

@@ -219,7 +219,9 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('SSE message:', event.type, data); // Debug log
+          if (process.env.NODE_ENV === 'development') {
+            console.log('SSE message:', event.type, data);
+          }
         } catch (error) {
           console.error('Failed to parse SSE data:', error);
         }
