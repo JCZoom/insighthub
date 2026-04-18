@@ -1,12 +1,12 @@
 # InsightHub — AI Dashboard Builder: Project Status
 
-**Last synced:** 2026-04-18T18:05:52.647920
+**Last synced:** 2026-04-18T19:59:44.462467
 **Project GID:** 1214122597260827
 
 ## Overview
-- **Tasks:** 162 (109 completed)
+- **Tasks:** 162 (120 completed)
 - **Milestones:** 0
-- **Subtasks:** 471 (196 completed)
+- **Subtasks:** 471 (249 completed)
 - **Sections:** 15
 
 ## Sections
@@ -52,7 +52,7 @@
 - ✅ **[Review Fix] All authenticated users get ADMIN role**
 - ✅ **[Review Fix] CSRF middleware blocks ALL API mutations — no client code sends tokens**
 - ✅ **[Review Fix] Database provider reverted to PostgreSQL — breaks existing deployment**
-- ✅ **🔗 Dashboard Sharing UI — Link, Permissions & Embed** [0/6 subtasks]
+- ✅ **🔗 Dashboard Sharing UI — Link, Permissions & Embed** [5/6 subtasks]
 - ✅ **Fix Chat 404 — Revert Invalid Model Name (claude-sonnet-4-latest)**
 - ✅ **Upgrade Claude Model — claude-sonnet-4-latest**
 - ✅ **Fix Gallery Page Crash — Tags String to Array Conversion**
@@ -75,14 +75,14 @@
 - ✅ **Sprint review — overnight build cleanup (2026-04-18)**
 
 ### 🔐 Auth & Security
-5/7 tasks done | 0 milestones
+6/7 tasks done | 0 milestones
 
 - ✅ **Zod validation on all API routes (M-3)**
 - ✅ **Session timeout & security headers** [2/3 subtasks]
 - ✅ **Audit logging** [6/6 subtasks]
 - ✅ **API rate limiting** [4/4 subtasks]
 - ⬜ **🔐 Role-Based Access Control & Granular Data Permissions** [0/16 subtasks]
-- ⬜ **Google OAuth integration (NextAuth.js)** [1/7 subtasks]
+- ✅ **Google OAuth integration (NextAuth.js)** [7/7 subtasks]
 - ✅ **🔴 SECURITY PRIORITY: Granular Data-Level Permissions Before Wider Rollout**
 
 ### 🤖 AI & Chat System
@@ -96,7 +96,7 @@
 - ✅ **SSE streaming for AI responses** [5/5 subtasks]
 
 ### 📊 Widget System
-6/9 tasks done | 0 milestones
+9/9 tasks done | 0 milestones
 
 - ✅ **Rich Text Block Widget — Variants, Styling & Widget Library Entries**
 - ✅ **Widget Render Resilience — SSR/Hydration Fix + Data Source Aliases** [1/1 subtasks]
@@ -104,12 +104,12 @@
 - ✅ **"Explain this metric" tooltip** [6/6 subtasks]
 - ✅ **Widget resize handles** [4/4 subtasks]
 - ✅ **Widget interactions & drill-down** [10/10 subtasks]
-- ⬜ **Widget click-to-edit config panel** [5/6 subtasks]
-- ⬜ **Complete all widget renderers** [8/9 subtasks]
-- ⬜ **Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types**
+- ✅ **Widget click-to-edit config panel** [6/6 subtasks]
+- ✅ **Complete all widget renderers** [9/9 subtasks]
+- ✅ **Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types**
 
 ### 🎨 Dashboard Canvas & UX
-19/29 tasks done | 0 milestones
+24/29 tasks done | 0 milestones
 
 - ✅ **Home Page Hero Redesign + Modal Scroll Fix**
 - ✅ **Widget Selection — Click-to-Select with Visual Highlight**
@@ -117,11 +117,11 @@
 - ✅ **Dashboard Editor UX Polish — Hover Delete, Inline Title, Resize Handle**
 - ✅ **🔎 Widget Data Transparency — Data Lineage Tab**
 - ✅ **⌨️ Keyboard Shortcuts & Power User UX** [9/9 subtasks]
-- ⬜ **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette** [6/11 subtasks]
-- ⬜ **🏠 Landing Page & Gallery — Mobile Polish** [0/5 subtasks]
-- ⬜ **👆 Touch Interaction Support — Drag, Resize, Context Menu** [0/5 subtasks]
-- ⬜ **📱 Responsive Editor Layout — Adaptive Canvas + Chat** [0/8 subtasks]
-- ⬜ **🖥️ Desktop Polish — Mac & Windows Browser Consistency** [0/8 subtasks]
+- ✅ **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette** [11/11 subtasks]
+- ✅ **🏠 Landing Page & Gallery — Mobile Polish** [5/5 subtasks]
+- ✅ **👆 Touch Interaction Support — Drag, Resize, Context Menu** [5/5 subtasks]
+- ✅ **📱 Responsive Editor Layout — Adaptive Canvas + Chat** [8/8 subtasks]
+- ⬜ **🖥️ Desktop Polish — Mac & Windows Browser Consistency** [5/8 subtasks]
 - ⬜ **🖥️📱 Cross-Platform Optimization — Desktop Excellence + Mobile/Tablet Support**
 - ✅ **Auto-Layout End-to-End Testing — All Cases Pass**
 - ⬜ **🔎 Widget Data Transparency — "Show Me the Query" on Every Widget** [0/6 subtasks]
@@ -136,13 +136,13 @@
 - ✅ **UX Polish — Error Boundaries, Loading States & Empty States**
 - ✅ **Dashboard auto-save** [4/4 subtasks]
 - ✅ **Dark/light theme toggle** [4/4 subtasks]
-- ✅ **⌨️ Keyboard shortcuts — Phase 1 (basic: undo/redo/save/search/chat) ✅** [5/7 subtasks]
+- ✅ **⌨️ Keyboard shortcuts — Phase 1 (basic: undo/redo/save/search/chat) ✅** [7/7 subtasks]
 - ⬜ **Onboarding flow (first-login walkthrough)** [0/6 subtasks]
-- ⬜ **Version timeline sidebar** [4/6 subtasks]
+- ✅ **Version timeline sidebar** [6/6 subtasks]
 - ⬜ **Responsive preview mode** [0/3 subtasks]
 
 ### 📁 Gallery & Sharing
-2/7 tasks done | 0 milestones
+3/7 tasks done | 0 milestones
 
 - ✅ **Gallery Bug Fixes — Layout Shift, List View, Template Loading**
 - ⬜ **Dashboard thumbnails (auto-generated previews)** [0/4 subtasks]
@@ -150,12 +150,12 @@
 - ✅ **Dashboard cloning** [3/3 subtasks]
 - ⬜ **Folder system** [0/5 subtasks]
 - ⬜ **Dashboard sharing system** [3/7 subtasks]
-- ⬜ **Dashboard gallery improvements** [4/8 subtasks]
+- ✅ **Dashboard gallery improvements** [8/8 subtasks]
 
 ### 📖 Glossary System
-2/4 tasks done | 0 milestones
+3/4 tasks done | 0 milestones
 
-- ⬜ **Glossary reference panel in dashboard editor** [0/4 subtasks]
+- ✅ **Glossary reference panel in dashboard editor** [4/4 subtasks]
 - ✅ **Glossary CRUD API** [4/5 subtasks]
 - ✅ **Glossary browse & search UI** [5/5 subtasks]
 - ⬜ **Glossary → Widget Links: Browse & Add Relevant Widgets from Glossary Terms**

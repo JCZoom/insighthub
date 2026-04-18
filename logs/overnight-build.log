@@ -684,3 +684,15 @@
 [2026-04-18 19:28:34]    Total tokens: 3,868 in + 247,939 out
 [2026-04-18 19:28:34] ============================================================
 [2026-04-18 19:28:34] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18-4.md
+[2026-04-18 19:59:44] ============================================================
+[2026-04-18 19:59:44] 🌙 Overnight Builder starting
+[2026-04-18 19:59:44]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 19:59:44]    Model: claude-sonnet-4-20250514
+[2026-04-18 19:59:44]    Max tasks: 10
+[2026-04-18 19:59:44]    Max consecutive failures: 3
+[2026-04-18 19:59:44]    Dry run: False
+[2026-04-18 19:59:44]    Budget cap: $25.00
+[2026-04-18 19:59:44]    AI triage: True
+[2026-04-18 19:59:44]    Operator notes: Fix dark mode theme issues: (1) User Management page (/admin/users) — user list ...
+[2026-04-18 19:59:44] ============================================================
+[2026-04-18 19:59:44] ⚠️  Uncommitted changes detected. Committing before starting...

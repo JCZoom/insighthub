@@ -5,7 +5,7 @@
     "default_view": "board"
   },
   "custom_fields_meta": {},
-  "synced_at": "2026-04-18T18:05:52.647920",
+  "synced_at": "2026-04-18T19:59:44.462467",
   "sections": [
     {
       "gid": "1214122597260846",
@@ -599,7 +599,7 @@
             {
               "gid": "1214124636334286",
               "name": "API: PATCH /api/dashboards/[id]/share \u2014 add/remove shares",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -611,25 +611,25 @@
             {
               "gid": "1214124636316796",
               "name": "Display current shares with user avatars",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127927118507",
               "name": "Permission selector (View / Edit / Remove)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127927126848",
               "name": "Share modal \u2014 copy link with toast",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124636349877",
               "name": "Share button in toolbar (opens modal)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -1357,8 +1357,8 @@
           "gid": "1214122597291831",
           "name": "Google OAuth integration (NextAuth.js)",
           "notes": "uszoom.com domain restriction. Role mapping. Session management.\nRef: spec Section 4.6",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:28:30.737Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -1371,37 +1371,37 @@
             {
               "gid": "1214122597306210",
               "name": "Redirect flow \u2014 login \u2192 onboarding (first visit) or gallery",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214139822321894",
               "name": "Login page with Google sign-in button",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124626643738",
               "name": "Session persistence with JWT strategy",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141667500",
               "name": "Map roles from DB (default VIEWER, admin list for ADMIN)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662398165",
               "name": "Auto-create User record on first login",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214139826463702",
               "name": "Domain restriction \u2014 only @uszoom.com emails allowed",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -1968,8 +1968,8 @@
           "gid": "1214124626650274",
           "name": "Widget click-to-edit config panel",
           "notes": "Clicking a widget opens inline configuration editor.\nChange chart type, colors, filters, thresholds.\nRef: spec Section 4.4",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:33:26.387Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -1988,7 +1988,7 @@
             {
               "gid": "1214127917356530",
               "name": "Threshold editor (value + color + label)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2021,8 +2021,8 @@
           "gid": "1214124626627909",
           "name": "Complete all widget renderers",
           "notes": "Implement all widget types from the spec.\nCurrently have: KPI, Line, Bar, Area, Pie, Gauge, DataTable, TextBlock.\nRef: spec Section 4.4",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:37:28.268Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2059,7 +2059,7 @@
             {
               "gid": "1214124626577904",
               "name": "PivotTable widget",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2092,8 +2092,8 @@
           "gid": "1214124634642808",
           "name": "Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types",
           "notes": "IMPLEMENTED \u2014 Session April 17 2026\n\nInspired by FreshChat POC voice dashboard Peak Concurrent widget \"\u25b8 detail\" link.\n\nEvery widget on the dashboard canvas gets a clickable \"\u25b8 detail\" link. Clicking it opens a full-screen glassmorphism overlay with:\n- Larger rendering of the widget\n- Contextual drill-down data (breakdowns, time series, summary stats)\n- Related glossary terms\n- Close button (X or click backdrop)\n\nWidget-type-specific detail content:\n- KPI Card: trend over time chart + breakdown table\n- Bar/Line/Area Chart: full data table + summary stats\n- Table: expanded full-width view + column stats\n- Pie/Donut: legend breakdown + percentages table\n- Gauge/Funnel: metric history + breakdown\n\nArchitecture:\n- WidgetDetailOverlay component (src/components/dashboard/WidgetDetailOverlay.tsx)\n- generateDetailData() helper produces drill-down data per widget type from sample data\n- WidgetRenderer accepts onDetailClick prop\n- Each widget shows \"\u25b8 detail\" link in bottom area\n- DashboardCanvas manages overlay state\n\nFilled with contextual dummy data that matches the widgets data source for solid architecture when real data arrives.",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:40:07.701Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2259,8 +2259,8 @@
           "gid": "1214133151139234",
           "name": "\u2328\ufe0f Keyboard Shortcut System \u2014 ? Overlay, Vim-Style Navigation & Command Palette",
           "notes": "\u2328\ufe0f Keyboard Shortcut System \u2014 Phase 2\n\nA comprehensive, thoughtful keyboard shortcut experience inspired by GitHub (? overlay), Figma (spacebar pan), Linear (c to create), and our own AutoQA review inbox (j/k navigation, number keys for tabs, ? help overlay, platform-aware \u2318/Ctrl display).\n\n## Design Philosophy\n- **Discoverable**: ? overlay teaches shortcuts. Tooltips show shortcuts on hover.\n- **Vim-inspired navigation**: j/k for next/prev, g+key for \"go to\" commands\n- **Single-key where possible**: No modifier keys for the most common actions\n- **Platform-aware**: \u2318 on Mac, Ctrl on Windows \u2014 detected via navigator.platform, toggled via CSS class (is-mac / is-win pattern from AutoQA)\n- **Never hijack inputs**: All single-key shortcuts disabled when focus is in an input/textarea\n- **Context-sensitive**: Different shortcuts active on different pages (editor vs gallery vs landing)\n- **Escape always works**: Closes any overlay, blurs inputs, clears focus\n\n## Shortcut Reference (The Full List)\n\n### ? Help Overlay (available everywhere)\n| Key | Action |\n|-----|--------|\n| ? (Shift+/) | Toggle keyboard shortcuts overlay |\n| Esc | Close overlay / close any modal / blur input |\n\n### Global Navigation (available on all pages)\n| Key | Action |\n|-----|--------|\n| g then h | Go to Home (landing page) |\n| g then d | Go to Dashboards (gallery) |\n| g then g | Go to Glossary |\n| g then n | Go to New Dashboard |\n| g then s | Go to Settings |\n| \u2318K / Ctrl+K | Open command palette (spotlight search) |\n| / | Focus the nearest search/input field |\n\n### Dashboard Editor\n| Key | Action |\n|-----|--------|\n| \u2318S / Ctrl+S | Save dashboard |\n| \u2318Z / Ctrl+Z | Undo |\n| \u2318\u21e7Z / Ctrl+\u21e7Z | Redo |\n| / | Focus chat input |\n| c | Toggle chat panel (open/close drawer on narrow viewports) |\n| w | Toggle widget library panel |\n| Esc | Close any open panel / deselect widget / cancel drag |\n| Delete / Backspace | Delete selected widget |\n| \u2318D / Ctrl+D | Duplicate selected widget |\n| \u2191 \u2193 \u2190 \u2192 | Nudge selected widget by 1 grid cell |\n| \u21e7 + arrow | Resize selected widget (expand/shrink in that direction) |\n| Tab | Cycle focus through widgets |\n| \u21e7Tab | Cycle focus backwards |\n| Enter | Open selected widget's edit/config panel |\n| 1-9 | Quick-select widget by position (first 9 widgets) |\n| f | Toggle fullscreen for selected widget |\n| p | Toggle preview mode (hide grid lines, show final look) |\n| t | Add text block at next available position |\n| v | Toggle version timeline |\n| \u2318\u21e7P / Ctrl+\u21e7P | Open command palette within editor |\n\n### Dashboard Viewing (read-only dashboards, shared views)\n| Key | Action |\n|-----|--------|\n| j / k | Scroll to next / previous widget |\n| f | Toggle fullscreen for focused widget |\n| e | Enter edit mode (if user has permission) |\n| r | Refresh dashboard data |\n\n### Gallery Page\n| Key | Action |\n|-----|--------|\n| / | Focus search bar |\n| j / k | Navigate through dashboard cards |\n| Enter | Open focused dashboard |\n| n | Create new dashboard |\n| 1-5 | Switch tabs (All, My, Company, Shared, Templates) |\n| r | Refresh dashboard list |\n| s | Toggle star/favorite on focused card |\n\n### Glossary Page\n| Key | Action |\n|-----|--------|\n| / | Focus search |\n| j / k | Navigate through terms |\n| Enter | Expand focused term |\n| Esc | Collapse / clear search |\n\n## Implementation\n\n### Architecture\n- `src/hooks/useKeyboardShortcuts.ts` \u2014 expand existing hook with full shortcut registry\n- `src/hooks/usePlatform.ts` \u2014 NEW: platform detection hook\n- `src/components/ui/KeyboardShortcutsOverlay.tsx` \u2014 NEW: ? overlay modal\n- `src/components/ui/Kbd.tsx` \u2014 NEW: styled <kbd> component (platform-aware)\n- `src/lib/keyboard/shortcut-registry.ts` \u2014 NEW: declarative shortcut definitions with context scoping\n\n### Shortcut Registry Pattern\n```typescript\nconst shortcuts: ShortcutDef[] = [\n  { key: '?', description: 'Show keyboard shortcuts', scope: 'global', action: toggleOverlay },\n  { key: 'g h', description: 'Go to Home', scope: 'global', action: () => router.push('/') },\n  { key: 'mod+s', description: 'Save dashboard', scope: 'editor', action: save },\n  // mod = \u2318 on Mac, Ctrl on Windows\n];\n```\n\n### g-prefix \"Go To\" Commands (GitHub-style)\nTwo-key sequence: press g, then within 500ms press the second key.\nVisual indicator: after pressing g, show a subtle \"g...\" toast in bottom-left corner.\nIf no second key within 500ms, the g is ignored.\n\n### Platform-Aware Display\nSame CSS pattern as AutoQA:\n```css\nhtml.is-mac .win-keys { display: none !important; }\nhtml.is-win .mac-keys { display: none !important; }\n```\nDetection: `const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);`\n\n### ? Overlay Design\n- Glassmorphism panel matching InsightHub dark theme\n- Sections: Global, Editor, Viewing, Gallery, Glossary\n- Each row: description (left) \u2014 keys (right)\n- <kbd> elements styled like physical keys (subtle shadow, rounded, mono font)\n- Platform-aware: show \u2318 on Mac, Ctrl on Windows (dual rendering with CSS toggle)\n- Animate in: backdrop blur + scale-up from center\n- Close on: Esc, ?, click outside\n- Footer: \"Tip: Most shortcuts work only outside text inputs\"\n\n### Tooltip Integration\nEvery toolbar button, nav item, and action button should show its shortcut in the tooltip:\n- \"Save (\u2318S)\" / \"Save (Ctrl+S)\"\n- \"Undo (\u2318Z)\" / \"Widget Library (W)\"\n- Use the Kbd component inline in tooltips\n\n### Command Palette (\u2318K)\nA spotlight-style search that also surfaces keyboard actions:\n- Search across: dashboards, glossary terms, recent actions, keyboard commands\n- Shows matching shortcuts next to each result\n- \"Type > to search commands\" (like VS Code)\n- Fuzzy match\n- Recent items shown by default\n\n## Inspiration\n- **AutoQA Review Inbox**: ?, j/k, 1-5 tab switching, /, r refresh, platform detection (is-mac/is-win CSS classes)\n- **GitHub**: ? overlay, g-prefix navigation (g d = go to dashboard)\n- **Figma**: spacebar+drag to pan, Tab to cycle layers\n- **Linear**: c to create issue, \u2318K command palette\n- **Notion**: / to insert, \u2318K to search\n- **VS Code**: \u2318\u21e7P command palette, \u2318K \u2318S for shortcuts panel",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:32:37.308Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2284,25 +2284,25 @@
             {
               "gid": "1214124636118167",
               "name": "Escape key hierarchy: overlays \u2192 modals \u2192 panels \u2192 selection \u2192 input blur",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926878273",
               "name": "Tooltip shortcut hints \u2014 show keyboard shortcut in every toolbar/button tooltip",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671945032",
               "name": "Command palette (\u2318K) \u2014 spotlight search across dashboards, glossary, commands",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606862708",
               "name": "Gallery shortcuts: j/k navigation, 1-5 tab switching, Enter to open, n to create",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2314,7 +2314,7 @@
             {
               "gid": "1214124636116813",
               "name": "g-prefix \"Go To\" navigation (g+h Home, g+d Dashboards, g+g Glossary, g+n New)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2347,8 +2347,8 @@
           "gid": "1214125671522231",
           "name": "\ud83c\udfe0 Landing Page & Gallery \u2014 Mobile Polish",
           "notes": "The landing page and gallery already have basic responsive classes but need refinement for a polished mobile experience.\n\n## Landing Page (src/app/page.tsx)\n\n### Current\n- Quick actions: grid-cols-2 sm:grid-cols-4 \u2705\n- Heading: text-3xl sm:text-4xl \u2705\n- Top nav: links visible on all sizes (no responsive hiding)\n\n### Fixes Needed\n- **Mobile nav**: On phone, the top nav links (My Dashboards, Glossary) are tiny and cramped\n  \u2192 Replace with bottom nav bar on mobile, or hamburger menu\n- **Text input**: The textarea + buttons are a bit cramped on phone\n  \u2192 Full-width input, buttons below instead of inline on < 640px\n  \u2192 Mic button and send button should be 44px touch targets\n- **Quick actions**: 2-col grid is fine, but cards need slightly more padding on touch\n  \u2192 Increase tap target, add active:scale-[0.97] for touch feedback\n- **Hero section**: Vertical centering looks odd on short phones (no room to center)\n  \u2192 Switch to top-aligned layout on mobile with more breathing room\n\n## Gallery Page (src/app/gallery-client.tsx)\n\n### Current\n- Dashboard cards: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 \u2705\n- Tabs + search: flex-col sm:flex-row \u2705\n- Favorites grid: same responsive \u2705\n\n### Fixes Needed\n- **Tab bar**: On mobile, 5 tabs overflow horizontally\n  \u2192 Make tabs horizontally scrollable with scroll-snap on mobile\n  \u2192 Or collapse to a dropdown/select on < 640px\n- **Search bar**: Width is fixed at w-56\n  \u2192 Full-width on mobile\n- **Grid/List toggle**: Fine as-is \u2705\n- **Dashboard cards**: Need larger touch targets for the favorite star and card click areas\n- **Empty states**: Text is well-sized \u2705\n\n## Navbar (src/components/layout/Navbar.tsx)\n\n### Current\n- Nav items hidden on mobile (hidden sm:flex)\n- \"New Dashboard\" button: hides text (hidden sm:inline), keeps + icon\n- Profile dropdown: works on all sizes \u2705\n\n### Fixes Needed\n- On mobile: need some way to access nav items (hamburger or bottom nav)\n- Profile dropdown: ensure it doesn't extend off-screen on small viewports\n- \"New Dashboard\" button: ensure 44px minimum touch target",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:57:17.478Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2361,31 +2361,31 @@
             {
               "gid": "1214133150745444",
               "name": "Touch target audit: all interactive elements \u2265 44px on touch devices",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635729940",
               "name": "Navbar mobile: hamburger menu or bottom nav for hidden items",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671539935",
               "name": "Gallery search: full-width on mobile",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606392481",
               "name": "Gallery tabs: horizontal scroll with snap on mobile (or dropdown)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635721939",
               "name": "Landing page mobile layout: top-aligned hero, full-width input, larger touch targets",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -2394,8 +2394,8 @@
           "gid": "1214122606359555",
           "name": "\ud83d\udc46 Touch Interaction Support \u2014 Drag, Resize, Context Menu",
           "notes": "Make all interactive elements work naturally with touch input for iPad and touch-enabled laptops.\n\n## Current State\n- Drag-and-drop: uses onPointerDown/onPointerMove/onPointerUp \u2014 these DO fire on touch, but behavior needs tuning\n- Context menu: right-click only (ContextMenu.tsx) \u2014 no long-press alternative\n- Widget resize: not yet implemented, but when it is, needs touch handles\n- ResizableDivider: mouse-only drag to resize chat panel\n\n## Touch Optimization Needed\n\n### Drag-and-Drop (DashboardCanvas.tsx)\n- Increase grip handle hit target to 44\u00d744px on touch devices\n- Add haptic feedback on drag start (navigator.vibrate if available)\n- Distinguish between scroll and drag: require hold (300ms) before starting drag\n- Visual feedback: widget lifts with shadow on drag start\n- Snap preview: ghost outline shows where widget will land\n- Cancel: drag to original position or tap elsewhere\n\n### Long-Press Context Menu\n- 500ms long-press \u2192 show context menu (same menu as right-click)\n- Visual indicator: ring animation grows during long-press\n- Cancel if finger moves > 10px (that's a scroll, not a long-press)\n- Position menu centered above the touch point (not at touch point \u2014 finger would cover it)\n\n### Widget Resize (Future)\n- Resize handles: 44\u00d744px touch targets on edges and corners\n- Two-finger pinch to resize (nice-to-have, complex)\n- Visual: handles become visible permanently on touch devices (no hover state)\n\n### Scrolling\n- Canvas: free scroll with momentum on touch\n- Prevent accidental widget drags when scrolling \u2014 require drag to start from grip handle only\n- Pull-to-refresh on gallery/dashboard list pages (native feel)\n\n### Virtual Keyboard\n- ChatPanel input: ensure input isn't hidden behind keyboard\n- Use `visualViewport` API to detect keyboard height and adjust layout\n- On iOS: `position: fixed` bottom inputs scroll out of view \u2014 use `position: sticky` or JS adjustment\n\n## Files\n- src/components/dashboard/DashboardCanvas.tsx \u2014 drag touch optimization\n- src/components/dashboard/ContextMenu.tsx \u2014 long-press trigger\n- src/components/chat/ChatPanel.tsx \u2014 virtual keyboard handling\n- NEW: src/hooks/useLongPress.ts \u2014 reusable long-press hook\n- NEW: src/hooks/useTouchDrag.ts \u2014 touch-optimized drag behavior",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T23:03:55.681Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2408,31 +2408,31 @@
             {
               "gid": "1214125671491446",
               "name": "Scroll vs drag disambiguation on canvas",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926451781",
               "name": "Touch-visible handles: show grip/resize handles permanently on touch devices",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150716921",
               "name": "Virtual keyboard handling for chat input (iOS/Android)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606392473",
               "name": "Touch drag optimization: 300ms hold-to-start, larger grip handles (44px)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635722836",
               "name": "Long-press context menu (500ms hold \u2192 show menu, cancel on move)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -2441,8 +2441,8 @@
           "gid": "1214133150726838",
           "name": "\ud83d\udcf1 Responsive Editor Layout \u2014 Adaptive Canvas + Chat",
           "notes": "The dashboard editor (canvas + chat + widget library) needs to adapt to viewport size. Currently it's a rigid side-by-side layout that breaks below ~900px.\n\n## Breakpoint Strategy\n\n### Desktop Wide (\u2265 1280px) \u2014 Current behavior\n- Canvas takes remaining space, chat panel fixed on right (resizable via ResizableDivider)\n- Widget library slides in from left\n- Version timeline at bottom of chat\n- Everything works as-is \u2705\n\n### Desktop Narrow (1024px \u2013 1279px)\n- Chat panel narrows to minimum 280px, canvas gets more space\n- Widget library overlays instead of pushing canvas\n- Version timeline collapses to icon row (expand on click)\n\n### Tablet Landscape (768px \u2013 1023px)\n- Chat becomes a slide-over drawer from right (not fixed panel)\n- Floating chat toggle button (bottom-right, like a chat bubble)\n- Canvas gets full width when chat is closed\n- Widget library is a modal sheet instead of side panel\n- Context menu stays the same (right-click or long-press)\n\n### Tablet Portrait / Large Phone (640px \u2013 767px)\n- Two-mode toggle: \"Canvas\" view and \"Chat\" view (full screen each)\n- Swipe gesture to switch between them, or tab bar at bottom\n- Canvas widgets stack to 1-2 columns\n- Toolbar simplifies (icons only, no labels)\n\n### Phone (< 640px)\n- Chat-first experience: chat is the default view\n- \"View Dashboard\" button shows a scrollable single-column widget stack\n- Dashboard is VIEW-ONLY on phone (no drag, no resize, no context menu)\n- Gallery and landing page fully optimized\n- Bottom nav bar replaces top navbar\n\n## Implementation Approach\n- CSS-first where possible (Tailwind responsive classes)\n- useViewport() hook for JS-dependent layout switches\n- React context for layout mode: 'desktop' | 'tablet' | 'mobile'\n- Avoid CSS media queries in JS \u2014 use ResizeObserver for container queries\n\n## Key Files\n- src/app/dashboard/new/page.tsx \u2014 layout wrapper\n- src/app/dashboard/[id]/editor-client.tsx \u2014 layout wrapper (same structure)\n- src/components/dashboard/DashboardCanvas.tsx \u2014 grid responsiveness\n- src/components/chat/ChatPanel.tsx \u2014 drawer mode\n- src/components/layout/ResizableDivider.tsx \u2014 hide on tablet/mobile\n- NEW: src/hooks/useViewport.ts \u2014 viewport breakpoint hook\n- NEW: src/components/layout/MobileTabBar.tsx \u2014 bottom navigation",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T23:20:28.920Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2455,49 +2455,49 @@
             {
               "gid": "1214122606338798",
               "name": "Editor layout: view-only mode on phone (no drag, no resize)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635722828",
               "name": "Widget Library \u2192 modal sheet on tablet/mobile",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926427704",
               "name": "Toolbar responsive simplification (icon-only mode below 768px)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635702205",
               "name": "Mobile bottom nav bar (MobileTabBar.tsx) replacing top navbar",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606402888",
               "name": "Widget grid responsive columns: 12 \u2192 6 \u2192 2 \u2192 1 based on viewport",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214140505949349",
               "name": "Two-mode toggle for phone: Canvas vs Chat (full-screen each)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635702197",
               "name": "Chat panel \u2192 slide-over drawer mode for tablet (< 1024px)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926465545",
               "name": "useViewport() hook: breakpoint detection via ResizeObserver",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -2526,7 +2526,7 @@
             {
               "gid": "1214125671518615",
               "name": "Context menu edge-awareness (right edge, bottom edge, Windows scrollbar)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2544,25 +2544,25 @@
             {
               "gid": "1214124635691683",
               "name": "Windows focus-visible ring styling (custom to match theme)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671491738",
               "name": "Glassmorphism backdrop-filter fallback for older browsers",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150716834",
               "name": "Platform-aware keyboard shortcut display (\u2318 on Mac, Ctrl on Windows)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671504345",
               "name": "Firefox scrollbar styling (scrollbar-width: thin, scrollbar-color)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -2926,7 +2926,7 @@
             {
               "gid": "1214125662468793",
               "name": "Keyboard shortcuts help modal (?)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2962,7 +2962,7 @@
             {
               "gid": "1214127917287974",
               "name": "Global keyboard shortcut handler",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3024,8 +3024,8 @@
           "gid": "1214127917346484",
           "name": "Version timeline sidebar",
           "notes": "Visual timeline showing all dashboard versions with diff.\nRef: spec Section 4.5",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:47:20.141Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3038,13 +3038,13 @@
             {
               "gid": "1214125662601718",
               "name": "Visual diff overlay showing added/removed/modified widgets",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662482463",
               "name": "Named checkpoints (\"Before Q4 changes\")",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -3356,8 +3356,8 @@
           "gid": "1214133141851979",
           "name": "Dashboard gallery improvements",
           "notes": "Full-text search, filtering, sorting, card/list views.\nRef: spec Section 4.7",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:26:56.136Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3382,13 +3382,13 @@
             {
               "gid": "1214124626829377",
               "name": "Favorites system (star dashboards)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141821570",
               "name": "Recently viewed section",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -3406,13 +3406,13 @@
             {
               "gid": "1214133141843660",
               "name": "Filter by owner, department, tag, date range",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124626794994",
               "name": "Full-text search across titles, descriptions, tags",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3427,8 +3427,8 @@
           "gid": "1214122597328486",
           "name": "Glossary reference panel in dashboard editor",
           "notes": "Always-available side panel to browse terms while editing.\nLink terms to widgets for tooltip display.",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-18T22:52:20.605Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3441,25 +3441,25 @@
             {
               "gid": "1214133141880366",
               "name": "Widget hover shows linked term tooltips",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141722080",
               "name": "Link terms to widgets (glossaryTermIds)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141837257",
               "name": "Search/browse terms inline",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122597394973",
               "name": "Glossary panel toggle in editor toolbar",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
