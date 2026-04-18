@@ -1,0 +1,99 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  build:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_DEV_MODE: "true"
+
+  deploy:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ vars.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Sync files to EC2
+        run: |
+          rsync -az --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude '.next' \
+            --exclude '.env.local' \
+            --exclude 'prisma/dev.db' \
+            --exclude 'prisma/dev.db-journal' \
+            ./ ${{ vars.EC2_USER }}@${{ vars.EC2_HOST }}:${{ vars.APP_DIR }}/
+
+      - name: Build and restart on EC2
+        run: |
+          ssh ${{ vars.EC2_USER }}@${{ vars.EC2_HOST }} "
+            cd ${{ vars.APP_DIR }} &&
+            npm ci --production=false 2>&1 | tail -3 &&
+            echo '  ✓ Dependencies installed' &&
+            DATABASE_URL='file:${{ vars.APP_DIR }}/prisma/dev.db' npx prisma db push --accept-data-loss 2>&1 | tail -3 &&
+            echo '  ✓ Schema pushed' &&
+            npm run build 2>&1 | tail -5 &&
+            echo '  ✓ Build complete' &&
+            cp -r public .next/standalone/public 2>/dev/null || true &&
+            cp -r .next/static .next/standalone/.next/static &&
+            cp -r glossary .next/standalone/glossary &&
+            cp -r prisma .next/standalone/prisma &&
+            ln -sf ${{ vars.APP_DIR }}/prisma/dev.db .next/standalone/prisma/dev.db 2>/dev/null || true &&
+            cp -r node_modules/.prisma .next/standalone/node_modules/.prisma 2>/dev/null || true &&
+            cp -r node_modules/@prisma .next/standalone/node_modules/@prisma 2>/dev/null || true &&
+            echo '  ✓ Standalone packaged' &&
+            sudo systemctl restart insighthub &&
+            echo '  ✓ Service restarted'
+          "
+
+      - name: Health check
+        run: |
+          sleep 5
+          for i in 1 2 3 4 5; do
+            if curl -sf --max-time 10 "https://${{ vars.SITE_DOMAIN }}/api/health" > /dev/null 2>&1; then
+              echo "Health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "  Attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed after 5 attempts"
+          exit 1
