@@ -8,6 +8,7 @@ import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
 
 // --- Rotating status messages while AI is working ---
@@ -595,7 +596,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                   ? 'bg-accent-red/15 text-accent-red'
                   : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
               )}
-              title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+              title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
             >
               <Mic size={14} />
               {isListening && (
@@ -641,7 +642,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           </p>
         )}
         <p className="text-[10px] text-[var(--text-muted)] mt-1.5 text-center">
-          Enter to send · Shift+Enter new line{micSupported ? ' · ⇧⌘M voice' : ''}
+          Enter to send · Shift+Enter new line{micSupported ? ` · ${formatShortcut(['shift', 'mod', 'm'])} voice` : ''}
         </p>
       </div>
     </div>

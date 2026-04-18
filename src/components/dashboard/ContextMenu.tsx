@@ -69,12 +69,19 @@ export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
   const itemHeight = 36;
   const menuHeight = actions.length * itemHeight + 16;
 
+  // Detect scrollbar width for edge positioning
+  // On Windows, scrollbars are visible and take up layout space
+  // On Mac/mobile, scrollbars are overlay and don't affect layout
+  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+  const rightEdgeBuffer = scrollbarWidth > 0 ? scrollbarWidth + 8 : 8;
+  const bottomEdgeBuffer = 8;
+
   // For touch devices, position menu above the touch point to avoid finger occlusion
-  // For mouse, position at cursor location
-  const adjustedX = Math.min(x, window.innerWidth - menuWidth - 8);
+  // For mouse, position at cursor location, accounting for scrollbar width
+  const adjustedX = Math.min(x, window.innerWidth - menuWidth - rightEdgeBuffer);
   const adjustedY = isTouch
     ? Math.max(8, y - menuHeight - 20) // Position above touch point
-    : Math.min(y, window.innerHeight - menuHeight - 8); // Standard positioning
+    : Math.min(y, window.innerHeight - menuHeight - bottomEdgeBuffer); // Standard positioning
 
   const style: React.CSSProperties = {
     position: 'fixed',

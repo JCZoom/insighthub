@@ -7,6 +7,7 @@ import { GlobalShortcutOverlay } from '@/components/layout/GlobalShortcutOverlay
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
+import { formatShortcut } from '@/components/ui/Kbd';
 import Link from 'next/link';
 
 const QUICK_ACTIONS = [
@@ -238,7 +239,7 @@ export default function Home() {
                         ? 'bg-accent-red/15 text-accent-red'
                         : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
                     }`}
-                    title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+                    title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
                   >
                     <Mic size={18} />
                     {isListening && (
@@ -267,7 +268,7 @@ export default function Home() {
                         ? 'bg-accent-red/15 text-accent-red'
                         : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
                     }`}
-                    title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+                    title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
                   >
                     <Mic size={18} />
                     {isListening && (

@@ -21,6 +21,7 @@ import { useTouchDrag } from '@/hooks/useTouchDrag';
 import { useViewport } from '@/hooks/useViewport';
 import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
 import { cn } from '@/lib/utils';
+import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG, exportToSVG } from '@/lib/export-utils';
 
@@ -657,7 +658,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             onClick={undo}
             disabled={!canUndo}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title="Undo (⌘Z / Ctrl+Z)"
+            title={`Undo ${formatShortcut(['mod', 'z'])}`}
           >
             <Undo2 size={16} className="text-[var(--text-secondary)]" />
           </button>
@@ -665,7 +666,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             onClick={redo}
             disabled={!canRedo}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title="Redo (⌘⇧Z / Ctrl+Shift+Z)"
+            title={`Redo ${formatShortcut(['mod', 'shift', 'z'])}`}
           >
             <Redo2 size={16} className="text-[var(--text-secondary)]" />
           </button>
@@ -738,7 +739,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
-            title="Keyboard shortcuts (?) • ⌘K palette"
+            title={`Keyboard shortcuts (?) • ${formatShortcut(['mod', 'k'])} palette`}
           >
             <Keyboard size={14} className="text-[var(--text-muted)]" />
           </button>
@@ -747,7 +748,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               onClick={handleSave}
               disabled={saveStatus === 'saving'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
-              title="Save dashboard (⌘S / Ctrl+S)"
+              title={`Save dashboard ${formatShortcut(['mod', 's'])}`}
             >
               {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
               {!viewport.isToolbarCompact && (saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save')}
@@ -766,7 +767,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                   <button
                     onClick={handleSaveAs}
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
-                    title="Save as new dashboard (⌘⇧S / Ctrl+Shift+S)"
+                    title={`Save as new dashboard ${formatShortcut(['mod', 'shift', 's'])}`}
                   >
                     <Copy size={12} /> Save As…
                   </button>

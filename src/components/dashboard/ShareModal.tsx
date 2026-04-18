@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Copy, Check, Link2, Lock, Users, Search, Trash2, ChevronDown, Globe } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
+import { formatShortcut } from '@/components/ui/Kbd';
 
 interface ShareUser {
   id: string;
@@ -226,7 +227,7 @@ export function ShareModal({ onClose }: ShareModalProps) {
             <div className="rounded-xl border border-accent-amber/30 bg-accent-amber/5 p-4 text-center">
               <p className="text-xs text-accent-amber font-medium">Save the dashboard first</p>
               <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                Click the Save button or press ⌘S before sharing.
+                Click the Save button or press {formatShortcut(['mod', 's']).slice(1, -1)} before sharing.
               </p>
             </div>
           ) : (

@@ -8,6 +8,7 @@ import {
   ArrowRight, CornerDownLeft, ChevronUp, ChevronDown,
   Sparkles, Clock, Star, Command,
 } from 'lucide-react';
+import { Kbd } from '@/components/ui/Kbd';
 
 // --- Types ---
 
@@ -96,13 +97,13 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
 
     const commands: CommandItem[] = [
       // Navigation
-      { id: 'nav:home', label: 'Go to Home', icon: Home, category: 'navigation', keywords: ['home', 'landing', 'start'], shortcut: ['⌘', '1'], action: nav('/') },
-      { id: 'nav:dashboards', label: 'Go to Dashboards', icon: LayoutDashboard, category: 'navigation', keywords: ['dashboards', 'gallery', 'browse', 'list'], shortcut: ['⌘', '2'], action: nav('/dashboards') },
-      { id: 'nav:glossary', label: 'Go to Glossary', icon: BookOpen, category: 'navigation', keywords: ['glossary', 'terms', 'definitions', 'dictionary'], shortcut: ['⌘', '3'], action: nav('/glossary') },
-      { id: 'nav:about', label: 'Go to About', icon: Info, category: 'navigation', keywords: ['about', 'info', 'help'], shortcut: ['⌘', '4'], action: nav('/about') },
+      { id: 'nav:home', label: 'Go to Home', icon: Home, category: 'navigation', keywords: ['home', 'landing', 'start'], shortcut: ['mod', '1'], action: nav('/') },
+      { id: 'nav:dashboards', label: 'Go to Dashboards', icon: LayoutDashboard, category: 'navigation', keywords: ['dashboards', 'gallery', 'browse', 'list'], shortcut: ['mod', '2'], action: nav('/dashboards') },
+      { id: 'nav:glossary', label: 'Go to Glossary', icon: BookOpen, category: 'navigation', keywords: ['glossary', 'terms', 'definitions', 'dictionary'], shortcut: ['mod', '3'], action: nav('/glossary') },
+      { id: 'nav:about', label: 'Go to About', icon: Info, category: 'navigation', keywords: ['about', 'info', 'help'], shortcut: ['mod', '4'], action: nav('/about') },
 
       // Dashboard actions
-      { id: 'dash:new', label: 'New Dashboard', description: 'Create a blank dashboard with AI', icon: Plus, category: 'dashboard', keywords: ['new', 'create', 'blank', 'start', 'build'], shortcut: ['⌘', '5'], action: nav('/dashboard/new') },
+      { id: 'dash:new', label: 'New Dashboard', description: 'Create a blank dashboard with AI', icon: Plus, category: 'dashboard', keywords: ['new', 'create', 'blank', 'start', 'build'], shortcut: ['mod', '5'], action: nav('/dashboard/new') },
 
       // Individual dashboards
       ...dashboards.map(d => ({
@@ -317,12 +318,8 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
                       )}
                     </div>
                     {item.shortcut && (
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        {item.shortcut.map((k, i) => (
-                          <kbd key={i} className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded bg-[var(--bg-card)] border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-muted)]">
-                            {k}
-                          </kbd>
-                        ))}
+                      <div className="shrink-0">
+                        <Kbd keys={item.shortcut} variant="inline" />
                       </div>
                     )}
                     {isSelected && (

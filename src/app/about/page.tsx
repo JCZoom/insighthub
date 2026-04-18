@@ -19,6 +19,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
+import { Kbd } from '@/components/ui/Kbd';
 
 interface FeatureCardProps {
   icon: React.ElementType;
@@ -49,16 +50,7 @@ function ShortcutRow({ keys, description }: ShortcutRowProps) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-[var(--border-color)]/50 last:border-0">
       <span className="text-xs text-[var(--text-secondary)]">{description}</span>
-      <div className="flex items-center gap-1">
-        {keys.map((key, i) => (
-          <kbd
-            key={i}
-            className="px-1.5 py-0.5 text-[10px] font-mono font-medium rounded bg-[var(--bg-primary)]/60 border border-[var(--border-color)] text-[var(--text-secondary)]"
-          >
-            {key}
-          </kbd>
-        ))}
-      </div>
+      <Kbd keys={keys} variant="default" />
     </div>
   );
 }
@@ -158,18 +150,18 @@ const POWER_USER_FEATURES = [
 ];
 
 const SHORTCUTS = [
-  { keys: ['⌘', '1'], description: 'Go to Home' },
-  { keys: ['⌘', '2'], description: 'Go to My Dashboards' },
-  { keys: ['⌘', '3'], description: 'Go to Glossary' },
-  { keys: ['⌘', '4'], description: 'Go to About' },
-  { keys: ['⌘', '5'], description: 'New Dashboard' },
-  { keys: ['⌘', 'S'], description: 'Save dashboard' },
-  { keys: ['⌘', '⇧', 'S'], description: 'Save as (duplicate)' },
-  { keys: ['⌘', 'Z'], description: 'Undo' },
-  { keys: ['⌘', '⇧', 'Z'], description: 'Redo' },
+  { keys: ['mod', '1'], description: 'Go to Home' },
+  { keys: ['mod', '2'], description: 'Go to My Dashboards' },
+  { keys: ['mod', '3'], description: 'Go to Glossary' },
+  { keys: ['mod', '4'], description: 'Go to About' },
+  { keys: ['mod', '5'], description: 'New Dashboard' },
+  { keys: ['mod', 'S'], description: 'Save dashboard' },
+  { keys: ['mod', 'shift', 'S'], description: 'Save as (duplicate)' },
+  { keys: ['mod', 'Z'], description: 'Undo' },
+  { keys: ['mod', 'shift', 'Z'], description: 'Redo' },
   { keys: ['/'], description: 'Focus search or chat input' },
   { keys: ['?'], description: 'Toggle keyboard shortcut sheet' },
-  { keys: ['⌘', '⇧', 'M'], description: 'Toggle voice input' },
+  { keys: ['mod', 'shift', 'M'], description: 'Toggle voice input' },
 ];
 
 export default function AboutPage() {
