@@ -18,6 +18,16 @@
     "tosort": "1214122597538766"
   },
   "tasks": {
+    "[review_fix]_auto-save_captures_stale_sc": "1214133177816175",
+    "[review_fix]_unused_import_in_about_page": "1214124663051443",
+    "[review_fix]_tabindex={-1}_on_all_intera": "1214127953437826",
+    "[review_fix]_token_streaming_sends_full_": "1214125698583591",
+    "[review_fix]_`currentschema:_z.any()`_in": "1214127953460324",
+    "[review_fix]_sse_parsing_in_chatpanel_ha": "1214142675009823",
+    "[review_fix]_prismaclient_instantiated_p": "1214122629468934",
+    "[review_fix]_error_messages_leak_interna": "1214133173750334",
+    "[review_fix]_chat_endpoint_operates_with": "1214125698508573",
+    "[review_fix]_cors_wildcard_on_sse_endpoi": "1214124658812867",
     "[review_fix]_usedashboardstore.getstate(": "1214122629497691",
     "[review_fix]_`useeffect`_dependency_caus": "1214122629529165",
     "[review_fix]_duplicated_response_parsing": "1214124658812877",
@@ -27,10 +37,7 @@
     "[review_fix]_document_event_listeners_le": "1214125694553722",
     "[review_fix]_no_input_validation_on_mess": "1214127949394614",
     "[review_fix]_full_dashboard_schema_sent_": "1214124658813050",
-    "[review_fix]_prismaclient_instantiated_p": "1214122629468934",
     "[review_fix]_chat_and_explain_endpoints_": "1214133173671683",
-    "[review_fix]_cors_wildcard_on_sse_endpoi": "1214124658812867",
-    "[review_fix]_error_messages_leak_interna": "1214133173750334",
     "fix_audit_filter_dropdowns_\u2014_canonical_l": "1214122626568662",
     "[review_fix]_remove_ai_config_status_fro": "1214124655791490",
     "[review_fix]_sanitize_error_messages_in_": "1214122626446451",
@@ -132,9 +139,6 @@
     "snowflake_connector_(phase_3)": "1214125662622796",
     "sample_data_query_engine": "1214122597299836",
     "dashboard_crud_api": "1214139851608433",
-    "system_settings_&_configuration": "1214122597394658",
-    "audit_log_viewer": "1214122597431872",
-    "user_management_page": "1214124626804501",
     "\ud83e\uddea_cross-platform_testing_matrix_&_device": "1214124635707093",
     "performance_testing_&_optimization": "1214122597421640",
     "e2e_tests_\u2014_critical_user_flows": "1214125662713839",
@@ -169,6 +173,6 @@
     "readme_and_project_setup": "1214124626817722",
     "developer_documentation": "1214122597548220",
     "user_documentation_/_help_center": "1214127917553411",
-    "work_with_cascade_to_guess_at_some_more,": "1214125691559387"
+    "work_together_with_cascade_so_that_it_as": "1214125691559387"
   }
 }

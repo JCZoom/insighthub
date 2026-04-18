@@ -467,3 +467,15 @@
 [2026-04-18 15:47:04]    Total tokens: 914 in + 53,753 out
 [2026-04-18 15:47:04] ============================================================
 [2026-04-18 15:47:04] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18-3.md
+[2026-04-18 18:05:52] ============================================================
+[2026-04-18 18:05:52] 🌙 Overnight Builder starting
+[2026-04-18 18:05:52]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 18:05:52]    Model: claude-sonnet-4-20250514
+[2026-04-18 18:05:52]    Max tasks: 10
+[2026-04-18 18:05:52]    Max consecutive failures: 3
+[2026-04-18 18:05:52]    Dry run: False
+[2026-04-18 18:05:52]    Budget cap: $25.00
+[2026-04-18 18:05:52]    AI triage: True
+[2026-04-18 18:05:52]    Operator notes: PRIORITY ORDER: (1) Complete all widget renderers — only PivotTable is missing, ...
+[2026-04-18 18:05:52] ============================================================
+[2026-04-18 18:05:53] ⚠️  Uncommitted changes detected. Committing before starting...

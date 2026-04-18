@@ -1,32 +1,42 @@
 # InsightHub — AI Dashboard Builder: Project Status
 
-**Last synced:** 2026-04-18T14:46:49.015952
+**Last synced:** 2026-04-18T18:05:52.647920
 **Project GID:** 1214122597260827
 
 ## Overview
-- **Tasks:** 152 (85 completed)
+- **Tasks:** 162 (109 completed)
 - **Milestones:** 0
-- **Subtasks:** 471 (169 completed)
+- **Subtasks:** 471 (196 completed)
 - **Sections:** 15
 
 ## Sections
 
 ### Untitled section
-19/32 tasks done | 0 milestones
+42/42 tasks done | 0 milestones
 
-- ⬜ **[Review Fix] useDashboardStore.getState() inside setTimeout loses React context**
-- ⬜ **[Review Fix] `useEffect` dependency causes infinite loop potential**
-- ⬜ **[Review Fix] Duplicated response parsing logic (3 copies)**
-- ⬜ **[Review Fix] Inconsistent indentation in handleChatRequest**
-- ⬜ **[Review Fix] Debug console.log left in production code**
-- ⬜ **[Review Fix] Artificial delays in SSE stream are fake progress, not real streaming**
-- ⬜ **[Review Fix] Document event listeners leak on unmount during drag/resize**
-- ⬜ **[Review Fix] No input validation on message length or conversation history size**
-- ⬜ **[Review Fix] Full dashboard schema sent as GET query parameter**
-- ⬜ **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
-- ⬜ **[Review Fix] Chat and explain endpoints operate without authentication**
-- ⬜ **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
-- ⬜ **[Review Fix] Error messages leak internal details to clients**
+- ✅ **[Review Fix] Auto-save captures stale schema — fix is incomplete**
+- ✅ **[Review Fix] Unused import in About page**
+- ✅ **[Review Fix] tabIndex={-1} on all interactive gallery elements hurts keyboard accessibility**
+- ✅ **[Review Fix] Token streaming sends full accumulated text on every token**
+- ✅ **[Review Fix] `currentSchema: z.any()` in Zod validation defeats input validation**
+- ✅ **[Review Fix] SSE parsing in ChatPanel has double-parse bug that drops events**
+- ✅ **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
+- ✅ **[Review Fix] Error messages leak internal details to clients**
+- ✅ **[Review Fix] Chat endpoint operates without authentication**
+- ✅ **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
+- ✅ **[Review Fix] useDashboardStore.getState() inside setTimeout loses React context**
+- ✅ **[Review Fix] `useEffect` dependency causes infinite loop potential**
+- ✅ **[Review Fix] Duplicated response parsing logic (3 copies)**
+- ✅ **[Review Fix] Inconsistent indentation in handleChatRequest**
+- ✅ **[Review Fix] Debug console.log left in production code**
+- ✅ **[Review Fix] Artificial delays in SSE stream are fake progress, not real streaming**
+- ✅ **[Review Fix] Document event listeners leak on unmount during drag/resize**
+- ✅ **[Review Fix] No input validation on message length or conversation history size**
+- ✅ **[Review Fix] Full dashboard schema sent as GET query parameter**
+- ✅ **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
+- ✅ **[Review Fix] Chat and explain endpoints operate without authentication**
+- ✅ **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
+- ✅ **[Review Fix] Error messages leak internal details to clients**
 - ✅ **Fix audit filter dropdowns — canonical lists instead of page-derived values**
 - ✅ **[Review Fix] Remove AI config status from health endpoint**
 - ✅ **[Review Fix] Sanitize error messages in production**
@@ -65,14 +75,14 @@
 - ✅ **Sprint review — overnight build cleanup (2026-04-18)**
 
 ### 🔐 Auth & Security
-7/7 tasks done | 0 milestones
+5/7 tasks done | 0 milestones
 
 - ✅ **Zod validation on all API routes (M-3)**
 - ✅ **Session timeout & security headers** [2/3 subtasks]
 - ✅ **Audit logging** [6/6 subtasks]
 - ✅ **API rate limiting** [4/4 subtasks]
-- ✅ **🔐 Role-Based Access Control & Granular Data Permissions** [0/16 subtasks]
-- ✅ **Google OAuth integration (NextAuth.js)** [1/7 subtasks]
+- ⬜ **🔐 Role-Based Access Control & Granular Data Permissions** [0/16 subtasks]
+- ⬜ **Google OAuth integration (NextAuth.js)** [1/7 subtasks]
 - ✅ **🔴 SECURITY PRIORITY: Granular Data-Level Permissions Before Wider Rollout**
 
 ### 🤖 AI & Chat System
@@ -106,8 +116,8 @@
 - ✅ **Dark Theme Chart Polish — Softer Color Palette + Cursor Fix**
 - ✅ **Dashboard Editor UX Polish — Hover Delete, Inline Title, Resize Handle**
 - ✅ **🔎 Widget Data Transparency — Data Lineage Tab**
-- ✅ **⌨️ Keyboard Shortcuts & Power User UX** [0/9 subtasks]
-- ⬜ **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette** [0/11 subtasks]
+- ✅ **⌨️ Keyboard Shortcuts & Power User UX** [9/9 subtasks]
+- ⬜ **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette** [6/11 subtasks]
 - ⬜ **🏠 Landing Page & Gallery — Mobile Polish** [0/5 subtasks]
 - ⬜ **👆 Touch Interaction Support — Drag, Resize, Context Menu** [0/5 subtasks]
 - ⬜ **📱 Responsive Editor Layout — Adaptive Canvas + Chat** [0/8 subtasks]
@@ -132,22 +142,22 @@
 - ⬜ **Responsive preview mode** [0/3 subtasks]
 
 ### 📁 Gallery & Sharing
-1/7 tasks done | 0 milestones
+2/7 tasks done | 0 milestones
 
 - ✅ **Gallery Bug Fixes — Layout Shift, List View, Template Loading**
 - ⬜ **Dashboard thumbnails (auto-generated previews)** [0/4 subtasks]
 - ⬜ **Template system — promote to templates** [0/4 subtasks]
-- ⬜ **Dashboard cloning** [2/3 subtasks]
+- ✅ **Dashboard cloning** [3/3 subtasks]
 - ⬜ **Folder system** [0/5 subtasks]
 - ⬜ **Dashboard sharing system** [3/7 subtasks]
 - ⬜ **Dashboard gallery improvements** [4/8 subtasks]
 
 ### 📖 Glossary System
-1/4 tasks done | 0 milestones
+2/4 tasks done | 0 milestones
 
 - ⬜ **Glossary reference panel in dashboard editor** [0/4 subtasks]
 - ✅ **Glossary CRUD API** [4/5 subtasks]
-- ⬜ **Glossary browse & search UI** [0/5 subtasks]
+- ✅ **Glossary browse & search UI** [5/5 subtasks]
 - ⬜ **Glossary → Widget Links: Browse & Add Relevant Widgets from Glossary Terms**
 
 ### 💾 Data Layer
@@ -212,13 +222,13 @@
 - ⬜ **🎙️ Voice Input: Whisper API Speech-to-Text** [5/8 subtasks]
 
 ### 📝 Documentation
-0/3 tasks done | 0 milestones
+1/3 tasks done | 0 milestones
 
-- ⬜ **README and project setup** [0/6 subtasks]
+- ✅ **README and project setup** [6/6 subtasks]
 - ⬜ **Developer documentation** [0/7 subtasks]
 - ⬜ **User documentation / help center** [0/6 subtasks]
 
 ### TO SORT
 0/1 tasks done | 0 milestones
 
-- ⬜ **Work with Cascade to guess at some more, at least generally accurate numbers about the business. See what things would be most important to guess at to get closer to accurate company data. Definitely not accurate, just trending in the right direction so people aren't totally thrown off by numbers that are just pulled out of a hat.**
+- ⬜ **Work together with Cascade so that it asks me to guess at some more (at least generally) accurate numbers about the business. See what things would be most important to guess at to get closer to accurate company data. Definitely not accurate, just trending in the right direction so people aren't totally thrown off by numbers that are just pulled out of a hat.**
