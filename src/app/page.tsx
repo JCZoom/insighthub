@@ -128,27 +128,30 @@ export default function Home() {
           <span>InsightHub</span>
         </Link>
         <div className="flex items-center gap-3">
-          <Link
-            href="/dashboards"
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            My Dashboards
-          </Link>
-          <Link
-            href="/glossary"
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            Glossary
-          </Link>
-          <Link
-            href="/about"
-            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            About
-          </Link>
+          {/* Mobile: hide nav links, desktop: show them */}
+          <div className="hidden sm:flex items-center gap-3">
+            <Link
+              href="/dashboards"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              My Dashboards
+            </Link>
+            <Link
+              href="/glossary"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              Glossary
+            </Link>
+            <Link
+              href="/about"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              About
+            </Link>
+          </div>
           <button
             onClick={() => setShowShortcuts(true)}
-            className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+            className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Keyboard shortcuts (?)"
           >
             <Keyboard size={14} className="text-[var(--text-muted)]" />
@@ -158,7 +161,7 @@ export default function Home() {
           <div ref={profileRef} className="relative">
             <button
               onClick={() => setProfileOpen(prev => !prev)}
-              className="w-8 h-8 rounded-full bg-accent-purple/20 text-accent-purple flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-accent-purple/30 transition-all cursor-pointer"
+              className="w-11 h-11 rounded-full bg-accent-purple/20 text-accent-purple flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-accent-purple/30 transition-all cursor-pointer"
             >
               JC
             </button>
@@ -202,7 +205,7 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
+      <main className="flex-1 flex flex-col items-center justify-center sm:justify-center justify-start px-4 pb-16 pt-8 sm:pt-0">
         <div className="w-full max-w-2xl text-center">
           {/* Greeting */}
           <p className="fade-up stagger-1 text-sm text-[var(--text-secondary)] mb-2">{greeting || '\u00A0'}</p>
@@ -215,7 +218,8 @@ export default function Home() {
 
           {/* Input */}
           <div className="fade-up stagger-3 relative w-full mb-8">
-            <div className="hero-glow flex items-end gap-2 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] px-4 py-3 shadow-lg shadow-black/5 focus-within:border-accent-blue/40 transition-colors">
+            {/* Mobile: stacked layout, Desktop: inline layout */}
+            <div className="hero-glow bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-lg shadow-black/5 focus-within:border-accent-blue/40 transition-colors">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -223,34 +227,65 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. Show me monthly churn rate by region for the past year..."
                 rows={1}
-                className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[24px] max-h-64 overflow-y-auto"
+                className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[24px] max-h-64 overflow-y-auto px-4 py-3"
               />
-              {micSupported && (
+              <div className="flex items-center justify-end gap-2 px-4 pb-3 sm:hidden">
+                {micSupported && (
+                  <button
+                    onClick={toggleMic}
+                    className={`relative p-3 rounded-xl transition-all min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                      isListening
+                        ? 'bg-accent-red/15 text-accent-red'
+                        : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
+                    }`}
+                    title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+                  >
+                    <Mic size={18} />
+                    {isListening && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-red opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-red" />
+                      </span>
+                    )}
+                  </button>
+                )}
                 <button
-                  onClick={toggleMic}
-                  className={`relative p-2 rounded-xl transition-all ${
-                    isListening
-                      ? 'bg-accent-red/15 text-accent-red'
-                      : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
-                  }`}
-                  title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+                  onClick={() => handleSubmit(input)}
+                  disabled={!input.trim()}
+                  className="p-3 rounded-xl bg-accent-blue text-white disabled:opacity-30 hover:bg-accent-blue/90 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
-                  <Mic size={18} />
-                  {isListening && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-red opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-red" />
-                    </span>
-                  )}
+                  <Send size={18} />
                 </button>
-              )}
-              <button
-                onClick={() => handleSubmit(input)}
-                disabled={!input.trim()}
-                className="p-2 rounded-xl bg-accent-blue text-white disabled:opacity-30 hover:bg-accent-blue/90 transition-colors"
-              >
-                <Send size={18} />
-              </button>
+              </div>
+              {/* Desktop: inline buttons */}
+              <div className="hidden sm:flex items-end gap-2 px-4 pb-3 absolute right-0 bottom-0">
+                {micSupported && (
+                  <button
+                    onClick={toggleMic}
+                    className={`relative p-2 rounded-xl transition-all ${
+                      isListening
+                        ? 'bg-accent-red/15 text-accent-red'
+                        : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
+                    }`}
+                    title={isListening ? 'Stop recording (⇧⌘M)' : 'Voice input (⇧⌘M)'}
+                  >
+                    <Mic size={18} />
+                    {isListening && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-red opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent-red" />
+                      </span>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={() => handleSubmit(input)}
+                  disabled={!input.trim()}
+                  className="p-2 rounded-xl bg-accent-blue text-white disabled:opacity-30 hover:bg-accent-blue/90 transition-colors"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
             </div>
           </div>
           {isListening && (
@@ -286,7 +321,7 @@ export default function Home() {
               <button
                 key={action.label}
                 onClick={() => handleSubmit(action.prompt)}
-                className={`group flex flex-col items-center gap-2.5 p-4 rounded-xl border bg-gradient-to-b ${action.color} hover:scale-[1.03] active:scale-[0.98] transition-all cursor-pointer`}
+                className={`group flex flex-col items-center gap-2.5 p-4 rounded-xl border bg-gradient-to-b ${action.color} hover:scale-[1.03] active:scale-[0.97] transition-all cursor-pointer min-h-[88px] min-w-[120px]`}
               >
                 <action.icon size={22} className={action.iconColor} />
                 <span className="text-xs font-medium text-[var(--text-primary)]">{action.label}</span>

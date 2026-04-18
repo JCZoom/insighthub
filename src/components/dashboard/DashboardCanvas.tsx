@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
@@ -23,9 +23,11 @@ import { exportToPNG, exportToSVG } from '@/lib/export-utils';
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
   isLibraryOpen?: boolean;
+  onToggleGlossary?: () => void;
+  isGlossaryOpen?: boolean;
 }
 
-export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
+export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
     undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
@@ -632,6 +634,20 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               <span className="hidden lg:inline">Widgets</span>
             </button>
           )}
+          {onToggleGlossary && (
+            <button
+              onClick={onToggleGlossary}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                isGlossaryOpen
+                  ? 'bg-accent-purple/10 text-accent-purple'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
+              }`}
+              title="Glossary reference panel"
+            >
+              <BookOpen size={14} />
+              <span className="hidden lg:inline">Glossary</span>
+            </button>
+          )}
           <button
             onClick={() => setShowShare(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
@@ -835,6 +851,16 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <GripVertical size={12} className="text-[var(--text-muted)]" />
                 </div>
+                {/* Glossary terms badge */}
+                {widget.glossaryTermIds && widget.glossaryTermIds.length > 0 && (
+                  <div
+                    className="absolute bottom-1 left-1 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent-purple/10 border border-accent-purple/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title={`${widget.glossaryTermIds.length} glossary term${widget.glossaryTermIds.length !== 1 ? 's' : ''} linked`}
+                  >
+                    <BookOpen size={9} className="text-accent-purple" />
+                    <span className="text-[9px] font-medium text-accent-purple">{widget.glossaryTermIds.length}</span>
+                  </div>
+                )}
                 {/* Download/export button (top-right, fourth) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}

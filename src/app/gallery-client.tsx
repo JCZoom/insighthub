@@ -398,22 +398,24 @@ export function GalleryPage() {
 
       {/* Tabs + search bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-1 bg-[var(--bg-card)] rounded-lg p-1 border border-[var(--border-color)]">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'bg-accent-blue/10 text-accent-blue'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
-            >
-              <tab.icon size={13} />
-              {tab.label}
-            </button>
-          ))}
+        <div className="bg-[var(--bg-card)] rounded-lg p-1 border border-[var(--border-color)] overflow-hidden">
+          <div className="flex items-center gap-1 overflow-x-auto sm:overflow-x-visible scrollbar-hide snap-x snap-mandatory">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap snap-start flex-shrink-0',
+                  activeTab === tab.id
+                    ? 'bg-accent-blue/10 text-accent-blue'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                )}
+              >
+                <tab.icon size={13} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -423,7 +425,7 @@ export function GalleryPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search dashboards..."
-              className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-56 transition-colors"
+              className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-full sm:w-56 transition-colors"
             />
           </div>
           {/* Sort dropdown */}
@@ -431,7 +433,7 @@ export function GalleryPage() {
             <button
               onClick={() => setShowSort(!showSort)}
               tabIndex={-1}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors min-h-[44px]"
             >
               <ArrowUpDown size={12} />
               {SORT_OPTIONS.find(s => s.id === sortMode)?.label}
@@ -456,7 +458,7 @@ export function GalleryPage() {
           <button
             onClick={() => setShowFilters(prev => !prev)}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-colors',
+              'flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border transition-colors min-h-[44px]',
               hasActiveFilters
                 ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
                 : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'

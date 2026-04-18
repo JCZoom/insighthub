@@ -8,6 +8,7 @@ import { DashboardCanvas } from '@/components/dashboard/DashboardCanvas';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { VersionTimeline } from '@/components/versioning/VersionTimeline';
 import { WidgetLibraryPanel } from '@/components/widgets/WidgetLibraryPanel';
+import { GlossaryPanel } from '@/components/glossary/GlossaryPanel';
 import { ResizableDivider } from '@/components/layout/ResizableDivider';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { TEMPLATE_SCHEMAS } from '@/lib/data/templates';
@@ -23,6 +24,7 @@ interface EditorClientProps {
 export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   const { initialize } = useDashboardStore();
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
   const [chatWidth, setChatWidth] = useState(340);
   const handleChatWidthChange = useCallback((w: number) => setChatWidth(w), []);
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -92,8 +94,11 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
         <DashboardCanvas
           onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
           isLibraryOpen={isLibraryOpen}
+          onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
+          isGlossaryOpen={isGlossaryOpen}
         />
         <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+        <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
         <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
         <div className="flex flex-col shrink-0" style={{ width: chatWidth }}>
           <ChatPanel />

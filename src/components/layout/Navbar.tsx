@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info, Menu, X } from 'lucide-react';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
 import { cn } from '@/lib/utils';
@@ -18,8 +18,10 @@ export function Navbar() {
   const pathname = usePathname();
   const isSubPage = pathname !== '/';
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -31,6 +33,17 @@ export function Navbar() {
     if (profileOpen) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [profileOpen]);
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    }
+    if (mobileMenuOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [mobileMenuOpen]);
 
   return (
     <>
@@ -65,10 +78,56 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Mobile hamburger menu */}
+            <div ref={mobileMenuRef} className="relative sm:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(prev => !prev)}
+                className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                title="Menu"
+              >
+                {mobileMenuOpen ? (
+                  <X size={16} className="text-[var(--text-primary)]" />
+                ) : (
+                  <Menu size={16} className="text-[var(--text-primary)]" />
+                )}
+              </button>
+              {mobileMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg shadow-black/10 py-1.5 fade-in z-50">
+                  {NAV_ITEMS.map(item => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-2 text-sm transition-colors',
+                        pathname === item.href
+                          ? 'bg-accent-blue/10 text-accent-blue'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
+                      )}
+                    >
+                      <item.icon size={15} />
+                      {item.label}
+                    </Link>
+                  ))}
+                  {isSubPage && (
+                    <Link
+                      href="/"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors border-t border-[var(--border-color)] mt-1 pt-2"
+                      title="Back to Home (g h)"
+                    >
+                      <Home size={15} />
+                      Home
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+
             {isSubPage && (
               <Link
                 href="/"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
                 title="Back to Home (g h)"
               >
                 <Home size={15} />
@@ -77,14 +136,14 @@ export function Navbar() {
             )}
             <Link
               href="/dashboard/new"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-blue text-white text-sm font-medium hover:bg-accent-blue/90 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-blue text-white text-sm font-medium hover:bg-accent-blue/90 transition-colors min-h-[44px]"
             >
               <Plus size={15} />
               <span className="hidden sm:inline">New Dashboard</span>
             </Link>
             <button
               onClick={() => setShowShortcuts(true)}
-              className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+              className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               title="Keyboard shortcuts (?) • ⌘K palette"
             >
               <Keyboard size={14} className="text-[var(--text-muted)]" />
@@ -94,12 +153,12 @@ export function Navbar() {
             <div ref={profileRef} className="relative">
               <button
                 onClick={() => setProfileOpen(prev => !prev)}
-                className="w-8 h-8 rounded-full bg-accent-purple/20 text-accent-purple flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-accent-purple/30 transition-all cursor-pointer"
+                className="w-11 h-11 rounded-full bg-accent-purple/20 text-accent-purple flex items-center justify-center text-xs font-bold hover:ring-2 hover:ring-accent-purple/30 transition-all cursor-pointer"
               >
                 JC
               </button>
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg shadow-black/10 py-1.5 fade-in z-50">
+                <div className="absolute right-0 sm:right-0 -right-4 top-full mt-2 w-48 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg shadow-black/10 py-1.5 fade-in z-50">
                   <div className="px-3 py-2 border-b border-[var(--border-color)]">
                     <p className="text-sm font-semibold text-[var(--text-primary)]">Jeffrey Coy</p>
                     <p className="text-[10px] text-[var(--text-muted)]">Admin</p>
