@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2 } from 'lucide-react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
+import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
 // Use fixed dates to avoid SSR/client hydration mismatches (Date.now() differs between server and client)
@@ -52,6 +53,7 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
 ];
 
 type TabId = 'all' | 'my' | 'company' | 'shared' | 'templates';
+type SortMode = 'recent' | 'oldest' | 'az' | 'za';
 
 const TABS: { id: TabId; label: string; icon: typeof LayoutGrid }[] = [
   { id: 'all', label: 'All', icon: LayoutGrid },
@@ -61,11 +63,40 @@ const TABS: { id: TabId; label: string; icon: typeof LayoutGrid }[] = [
   { id: 'templates', label: 'Templates', icon: BookTemplate },
 ];
 
+const SORT_OPTIONS: { id: SortMode; label: string }[] = [
+  { id: 'recent', label: 'Most Recent' },
+  { id: 'oldest', label: 'Oldest First' },
+  { id: 'az', label: 'A → Z' },
+  { id: 'za', label: 'Z → A' },
+];
+
+function sortDashboards(items: DashboardCardData[], mode: SortMode): DashboardCardData[] {
+  return [...items].sort((a, b) => {
+    switch (mode) {
+      case 'recent': return b.updatedAt.getTime() - a.updatedAt.getTime();
+      case 'oldest': return a.updatedAt.getTime() - b.updatedAt.getTime();
+      case 'az': return a.title.localeCompare(b.title);
+      case 'za': return b.title.localeCompare(a.title);
+    }
+  });
+}
+
 export function GalleryPage() {
   const [dashboards, setDashboards] = useState<DashboardCardData[]>(INITIAL_DASHBOARDS);
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [showSort, setShowSort] = useState(false);
+  const { toast } = useToast();
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    if (!showSort) return;
+    const close = () => setShowSort(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showSort]);
 
   // Fetch saved dashboards from the API and merge with templates
   useEffect(() => {
@@ -88,11 +119,12 @@ export function GalleryPage() {
             isFavorite: false,
           }),
         );
-        // Merge: templates first, then user-created (skip dupes by id)
+        // Merge: user-created dashboards + templates (skip dupes by id)
         const templateIds = new Set(INITIAL_DASHBOARDS.map(t => t.id));
+        const userDashboards = fromDb.filter((d: DashboardCardData) => !templateIds.has(d.id) && !d.isTemplate);
         const merged = [
+          ...userDashboards,
           ...INITIAL_DASHBOARDS,
-          ...fromDb.filter(d => !templateIds.has(d.id)),
         ];
         setDashboards(merged);
       } catch {
@@ -108,19 +140,53 @@ export function GalleryPage() {
     );
   }, []);
 
+  const handleDelete = useCallback(async (id: string) => {
+    const dashboard = dashboards.find(d => d.id === id);
+    if (!dashboard || dashboard.isTemplate) return;
+    try {
+      const res = await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDashboards(prev => prev.filter(d => d.id !== id));
+        toast({ type: 'success', title: 'Dashboard deleted' });
+      } else {
+        toast({ type: 'error', title: 'Delete failed', description: 'Could not delete this dashboard.' });
+      }
+    } catch {
+      toast({ type: 'error', title: 'Delete failed', description: 'Network error.' });
+    }
+  }, [dashboards, toast]);
+
+  const handleRename = useCallback(async (id: string, currentTitle: string) => {
+    const newTitle = window.prompt('Rename dashboard:', currentTitle);
+    if (!newTitle || newTitle.trim() === currentTitle) return;
+    try {
+      const res = await fetch(`/api/dashboards/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+      if (res.ok) {
+        setDashboards(prev => prev.map(d => d.id === id ? { ...d, title: newTitle.trim() } : d));
+        toast({ type: 'success', title: 'Dashboard renamed' });
+      }
+    } catch {
+      toast({ type: 'error', title: 'Rename failed' });
+    }
+  }, [toast]);
+
   const matchesSearch = (d: DashboardCardData) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return d.title.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q) || d.tags.some(t => t.includes(q));
   };
 
-  const filtered = dashboards.filter(d => {
+  const filtered = sortDashboards(dashboards.filter(d => {
     if (activeTab === 'templates' && !d.isTemplate) return false;
     if (activeTab === 'company') return matchesSearch(d);
-    if (activeTab === 'my' && d.isTemplate) return false; // show only user-created
-    if (activeTab === 'shared') return false; // no real sharing yet
+    if (activeTab === 'my' && d.isTemplate) return false;
+    if (activeTab === 'shared') return false;
     return matchesSearch(d);
-  });
+  }), sortMode);
 
   const favorites = dashboards.filter(d => d.isFavorite && matchesSearch(d));
   const showFavorites = (activeTab === 'all' || activeTab === 'templates') && favorites.length > 0;
@@ -165,6 +231,32 @@ export function GalleryPage() {
               className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-56 transition-colors"
             />
           </div>
+          {/* Sort dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSort(!showSort)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <ArrowUpDown size={12} />
+              {SORT_OPTIONS.find(s => s.id === sortMode)?.label}
+            </button>
+            {showSort && (
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] py-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]/95 backdrop-blur-md shadow-lg">
+                {SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => { setSortMode(opt.id); setShowSort(false); }}
+                    className={cn(
+                      'w-full text-left px-3 py-1.5 text-xs transition-colors',
+                      sortMode === opt.id ? 'text-accent-blue bg-accent-blue/10' : 'text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-0.5 border border-[var(--border-color)] rounded-lg p-0.5">
             <button
               onClick={() => setViewMode('grid')}
@@ -189,9 +281,9 @@ export function GalleryPage() {
             <Star size={14} className="text-accent-amber fill-accent-amber" />
             <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Favorites</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {favorites.map(d => (
-              <DashboardCard key={d.id} dashboard={d} onToggleFavorite={toggleFavorite} />
+              <DashboardCard key={d.id} dashboard={d} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
             ))}
           </div>
         </section>
@@ -230,7 +322,7 @@ export function GalleryPage() {
               : 'flex flex-col gap-2'
           )}>
             {filtered.map(d => (
-              <DashboardCard key={d.id} dashboard={d} onToggleFavorite={toggleFavorite} />
+              <DashboardCard key={d.id} dashboard={d} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
             ))}
           </div>
         )}
