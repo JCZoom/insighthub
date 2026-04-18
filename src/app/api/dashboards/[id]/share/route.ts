@@ -10,7 +10,7 @@ interface RouteContext {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     const body = await request.json();
     const { userId, permission } = body as {
       userId: string;
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
 
     const dashboard = await prisma.dashboard.findFirst({
       where: {

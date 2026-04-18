@@ -35,6 +35,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = 'ADMIN';
         token.department = 'Engineering';
+        token.iat = Math.floor(Date.now() / 1000); // Set issued at time
       }
       return token;
     },
@@ -52,6 +53,11 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 8 * 60 * 60, // 8 hours in seconds
+    updateAge: 24 * 60 * 60, // 24 hours - how often to update the session
+  },
+  jwt: {
+    maxAge: 8 * 60 * 60, // 8 hours in seconds
   },
 };
 

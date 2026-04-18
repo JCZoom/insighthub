@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!canEditGlossary(user)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
@@ -70,7 +70,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!canEditGlossary(user)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }

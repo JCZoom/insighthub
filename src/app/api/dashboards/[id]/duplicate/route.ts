@@ -10,7 +10,7 @@ interface RouteContext {
 export async function POST(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
 
     if (!canCreateDashboard(user)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });

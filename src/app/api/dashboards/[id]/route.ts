@@ -10,7 +10,7 @@ interface RouteContext {
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
 
     const dashboard = await prisma.dashboard.findFirst({
       where: {
@@ -56,7 +56,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     const body = await request.json();
     const { title, description, tags, isPublic, isTemplate } = body as {
       title?: string;
@@ -107,7 +107,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
 
     const existing = await prisma.dashboard.findFirst({
       where: { id, ownerId: user.id },

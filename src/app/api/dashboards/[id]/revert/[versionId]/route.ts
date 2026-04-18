@@ -10,7 +10,7 @@ interface RouteContext {
 export async function POST(_request: NextRequest, context: RouteContext) {
   try {
     const { id, versionId } = await context.params;
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
 
     // Verify ownership
     const dashboard = await prisma.dashboard.findFirst({

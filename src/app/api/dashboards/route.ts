@@ -6,7 +6,7 @@ import { EMPTY_DASHBOARD_SCHEMA } from '@/types';
 // GET /api/dashboards — list dashboards accessible by the current user
 export async function GET(request: NextRequest) {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
     const sortBy = searchParams.get('sort') || 'updatedAt';
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 // POST /api/dashboards — create a new dashboard
 export async function POST(request: NextRequest) {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!canCreateDashboard(user)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }

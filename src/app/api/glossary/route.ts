@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 // POST /api/glossary — create a new glossary term (Admin only)
 export async function POST(request: NextRequest) {
   try {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
     if (!canEditGlossary(user)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
