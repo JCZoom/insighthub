@@ -36,17 +36,30 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
     onFocusChat: () => chatInputRef.current?.focus(),
   });
 
+  const [loadError, setLoadError] = useState(false);
+
   useEffect(() => {
     const template = TEMPLATE_SCHEMAS[dashboardId];
     if (template) {
       initialize(dashboardId, template.title, template.schema);
-    } else {
-      initialize(dashboardId, 'Untitled Dashboard', {
-        layout: { columns: 12, rowHeight: 80, gap: 16 },
-        globalFilters: [],
-        widgets: [],
-      });
+      return;
     }
+
+    // Not a template — fetch from DB
+    async function loadFromDb() {
+      try {
+        const res = await fetch(`/api/dashboards/${dashboardId}`);
+        if (!res.ok) { setLoadError(true); return; }
+        const { dashboard } = await res.json();
+        if (!dashboard) { setLoadError(true); return; }
+        const schema = dashboard.currentSchema
+          || { layout: { columns: 12, rowHeight: 80, gap: 16 }, globalFilters: [], widgets: [] };
+        initialize(dashboardId, dashboard.title || 'Untitled Dashboard', schema);
+      } catch {
+        setLoadError(true);
+      }
+    }
+    loadFromDb();
   }, [dashboardId, initialize]);
 
   return (

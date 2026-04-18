@@ -281,9 +281,13 @@ export function GalleryPage() {
             <Star size={14} className="text-accent-amber fill-accent-amber" />
             <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Favorites</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className={cn(
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+              : 'flex flex-col gap-2'
+          )}>
             {favorites.map(d => (
-              <DashboardCard key={d.id} dashboard={d} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
             ))}
           </div>
         </section>
@@ -322,7 +326,7 @@ export function GalleryPage() {
               : 'flex flex-col gap-2'
           )}>
             {filtered.map(d => (
-              <DashboardCard key={d.id} dashboard={d} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} />
             ))}
           </div>
         )}
