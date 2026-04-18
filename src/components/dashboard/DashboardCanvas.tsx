@@ -10,6 +10,8 @@ import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 import { ShareModal } from './ShareModal';
 import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
 import { MetricExplanationModal } from './MetricExplanationModal';
+import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
+import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle } from 'lucide-react';
@@ -45,8 +47,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   } | null>(null);
   const [resizeState, setResizeState] = useState<{
     widgetId: string;
+    direction: ResizeDirection;
     previewW: number;
     previewH: number;
+    previewX: number;
+    previewY: number;
   } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [detailWidget, setDetailWidget] = useState<WidgetConfig | null>(null);
@@ -223,27 +228,99 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     document.addEventListener('pointerup', handleUp);
   };
 
-  // --- Resize drag ---
-  const handleResizeStart = (e: React.PointerEvent, widget: WidgetConfig) => {
+  // --- Enhanced resize with multiple directions ---
+  const handleResizeStart = (widget: WidgetConfig, direction: ResizeDirection) => (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setResizeState({ widgetId: widget.id, previewW: widget.position.w, previewH: widget.position.h });
 
-    const calcSize = (px: number, py: number) => {
-      if (!gridRef.current) return { w: widget.position.w, h: widget.position.h };
+    const { minW, minH } = getMinWidgetSize(widget.type);
+
+    setResizeState({
+      widgetId: widget.id,
+      direction,
+      previewW: widget.position.w,
+      previewH: widget.position.h,
+      previewX: widget.position.x,
+      previewY: widget.position.y,
+    });
+
+    const calcSizeAndPosition = (px: number, py: number) => {
+      if (!gridRef.current) return {
+        w: widget.position.w, h: widget.position.h,
+        x: widget.position.x, y: widget.position.y
+      };
+
       const gridRect = gridRef.current.getBoundingClientRect();
       const cellW = gridRect.width / layout.columns;
       const cellH = layout.rowHeight + layout.gap;
-      const originPx = gridRect.left + widget.position.x * cellW;
-      const originPy = gridRect.top + widget.position.y * cellH;
-      const newW = Math.max(1, Math.min(Math.round((px - originPx) / cellW), layout.columns - widget.position.x));
-      const newH = Math.max(1, Math.round((py - originPy) / cellH));
-      return { w: newW, h: newH };
+
+      // Current widget bounds in pixels
+      const currentLeft = gridRect.left + widget.position.x * cellW;
+      const currentTop = gridRect.top + widget.position.y * cellH;
+      const currentRight = currentLeft + widget.position.w * cellW;
+      const currentBottom = currentTop + widget.position.h * cellH;
+
+      let newX = widget.position.x;
+      let newY = widget.position.y;
+      let newW = widget.position.w;
+      let newH = widget.position.h;
+
+      // Handle different resize directions
+      switch (direction) {
+        case 'se': // Southeast - resize width and height
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newH = Math.max(minH, Math.round((py - currentTop) / cellH));
+          break;
+        case 'e': // East - resize width only
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          break;
+        case 's': // South - resize height only
+          newH = Math.max(minH, Math.round((py - currentTop) / cellH));
+          break;
+        case 'sw': // Southwest - resize width and height, move x
+          const newWidthSW = Math.max(minW, Math.round((currentRight - px) / cellW));
+          newW = Math.min(newWidthSW, widget.position.x + widget.position.w);
+          newX = Math.max(0, widget.position.x + widget.position.w - newW);
+          newH = Math.max(minH, Math.round((py - currentTop) / cellH));
+          break;
+        case 'w': // West - resize width, move x
+          const newWidthW = Math.max(minW, Math.round((currentRight - px) / cellW));
+          newW = Math.min(newWidthW, widget.position.x + widget.position.w);
+          newX = Math.max(0, widget.position.x + widget.position.w - newW);
+          break;
+        case 'nw': // Northwest - resize width and height, move x and y
+          const newWidthNW = Math.max(minW, Math.round((currentRight - px) / cellW));
+          newW = Math.min(newWidthNW, widget.position.x + widget.position.w);
+          newX = Math.max(0, widget.position.x + widget.position.w - newW);
+          const newHeightNW = Math.max(minH, Math.round((currentBottom - py) / cellH));
+          newH = Math.min(newHeightNW, widget.position.y + widget.position.h);
+          newY = Math.max(0, widget.position.y + widget.position.h - newH);
+          break;
+        case 'n': // North - resize height, move y
+          const newHeightN = Math.max(minH, Math.round((currentBottom - py) / cellH));
+          newH = Math.min(newHeightN, widget.position.y + widget.position.h);
+          newY = Math.max(0, widget.position.y + widget.position.h - newH);
+          break;
+        case 'ne': // Northeast - resize width and height, move y
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          const newHeightNE = Math.max(minH, Math.round((currentBottom - py) / cellH));
+          newH = Math.min(newHeightNE, widget.position.y + widget.position.h);
+          newY = Math.max(0, widget.position.y + widget.position.h - newH);
+          break;
+      }
+
+      return { w: newW, h: newH, x: newX, y: newY };
     };
 
     const handleMove = (me: PointerEvent) => {
-      const { w, h } = calcSize(me.clientX, me.clientY);
-      setResizeState(prev => prev ? { ...prev, previewW: w, previewH: h } : null);
+      const { w, h, x, y } = calcSizeAndPosition(me.clientX, me.clientY);
+      setResizeState(prev => prev ? {
+        ...prev,
+        previewW: w,
+        previewH: h,
+        previewX: x,
+        previewY: y,
+      } : null);
     };
 
     const handleUp = (ue: PointerEvent) => {
@@ -251,14 +328,27 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       document.removeEventListener('pointerup', handleUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      const { w, h } = calcSize(ue.clientX, ue.clientY);
+
+      const { w, h, x, y } = calcSizeAndPosition(ue.clientX, ue.clientY);
+
+      // Apply changes if dimensions or position changed
       if (w !== widget.position.w || h !== widget.position.h) {
         resizeWidget(widget.id, w, h);
       }
+      if (x !== widget.position.x || y !== widget.position.y) {
+        moveWidget(widget.id, x, y);
+      }
+
       setResizeState(null);
     };
 
-    document.body.style.cursor = 'nwse-resize';
+    // Set cursor based on direction
+    const cursors: Record<ResizeDirection, string> = {
+      'se': 'nwse-resize', 'sw': 'nesw-resize', 'nw': 'nwse-resize', 'ne': 'nesw-resize',
+      'e': 'ew-resize', 'w': 'ew-resize', 'n': 'ns-resize', 's': 'ns-resize',
+    };
+
+    document.body.style.cursor = cursors[direction];
     document.body.style.userSelect = 'none';
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
@@ -439,8 +529,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
                 onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
                 style={{
-                  gridColumn: `${widget.position.x + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
-                  gridRow: `${widget.position.y + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewH : widget.position.h}`,
+                  gridColumn: `${(resizeState?.widgetId === widget.id ? resizeState.previewX : widget.position.x) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
+                  gridRow: `${(resizeState?.widgetId === widget.id ? resizeState.previewY : widget.position.y) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewH : widget.position.h}`,
                 }}
                 className={`min-h-0 relative group transition-shadow ${
                   dragState?.widgetId === widget.id ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
@@ -479,20 +569,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
                 </button>
-                {/* Resize handle (SE corner) — prominent on hover */}
-                <div
-                  onPointerDown={(e) => handleResizeStart(e, widget)}
-                  className={`absolute bottom-0 right-0 z-10 w-7 h-7 flex items-end justify-end cursor-nwse-resize transition-all ${
-                    resizeState?.widgetId === widget.id
-                      ? 'opacity-100'
-                      : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                  title="Drag to resize"
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" className="m-0.5 text-[var(--text-muted)] group-hover:text-accent-purple transition-colors">
-                    <path d="M12 2L2 12M12 6L6 12M12 10L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </div>
+                {/* Enhanced resize handles (all edges and corners) */}
+                <ResizeHandles
+                  widget={widget}
+                  isActive={resizeState?.widgetId === widget.id}
+                  onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
+                />
                 <WidgetErrorBoundary
                   key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
                   widgetTitle={widget.title}

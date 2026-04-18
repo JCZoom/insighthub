@@ -69,6 +69,36 @@ export const MIN_WIDGET_HEIGHTS: Record<string, number> = {
   map: 200,
 };
 
+/** Widget minimum width constraints (in grid columns) to maintain usability */
+export const MIN_WIDGET_WIDTHS: Record<string, number> = {
+  kpi_card: 2,
+  line_chart: 3,
+  bar_chart: 3,
+  area_chart: 3,
+  pie_chart: 3,
+  donut_chart: 3,
+  stacked_bar: 3,
+  scatter_plot: 3,
+  heatmap: 4,
+  table: 4,
+  pivot_table: 4,
+  funnel: 3,
+  gauge: 2,
+  metric_row: 3,
+  text_block: 2,
+  image: 2,
+  divider: 1,
+  map: 4,
+};
+
+/** Get minimum dimensions for a widget type */
+export function getMinWidgetSize(widgetType: string): { minW: number; minH: number } {
+  return {
+    minW: MIN_WIDGET_WIDTHS[widgetType] || 2,
+    minH: Math.ceil((MIN_WIDGET_HEIGHTS[widgetType] || 120) / 80), // Convert pixel height to grid rows (assuming 80px row height)
+  };
+}
+
 /** Get responsive tooltip configuration for touch vs desktop */
 export function getTooltipConfig(isTouchDevice: boolean) {
   if (isTouchDevice) {

@@ -267,3 +267,19 @@
 [2026-04-18 13:04:16] 📌 Task: "Explain this metric" tooltip
 [2026-04-18 13:04:16]    Section: 📊 Widget System | Priority: Normal
 [2026-04-18 13:04:16]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 13:10:12]   ⏱️  Claude Code finished in 356s (exit code: 0)
+[2026-04-18 13:10:12]   💰 Task cost: $1.3118 | Running total: $8.71 / $25.00
+[2026-04-18 13:10:12]   📊 Tokens: 347 in + 18,596 out | cache: 2,620,307 read + 64,931 create
+[2026-04-18 13:10:12]   🔨 Running build check...
+[2026-04-18 13:10:21]   ✅ Build passed
+[2026-04-18 13:10:21]   ✅ Task completed successfully
+[2026-04-18 13:10:21]   ⚠️  Task 1214139832808824 has 4 incomplete subtask(s) — NOT marking complete
+[2026-04-18 13:10:21]       Remaining: Power user toggle to show underlying query, Popover showing definition, formula, data source, Info icon on widget header, Link widgets to glossaryTermIds
+[2026-04-18 13:10:23]   💤 Pausing 15s before next task...
+[2026-04-18 13:10:38] 
+────────────────────────────────────────────────────────────
+[2026-04-18 13:10:38] 📋 Iteration 9/10 | Spent so far: $8.71 / $25.00
+[2026-04-18 13:10:38] ────────────────────────────────────────────────────────────
+[2026-04-18 13:10:38] 📌 Task: Widget resize handles
+[2026-04-18 13:10:38]    Section: 📊 Widget System | Priority: Normal
+[2026-04-18 13:10:38]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
