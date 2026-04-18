@@ -19,7 +19,7 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-const rand = seededRandom(42);
+let rand = seededRandom(42);
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(rand() * arr.length)];
@@ -241,6 +241,30 @@ const DATA_GENERATORS: Record<string, () => Record<string, unknown>[]> = {
   'customer_distribution': generateCustomersByPlan,
   'overall_kpi': generateKpiSummary,
   'summary': generateKpiSummary,
+  // Additional aliases for common AI-generated source names
+  'customers': generateCustomersByRegion,
+  'customer_growth': generateCustomersByRegion,
+  'customer_growth_trend': generateCustomersByRegion,
+  'total_customers': generateKpiSummary,
+  'customer_count': generateKpiSummary,
+  'customer_metrics': generateKpiSummary,
+  'kpi': generateKpiSummary,
+  'kpis': generateKpiSummary,
+  'metrics': generateKpiSummary,
+  'overview': generateKpiSummary,
+  'revenue': generateRevenueByMonth,
+  'revenue_trend': generateRevenueByMonth,
+  'mrr': generateMrrByMonth,
+  'mrr_trend': generateMrrByMonth,
+  'churn': generateChurnByMonth,
+  'churn_rate': generateChurnByMonth,
+  'tickets': generateTicketsByMonth,
+  'support_tickets': generateTicketsByMonth,
+  'deals': generateDealsPipeline,
+  'sales': generateDealsBySource,
+  'sales_pipeline': generateDealsPipeline,
+  'usage': generateUsageByMonth,
+  'feature_usage': generateUsageByFeature,
 };
 
 // Cache generated data so values stay stable across re-renders.
@@ -250,6 +274,10 @@ const _dataCache = new Map<string, Record<string, unknown>[]>();
 
 function getCachedData(key: string, generator: () => Record<string, unknown>[]): Record<string, unknown>[] {
   if (!_dataCache.has(key)) {
+    // Reset RNG with a source-specific seed so data is deterministic
+    // regardless of call order (prevents SSR/hydration mismatches)
+    const seed = key.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
+    rand = seededRandom(Math.abs(seed) || 42);
     _dataCache.set(key, generator());
   }
   return _dataCache.get(key)!;
