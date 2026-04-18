@@ -13,28 +13,101 @@ concurrency:
 
 # Deploy is handled locally via ./deploy.sh (requires Tailscale)
 
+env:
+  NODE_VERSION: "20"
+  NEXT_PUBLIC_DEV_MODE: "true"
+  DATABASE_URL: "file:./dev.db"
+  NEXTAUTH_SECRET: "ci-test-secret-not-for-production"
+
 jobs:
+  # ── Quality gates (parallel) ──────────────────────────────
   typecheck:
+    name: TypeScript
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
 
-  build:
-    needs: typecheck
+  lint:
+    name: ESLint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - run: npm run lint
+
+  # ── Build ─────────────────────────────────────────────────
+  build:
+    name: Build
+    needs: [typecheck, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Push schema & seed DB for tests
+        run: |
+          npx prisma db push --accept-data-loss
+          npm run db:seed
+      - name: Build Next.js
+        run: npm run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+          retention-days: 1
+
+  # ── E2E tests ─────────────────────────────────────────────
+  e2e:
+    name: E2E Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Push schema & seed DB
+        run: |
+          npx prisma db push --accept-data-loss
+          npm run db:seed
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      - name: Start server & run E2E tests
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000/api/health --timeout 30000
+          npx playwright test --project=chromium
         env:
-          NEXT_PUBLIC_DEV_MODE: "true"
+          PORT: "3000"
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7

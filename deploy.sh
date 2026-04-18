@@ -14,7 +14,9 @@ APP_DIR="/opt/insighthub"
 SITE_DOMAIN="dashboards.jeffcoy.net"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 echo "=== InsightHub Deploy ==="
+echo "  Commit: $GIT_COMMIT"
 echo ""
 
 # 1. Test SSH
