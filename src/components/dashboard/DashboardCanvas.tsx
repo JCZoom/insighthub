@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
@@ -61,6 +61,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [configWidgetId, setConfigWidgetId] = useState<string | null>(null);
   const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
 
   const router = useRouter();
 
@@ -138,6 +139,35 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       }
     } catch {
       toast({ type: 'error', title: 'Save failed', description: 'Network error.' });
+      setSaveStatus('idle');
+    }
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  };
+
+  const handleSaveAs = async () => {
+    const store = useDashboardStore.getState();
+    const { schema: currentSchema, title: currentTitle, initialize } = store;
+    const copyTitle = currentTitle.replace(/\s*\(Copy(?: \d+)?\)$/, '') + ' (Copy)';
+    setSaveStatus('saving');
+    setShowSaveMenu(false);
+    try {
+      const createRes = await fetch('/api/dashboards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: copyTitle, schema: currentSchema }),
+      });
+      if (!createRes.ok) {
+        toast({ type: 'error', title: 'Save As failed', description: 'Could not create dashboard copy.' });
+        setSaveStatus('idle');
+        return;
+      }
+      const { dashboard } = await createRes.json();
+      initialize(dashboard.id, copyTitle, currentSchema);
+      router.replace(`/dashboard/${dashboard.id}`);
+      setSaveStatus('saved');
+      toast({ type: 'success', title: 'Saved as new dashboard!', description: `"${copyTitle}" created in your gallery.` });
+    } catch {
+      toast({ type: 'error', title: 'Save As failed', description: 'Network error.' });
       setSaveStatus('idle');
     }
     setTimeout(() => setSaveStatus('idle'), 2000);
@@ -515,14 +545,36 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
           >
             <Keyboard size={14} className="text-[var(--text-muted)]" />
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saveStatus === 'saving'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
-          >
-            {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
-            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
-          </button>
+          <div className="relative flex items-center">
+            <button
+              onClick={handleSave}
+              disabled={saveStatus === 'saving'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
+            >
+              {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+            </button>
+            <button
+              onClick={() => setShowSaveMenu(prev => !prev)}
+              className="flex items-center px-1.5 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
+              title="Save options"
+            >
+              <ChevronDown size={12} />
+            </button>
+            {showSaveMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl shadow-black/20 py-1">
+                  <button
+                    onClick={handleSaveAs}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <Copy size={12} /> Save As…
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
