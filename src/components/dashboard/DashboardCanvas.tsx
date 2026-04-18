@@ -14,10 +14,11 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTouchDrag } from '@/hooks/useTouchDrag';
+import { useViewport } from '@/hooks/useViewport';
 import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
 import { cn } from '@/lib/utils';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
@@ -28,9 +29,11 @@ interface DashboardCanvasProps {
   isLibraryOpen?: boolean;
   onToggleGlossary?: () => void;
   isGlossaryOpen?: boolean;
+  onToggleChatDrawer?: () => void;
+  isChatDrawerOpen?: boolean;
 }
 
-export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen }: DashboardCanvasProps) {
+export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
     undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
@@ -39,6 +42,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const [editTitle, setEditTitle] = useState(title);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const { widgets, layout } = schema;
+  const viewport = useViewport();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const { toast } = useToast();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actions: ContextMenuAction[] } | null>(null);
@@ -258,7 +262,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         duplicate: () => duplicateWidget(widget.id),
         delete: () => removeWidget(widget.id),
         widen: () => {
-          const newW = Math.min(widget.position.w + 3, layout.columns - widget.position.x);
+          const newW = Math.min(widget.position.w + 3, viewport.gridColumns - widget.position.x);
           updateWidget(widget.id, { position: { ...widget.position, w: newW } });
         },
         narrow: () => {
@@ -397,11 +401,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       onDragMove: (me: PointerEvent) => {
         if (!gridRef.current || !dragState) return;
         const gridRect = gridRef.current.getBoundingClientRect();
-        const cellW = gridRect.width / layout.columns;
+        const cellW = gridRect.width / viewport.gridColumns;
         const cellH = layout.rowHeight + layout.gap;
         const dx = me.clientX - dragState.startX;
         const dy = me.clientY - dragState.startY;
-        const newX = Math.max(0, Math.min(layout.columns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
+        const newX = Math.max(0, Math.min(viewport.gridColumns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
         const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
         setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
       },
@@ -411,7 +415,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           return;
         }
         const gridRect = gridRef.current.getBoundingClientRect();
-        const cellW = gridRect.width / layout.columns;
+        const cellW = gridRect.width / viewport.gridColumns;
         const cellH = layout.rowHeight + layout.gap;
         const dx = ue.clientX - dragState.startX;
         const dy = ue.clientY - dragState.startY;
@@ -427,13 +431,13 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               if (!w) return null;
               return {
                 id,
-                x: Math.max(0, Math.min(layout.columns - w.position.w, w.position.x + deltaCol)),
+                x: Math.max(0, Math.min(viewport.gridColumns - w.position.w, w.position.x + deltaCol)),
                 y: Math.max(0, w.position.y + deltaRow),
               };
             }).filter((m): m is {id: string; x: number; y: number} => m !== null);
             if (moves.length > 0) moveWidgets(moves);
           } else {
-            const newX = Math.max(0, Math.min(layout.columns - widget.position.w, widget.position.x + deltaCol));
+            const newX = Math.max(0, Math.min(viewport.gridColumns - widget.position.w, widget.position.x + deltaCol));
             const newY = Math.max(0, widget.position.y + deltaRow);
             moveWidget(widget.id, newX, newY);
           }
@@ -467,7 +471,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       };
 
       const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / layout.columns;
+      const cellW = gridRect.width / viewport.gridColumns;
       const cellH = layout.rowHeight + layout.gap;
 
       // Current widget bounds in pixels
@@ -484,11 +488,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       // Handle different resize directions
       switch (direction) {
         case 'se': // Southeast - resize width and height
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
           newH = Math.max(minH, Math.round((py - currentTop) / cellH));
           break;
         case 'e': // East - resize width only
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
           break;
         case 's': // South - resize height only
           newH = Math.max(minH, Math.round((py - currentTop) / cellH));
@@ -518,7 +522,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           newY = Math.max(0, widget.position.y + widget.position.h - newH);
           break;
         case 'ne': // Northeast - resize width and height, move y
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
           const newHeightNE = Math.max(minH, Math.round((currentBottom - py) / cellH));
           newH = Math.min(newHeightNE, widget.position.y + widget.position.h);
           newY = Math.max(0, widget.position.y + widget.position.h - newH);
@@ -677,7 +681,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               title="Browse Widget Library (L)"
             >
               <Library size={14} />
-              <span className="hidden lg:inline">Widgets</span>
+              {!viewport.isToolbarCompact && <span>Widgets</span>}
             </button>
           )}
           {onToggleGlossary && (
@@ -691,7 +695,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               title="Glossary reference panel"
             >
               <BookOpen size={14} />
-              <span className="hidden lg:inline">Glossary</span>
+              {!viewport.isToolbarCompact && <span>Glossary</span>}
             </button>
           )}
           <button
@@ -700,7 +704,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             title="Share dashboard"
           >
             <Share2 size={14} />
-            <span className="hidden lg:inline">Share</span>
+            {!viewport.isToolbarCompact && <span>Share</span>}
           </button>
           <div className="relative">
             <button
@@ -709,7 +713,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               title="Export dashboard"
             >
               <Download size={14} />
-              <span className="hidden lg:inline">Export</span>
+              {!viewport.isToolbarCompact && <span>Export</span>}
             </button>
             {showExportMenu && (
               <>
@@ -746,7 +750,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               title="Save dashboard (⌘S / Ctrl+S)"
             >
               {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
-              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+              {!viewport.isToolbarCompact && (saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save')}
             </button>
             <button
               onClick={() => setShowSaveMenu(prev => !prev)}
@@ -783,8 +787,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto p-4 relative"
-        onContextMenu={handleCanvasContextMenu}
-        onPointerDown={handleMarqueeStart}
+        onContextMenu={viewport.isViewOnly ? (e) => e.preventDefault() : handleCanvasContextMenu}
+        onPointerDown={viewport.isViewOnly ? undefined : handleMarqueeStart}
       >
         {/* AI working shimmer overlay */}
         {isAiWorking && (
@@ -817,7 +821,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             id="dashboard-grid"
             className="grid gap-4"
             style={{
-              gridTemplateColumns: `repeat(${layout.columns}, 1fr)`,
+              gridTemplateColumns: `repeat(${viewport.gridColumns}, 1fr)`,
               gridAutoRows: `${layout.rowHeight}px`,
             }}
           >
@@ -832,7 +836,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 return selectedWidgetIds.map(id => {
                   const w = widgets.find(wg => wg.id === id);
                   if (!w) return null;
-                  const ghostX = Math.max(0, Math.min(layout.columns - w.position.w, w.position.x + deltaCol));
+                  const ghostX = Math.max(0, Math.min(viewport.gridColumns - w.position.w, w.position.x + deltaCol));
                   const ghostY = Math.max(0, w.position.y + deltaRow);
                   return (
                     <div
@@ -870,14 +874,28 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 data-widget-id={widget.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (e.shiftKey || e.metaKey) {
-                    toggleSelection(widget.id);
-                  } else {
-                    selectWidget(widget.id);
+                  if (!viewport.isViewOnly) {
+                    if (e.shiftKey || e.metaKey) {
+                      toggleSelection(widget.id);
+                    } else {
+                      selectWidget(widget.id);
+                    }
                   }
                 }}
-                onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
-                onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  if (!viewport.isViewOnly) {
+                    selectWidget(widget.id);
+                    setConfigWidgetId(widget.id);
+                  }
+                }}
+                onContextMenu={(e) => {
+                  if (!viewport.isViewOnly) {
+                    handleWidgetContextMenu(e, widget);
+                  } else {
+                    e.preventDefault();
+                  }
+                }}
                 style={{
                   gridColumn: `${(isResizing ? resizeState.previewX : widget.position.x) + 1} / span ${isResizing ? resizeState.previewW : widget.position.w}`,
                   gridRow: `${(isResizing ? resizeState.previewY : widget.position.y) + 1} / span ${isResizing ? resizeState.previewH : widget.position.h}`,
@@ -889,32 +907,34 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 }${isSelected && !isDragging && !isResizing ? (isMultiSelected ? ' ring-2 ring-accent-blue rounded-xl' : ' ring-2 ring-accent-cyan rounded-xl') : ''
                 }${isMultiDragging === false && isSelected && selectedWidgetIds.length > 1 && dragState && !isDragging ? ' opacity-60 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''}`}
               >
-                {/* Drag handle - larger and more accessible for touch */}
-                <div
-                  {...createDragHandler(widget)}
-                  {...createLongPressHandler((e: PointerEvent) => {
-                    handleWidgetContextMenu(
-                      { clientX: e.clientX, clientY: e.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
-                      widget
-                    );
-                  })}
-                  className={cn(
-                    "absolute top-1 left-1 z-10 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] cursor-grab active:cursor-grabbing transition-all",
-                    isTouch
-                      ? "p-2 opacity-80" // Always visible and larger on touch
-                      : "p-1 opacity-0 group-hover:opacity-100", // Hover behavior on desktop
-                    dragHoldState?.widgetId === widget.id && dragHoldState.isHolding
-                      ? "scale-110 bg-accent-blue/20 border-accent-blue/40"
-                      : ""
-                  )}
-                  style={{
-                    minWidth: isTouch ? getTouchTargetSize() + 'px' : 'auto',
-                    minHeight: isTouch ? getTouchTargetSize() + 'px' : 'auto',
-                  }}
-                  title={isTouch ? "Drag to reposition • Long press for menu" : "Drag to reposition"}
-                >
-                  <GripVertical size={isTouch ? 16 : 12} className="text-[var(--text-muted)]" />
-                </div>
+                {/* Drag handle - larger and more accessible for touch (hidden in view-only mode) */}
+                {!viewport.isViewOnly && (
+                  <div
+                    {...createDragHandler(widget)}
+                    {...createLongPressHandler((e: PointerEvent) => {
+                      handleWidgetContextMenu(
+                        { clientX: e.clientX, clientY: e.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
+                        widget
+                      );
+                    })}
+                    className={cn(
+                      "absolute top-1 left-1 z-10 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] cursor-grab active:cursor-grabbing transition-all",
+                      isTouch
+                        ? "p-2 opacity-80" // Always visible and larger on touch
+                        : "p-1 opacity-0 group-hover:opacity-100", // Hover behavior on desktop
+                      dragHoldState?.widgetId === widget.id && dragHoldState.isHolding
+                        ? "scale-110 bg-accent-blue/20 border-accent-blue/40"
+                        : ""
+                    )}
+                    style={{
+                      minWidth: isTouch ? getTouchTargetSize() + 'px' : 'auto',
+                      minHeight: isTouch ? getTouchTargetSize() + 'px' : 'auto',
+                    }}
+                    title={isTouch ? "Drag to reposition • Long press for menu" : "Drag to reposition"}
+                  >
+                    <GripVertical size={isTouch ? 16 : 12} className="text-[var(--text-muted)]" />
+                  </div>
+                )}
                 {/* Glossary terms badge */}
                 {widget.glossaryTermIds && widget.glossaryTermIds.length > 0 && (
                   <div
@@ -925,44 +945,51 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     <span className="text-[9px] font-medium text-accent-purple">{widget.glossaryTermIds.length}</span>
                   </div>
                 )}
-                {/* Download/export button (top-right, fourth) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
-                  className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
-                  title="Export widget as PNG"
-                >
-                  <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
-                </button>
-                {/* Info/Explain button (top-right, third) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
-                  className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
-                  title="Explain this metric"
-                >
-                  <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
-                </button>
-                {/* Edit config button (top-right, second) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
-                  className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
-                  title="Edit widget config"
-                >
-                  <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
-                </button>
-                {/* Delete button (top-right) */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
-                  className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
-                  title={`Delete ${widget.title} (Del)`}
-                >
-                  <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
-                </button>
-                {/* Enhanced resize handles (all edges and corners) */}
-                <ResizeHandles
-                  widget={widget}
-                  isActive={resizeState?.widgetId === widget.id}
-                  onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
-                />
+                {/* Action buttons - hidden in view-only mode */}
+                {!viewport.isViewOnly && (
+                  <>
+                    {/* Download/export button (top-right, fourth) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
+                      className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
+                      title="Export widget as PNG"
+                    >
+                      <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
+                    </button>
+                    {/* Info/Explain button (top-right, third) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
+                      className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
+                      title="Explain this metric"
+                    >
+                      <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
+                    </button>
+                    {/* Edit config button (top-right, second) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
+                      className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
+                      title="Edit widget config"
+                    >
+                      <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
+                    </button>
+                    {/* Delete button (top-right) */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
+                      className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
+                      title={`Delete ${widget.title} (Del)`}
+                    >
+                      <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
+                    </button>
+                  </>
+                )}
+                {/* Enhanced resize handles (all edges and corners) - hidden in view-only mode */}
+                {!viewport.isViewOnly && (
+                  <ResizeHandles
+                    widget={widget}
+                    isActive={resizeState?.widgetId === widget.id}
+                    onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
+                  />
+                )}
                 <WidgetErrorBoundary
                   key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
                   widgetTitle={widget.title}
@@ -1019,6 +1046,19 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
 
         {/* Long press ring indicator */}
         <LongPressRing />
+
+        {/* Floating chat toggle button for tablet/mobile */}
+        {viewport.isChatDrawer && onToggleChatDrawer && (
+          <button
+            onClick={onToggleChatDrawer}
+            className="fixed bottom-6 right-6 z-30 p-3 rounded-full bg-accent-blue text-white shadow-lg hover:bg-accent-blue/90 transition-colors"
+            title="Toggle Chat"
+          >
+            <MessageCircle size={20} />
+            {/* Notification badge for new messages - could be expanded later */}
+            {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent-red rounded-full" /> */}
+          </button>
+        )}
 
       </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Library, Plus, X, BarChart3, PieChart, Table2, Gauge, Type, LayoutGrid } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
+import { useViewport } from '@/hooks/useViewport';
 import { cn } from '@/lib/utils';
 import type { WidgetTemplate } from '@/lib/data/widget-library';
 
@@ -39,6 +40,7 @@ export function WidgetLibraryPanel({ isOpen, onClose }: WidgetLibraryPanelProps)
   const [filterType, setFilterType] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { schema, addWidget } = useDashboardStore();
+  const viewport = useViewport();
 
   const fetchWidgets = useCallback(async () => {
     setIsLoading(true);
@@ -97,8 +99,8 @@ export function WidgetLibraryPanel({ isOpen, onClose }: WidgetLibraryPanelProps)
     { type: 'table', label: 'Table' },
   ];
 
-  return (
-    <div className="w-[320px] border-l border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl flex flex-col h-full">
+  const content = (
+    <>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
         <div className="flex items-center gap-2">
@@ -216,6 +218,31 @@ export function WidgetLibraryPanel({ isOpen, onClose }: WidgetLibraryPanelProps)
           {widgets.length} widget{widgets.length !== 1 ? 's' : ''} available — click + to add
         </p>
       </div>
-    </div>
+    </>
   );
+
+  if (viewport.isLibraryModal) {
+    // Modal layout for tablet/mobile
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-black/20 z-40"
+          onClick={onClose}
+        />
+
+        {/* Modal Sheet */}
+        <div className="fixed inset-x-4 top-20 bottom-20 max-w-lg mx-auto z-50 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-xl flex flex-col">
+          {content}
+        </div>
+      </>
+    );
+  } else {
+    // Side panel layout for desktop
+    return (
+      <div className="w-[320px] border-l border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl flex flex-col h-full">
+        {content}
+      </div>
+    );
+  }
 }

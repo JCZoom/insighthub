@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info, Menu, X } from 'lucide-react';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
+import { useViewport } from '@/hooks/useViewport';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -17,11 +18,17 @@ const NAV_ITEMS = [
 export function Navbar() {
   const pathname = usePathname();
   const isSubPage = pathname !== '/';
+  const viewport = useViewport();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Hide navbar on mobile when bottom nav is active
+  if (viewport.isMobileNav) {
+    return null;
+  }
 
   // Close profile dropdown on outside click
   useEffect(() => {

@@ -15,6 +15,8 @@ import { TEMPLATE_SCHEMAS } from '@/lib/data/templates';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useToast } from '@/components/ui/toast';
+import { useViewport } from '@/hooks/useViewport';
+import { MobileTabBar } from '@/components/layout/MobileTabBar';
 import { trackRecentlyViewed } from '@/app/gallery-client';
 
 interface EditorClientProps {
@@ -25,10 +27,13 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   const { initialize } = useDashboardStore();
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
+  const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
+  const [phoneMode, setPhoneMode] = useState<'canvas' | 'chat'>('canvas');
   const [chatWidth, setChatWidth] = useState(340);
   const handleChatWidthChange = useCallback((w: number) => setChatWidth(w), []);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const viewport = useViewport();
   const router = useRouter();
 
   const { save } = useAutoSave();
@@ -91,20 +96,91 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
       <MobileNotice />
       <Navbar />
       <div className="flex-1 flex min-h-0">
-        <DashboardCanvas
-          onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
-          isLibraryOpen={isLibraryOpen}
-          onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
-          isGlossaryOpen={isGlossaryOpen}
-        />
-        <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
-        <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
-        <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
-        <div className="flex flex-col shrink-0" style={{ width: chatWidth }}>
-          <ChatPanel />
-          <VersionTimeline />
-        </div>
+        {/* Phone mode: Canvas or Chat (full screen) */}
+        {viewport.layoutMode === 'mobile' && (
+          <>
+            {phoneMode === 'canvas' ? (
+              <DashboardCanvas
+                onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
+                isLibraryOpen={isLibraryOpen}
+                onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
+                isGlossaryOpen={isGlossaryOpen}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col">
+                <ChatPanel />
+                <VersionTimeline />
+              </div>
+            )}
+            <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+            <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
+          </>
+        )}
+
+        {/* Tablet mode: Drawer layout */}
+        {viewport.layoutMode === 'tablet' && (
+          <>
+            <DashboardCanvas
+              onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
+              isLibraryOpen={isLibraryOpen}
+              onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
+              isGlossaryOpen={isGlossaryOpen}
+              onToggleChatDrawer={() => setIsChatDrawerOpen(prev => !prev)}
+              isChatDrawerOpen={isChatDrawerOpen}
+            />
+            <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+            <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
+
+            {/* Chat drawer */}
+            {isChatDrawerOpen && (
+              <div
+                className="fixed inset-0 bg-black/20 z-30"
+                onClick={() => setIsChatDrawerOpen(false)}
+              />
+            )}
+
+            <div className={`
+              fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-[var(--bg-primary)]
+              border-l border-[var(--border-color)] shadow-xl z-40
+              transform transition-transform duration-300 ease-in-out
+              ${isChatDrawerOpen ? 'translate-x-0' : 'translate-x-full'}
+            `}>
+              <div className="flex flex-col h-full">
+                <ChatPanel />
+                <VersionTimeline />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Desktop mode: Side-by-side layout */}
+        {viewport.layoutMode === 'desktop' && (
+          <>
+            <DashboardCanvas
+              onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
+              isLibraryOpen={isLibraryOpen}
+              onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
+              isGlossaryOpen={isGlossaryOpen}
+            />
+            <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+            <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
+            <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
+            <div className="flex flex-col shrink-0" style={{ width: chatWidth }}>
+              <ChatPanel />
+              <VersionTimeline />
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Mobile bottom navigation */}
+      {viewport.isMobileNav && (
+        <MobileTabBar
+          phoneMode={phoneMode}
+          onPhoneModeChange={setPhoneMode}
+          isDashboardEditor={true}
+        />
+      )}
     </div>
   );
 }
