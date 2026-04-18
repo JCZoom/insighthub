@@ -14,10 +14,13 @@ import { FunnelWidget } from '@/components/widgets/FunnelWidget';
 import { MetricRowWidget } from '@/components/widgets/MetricRowWidget';
 import { ScatterPlotWidget } from '@/components/widgets/ScatterPlotWidget';
 import { HeatmapWidget } from '@/components/widgets/HeatmapWidget';
+import { MIN_WIDGET_HEIGHTS } from '@/components/widgets/widget-utils';
 
 interface WidgetRendererProps {
   config: WidgetConfig;
   onDetailClick?: (config: WidgetConfig) => void;
+  onExplainMetric?: (config: WidgetConfig) => void;
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
 /**
@@ -38,7 +41,7 @@ function sanitizeData(rows: Record<string, unknown>[]): Record<string, unknown>[
   });
 }
 
-export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRendererProps) {
+export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetric, onChartClick }: WidgetRendererProps) {
   // Normalize: ensure dataConfig and visualConfig always exist as objects.
   // The AI frequently omits these, causing "Cannot read properties of undefined" crashes.
   const config: WidgetConfig = {
@@ -77,18 +80,18 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRende
       widget = <KpiCard config={config} data={data} />;
       break;
     case 'line_chart':
-      widget = <LineChartWidget config={config} data={data} />;
+      widget = <LineChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'bar_chart':
     case 'stacked_bar':
-      widget = <BarChartWidget config={config} data={data} />;
+      widget = <BarChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'area_chart':
-      widget = <AreaChartWidget config={config} data={data} />;
+      widget = <AreaChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'pie_chart':
     case 'donut_chart':
-      widget = <PieChartWidget config={config} data={data} />;
+      widget = <PieChartWidget config={config} data={data} onChartClick={onChartClick} />;
       break;
     case 'table':
     case 'pivot_table':
@@ -124,7 +127,18 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRende
       showDetail = false;
   }
 
-  if (!showDetail || !onDetailClick) return <div className="h-full select-none">{widget}</div>;
+  const minHeight = MIN_WIDGET_HEIGHTS[config.type] || MIN_WIDGET_HEIGHTS.kpi_card;
+
+  if (!showDetail || !onDetailClick) {
+    return (
+      <div
+        className="h-full select-none"
+        style={{ minHeight: `${minHeight}px` }}
+      >
+        {widget}
+      </div>
+    );
+  }
 
   const handleClick = (e: React.MouseEvent) => {
     // Only open detail when clicking blank space — skip interactive child elements
@@ -137,14 +151,28 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRende
   };
 
   return (
-    <div className="relative h-full group/detail select-none cursor-pointer" onClick={handleClick}>
+    <div
+      className="relative h-full group/detail select-none cursor-pointer"
+      onClick={handleClick}
+      style={{ minHeight: `${minHeight}px` }}
+    >
       {widget}
-      <button
-        onClick={(e) => { e.stopPropagation(); onDetailClick(config); }}
-        className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 text-[10px] text-accent-cyan hover:text-accent-cyan/80 transition-all flex items-center gap-0.5 cursor-pointer"
-      >
-        ▸ view data
-      </button>
+      <div className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 flex flex-col items-end gap-1 transition-all">
+        <button
+          onClick={(e) => { e.stopPropagation(); onDetailClick(config); }}
+          className="text-[10px] text-accent-cyan hover:text-accent-cyan/80 transition-colors flex items-center gap-0.5 cursor-pointer"
+        >
+          ▸ view data
+        </button>
+        {onExplainMetric && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onExplainMetric(config); }}
+            className="text-[10px] text-accent-purple hover:text-accent-purple/80 transition-colors flex items-center gap-0.5 cursor-pointer"
+          >
+            ✦ explain metric
+          </button>
+        )}
+      </div>
     </div>
   );
 }

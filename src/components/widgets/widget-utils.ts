@@ -1,4 +1,5 @@
 import type { WidgetConfig } from '@/types';
+import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 
 // Base color palette — order matches the colorScheme names
 const BASE_COLORS: Record<string, string> = {
@@ -42,7 +43,132 @@ export const TOOLTIP_STYLE = {
     borderRadius: '8px',
     fontSize: '12px',
     boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+    backdropFilter: 'blur(8px)',
   },
   labelStyle: { color: 'var(--text-primary)', fontWeight: 600 },
   itemStyle: { color: 'var(--text-secondary)' },
 };
+
+/** Widget minimum height constraints to prevent unreadable rendering */
+export const MIN_WIDGET_HEIGHTS: Record<string, number> = {
+  kpi_card: 120,
+  line_chart: 150,
+  bar_chart: 150,
+  area_chart: 150,
+  pie_chart: 150,
+  donut_chart: 150,
+  stacked_bar: 150,
+  scatter_plot: 150,
+  heatmap: 180,
+  table: 200,
+  pivot_table: 200,
+  funnel: 150,
+  gauge: 120,
+  metric_row: 80,
+  text_block: 60,
+  image: 100,
+  divider: 20,
+  map: 200,
+};
+
+/** Widget minimum width constraints (in grid columns) to maintain usability */
+export const MIN_WIDGET_WIDTHS: Record<string, number> = {
+  kpi_card: 2,
+  line_chart: 3,
+  bar_chart: 3,
+  area_chart: 3,
+  pie_chart: 3,
+  donut_chart: 3,
+  stacked_bar: 3,
+  scatter_plot: 3,
+  heatmap: 4,
+  table: 4,
+  pivot_table: 4,
+  funnel: 3,
+  gauge: 2,
+  metric_row: 3,
+  text_block: 2,
+  image: 2,
+  divider: 1,
+  map: 4,
+};
+
+/** Get minimum dimensions for a widget type */
+export function getMinWidgetSize(widgetType: string): { minW: number; minH: number } {
+  return {
+    minW: MIN_WIDGET_WIDTHS[widgetType] || 2,
+    minH: Math.ceil((MIN_WIDGET_HEIGHTS[widgetType] || 120) / 80), // Convert pixel height to grid rows (assuming 80px row height)
+  };
+}
+
+/** Enhanced tooltip value formatter using existing utility functions */
+function formatTooltipValue(value: any, name: string | number | undefined): [string, string] {
+  const displayName = String(name || 'Value');
+  if (value == null) return ['—', displayName];
+
+  // Convert to number if possible
+  const numValue = typeof value === 'number' ? value : Number(value);
+  if (isNaN(numValue)) return [String(value), displayName];
+
+  // Format based on field name patterns
+  const lowerName = displayName.toLowerCase();
+  const isPercent = lowerName.includes('rate') || lowerName.includes('percent') ||
+                   lowerName.includes('csat') || lowerName.includes('adoption') ||
+                   lowerName.includes('win_rate') || lowerName.endsWith('%');
+  const isCurrency = lowerName.includes('mrr') || lowerName.includes('arr') ||
+                    lowerName.includes('revenue') || lowerName.includes('amount') ||
+                    lowerName.includes('value') || lowerName.includes('deal_size') ||
+                    lowerName.startsWith('$');
+
+  let formattedValue: string;
+  if (isPercent) {
+    formattedValue = formatPercent(numValue);
+  } else if (isCurrency) {
+    formattedValue = formatCurrency(numValue, { compact: true });
+  } else {
+    // Use compact formatting for large numbers
+    formattedValue = formatNumber(numValue, {
+      decimals: numValue % 1 !== 0 ? 1 : 0,
+      compact: Math.abs(numValue) >= 1000
+    });
+  }
+
+  // Clean up field name for display
+  const cleanDisplayName = displayName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .trim();
+
+  return [formattedValue, cleanDisplayName];
+}
+
+/** Get responsive tooltip configuration for touch vs desktop */
+export function getTooltipConfig(isTouchDevice: boolean) {
+  const baseConfig = {
+    ...TOOLTIP_STYLE,
+    formatter: formatTooltipValue,
+    labelFormatter: (label: any) => {
+      // Format labels (usually dates/categories) nicely
+      if (typeof label === 'string' && label.includes('-')) {
+        // Looks like a date
+        const date = new Date(label);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short'
+          });
+        }
+      }
+      return String(label).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    },
+  };
+
+  if (isTouchDevice) {
+    return {
+      ...baseConfig,
+      trigger: 'click' as const,
+      allowEscapeViewBox: { x: true, y: true },
+    };
+  }
+  return baseConfig;
+}

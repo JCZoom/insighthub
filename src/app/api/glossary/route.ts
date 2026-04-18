@@ -29,10 +29,26 @@ function loadGlossaryFromYaml(): GlossaryEntry[] {
   }
 }
 
-// GET /api/glossary — list all terms (YAML + DB)
+// GET /api/glossary — list all terms (YAML + DB) or fetch specific terms by IDs
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const source = searchParams.get('source') || 'yaml';
+  const idsParam = searchParams.get('ids');
+
+  // If IDs are provided, fetch specific terms from DB
+  if (idsParam) {
+    try {
+      const ids = idsParam.split(',').map(id => id.trim()).filter(Boolean);
+      const terms = await prisma.glossaryTerm.findMany({
+        where: { id: { in: ids } },
+        orderBy: { term: 'asc' }
+      });
+      return NextResponse.json({ terms, source: 'db' });
+    } catch (error) {
+      console.error('Fetch glossary terms by IDs error:', error);
+      return NextResponse.json({ error: 'Failed to fetch glossary terms' }, { status: 500 });
+    }
+  }
 
   if (source === 'db') {
     try {

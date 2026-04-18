@@ -9,11 +9,15 @@ import { WidgetConfigPanel } from './WidgetConfigPanel';
 import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 import { ShareModal } from './ShareModal';
 import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
-import type { WidgetConfig } from '@/types';
+import { MetricExplanationModal } from './MetricExplanationModal';
+import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
+import { getMinWidgetSize } from '@/components/widgets/widget-utils';
+import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2 } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -23,7 +27,7 @@ interface DashboardCanvasProps {
 export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
   } = useDashboardStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -43,14 +47,18 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   } | null>(null);
   const [resizeState, setResizeState] = useState<{
     widgetId: string;
+    direction: ResizeDirection;
     previewW: number;
     previewH: number;
+    previewX: number;
+    previewY: number;
   } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [detailWidget, setDetailWidget] = useState<WidgetConfig | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [configWidgetId, setConfigWidgetId] = useState<string | null>(null);
+  const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
 
   const router = useRouter();
 
@@ -60,10 +68,29 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     onToggleHelp: () => setShowHelp(prev => !prev),
   });
 
+  // Handle explain metric requests
+  const handleExplainMetric = useCallback((widget: WidgetConfig) => {
+    setExplainWidget(widget);
+  }, []);
+
+  // Handle chart clicks for filtering
+  const handleChartClick = useCallback((field: string, value: unknown) => {
+    // Create a filter config for the clicked data point
+    const filterConfig: FilterConfig = {
+      field,
+      label: `${field}: ${String(value)}`,
+      type: 'select',
+      defaultValue: value,
+      options: [{ label: String(value), value: String(value) }],
+    };
+    addGlobalFilter(filterConfig);
+    toast({ type: 'success', title: 'Filter applied', description: `Filtering by ${field}: ${String(value)}` });
+  }, [addGlobalFilter, toast]);
+
   const handleSave = async () => {
     const store = useDashboardStore.getState();
     let { dashboardId } = store;
-    const { schema: currentSchema, title: currentTitle, markSaved, initialize } = store;
+    const { schema: currentSchema, title: currentTitle, markSaved, initialize, history, historyIndex } = store;
     setSaveStatus('saving');
     try {
       // If no dashboardId, create the dashboard first
@@ -91,11 +118,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         setSaveStatus('saved');
         toast({ type: 'success', title: 'Dashboard saved!', description: 'Saved to your gallery. Find it anytime at /dashboards.' });
       } else {
-        // Existing dashboard — save a new version
+        // Existing dashboard — save a new version with smart change summary
+        const changeNote = generateChangeSummaryFromHistory(history, historyIndex);
         const res = await fetch(`/api/dashboards/${dashboardId}/versions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ schema: currentSchema, changeNote: 'Manual save' }),
+          body: JSON.stringify({ schema: currentSchema, changeNote }),
         });
         if (res.ok) {
           markSaved();
@@ -214,27 +242,99 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     document.addEventListener('pointerup', handleUp);
   };
 
-  // --- Resize drag ---
-  const handleResizeStart = (e: React.PointerEvent, widget: WidgetConfig) => {
+  // --- Enhanced resize with multiple directions ---
+  const handleResizeStart = (widget: WidgetConfig, direction: ResizeDirection) => (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setResizeState({ widgetId: widget.id, previewW: widget.position.w, previewH: widget.position.h });
 
-    const calcSize = (px: number, py: number) => {
-      if (!gridRef.current) return { w: widget.position.w, h: widget.position.h };
+    const { minW, minH } = getMinWidgetSize(widget.type);
+
+    setResizeState({
+      widgetId: widget.id,
+      direction,
+      previewW: widget.position.w,
+      previewH: widget.position.h,
+      previewX: widget.position.x,
+      previewY: widget.position.y,
+    });
+
+    const calcSizeAndPosition = (px: number, py: number) => {
+      if (!gridRef.current) return {
+        w: widget.position.w, h: widget.position.h,
+        x: widget.position.x, y: widget.position.y
+      };
+
       const gridRect = gridRef.current.getBoundingClientRect();
       const cellW = gridRect.width / layout.columns;
       const cellH = layout.rowHeight + layout.gap;
-      const originPx = gridRect.left + widget.position.x * cellW;
-      const originPy = gridRect.top + widget.position.y * cellH;
-      const newW = Math.max(1, Math.min(Math.round((px - originPx) / cellW), layout.columns - widget.position.x));
-      const newH = Math.max(1, Math.round((py - originPy) / cellH));
-      return { w: newW, h: newH };
+
+      // Current widget bounds in pixels
+      const currentLeft = gridRect.left + widget.position.x * cellW;
+      const currentTop = gridRect.top + widget.position.y * cellH;
+      const currentRight = currentLeft + widget.position.w * cellW;
+      const currentBottom = currentTop + widget.position.h * cellH;
+
+      let newX = widget.position.x;
+      let newY = widget.position.y;
+      let newW = widget.position.w;
+      let newH = widget.position.h;
+
+      // Handle different resize directions
+      switch (direction) {
+        case 'se': // Southeast - resize width and height
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          newH = Math.max(minH, Math.round((py - currentTop) / cellH));
+          break;
+        case 'e': // East - resize width only
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          break;
+        case 's': // South - resize height only
+          newH = Math.max(minH, Math.round((py - currentTop) / cellH));
+          break;
+        case 'sw': // Southwest - resize width and height, move x
+          const newWidthSW = Math.max(minW, Math.round((currentRight - px) / cellW));
+          newW = Math.min(newWidthSW, widget.position.x + widget.position.w);
+          newX = Math.max(0, widget.position.x + widget.position.w - newW);
+          newH = Math.max(minH, Math.round((py - currentTop) / cellH));
+          break;
+        case 'w': // West - resize width, move x
+          const newWidthW = Math.max(minW, Math.round((currentRight - px) / cellW));
+          newW = Math.min(newWidthW, widget.position.x + widget.position.w);
+          newX = Math.max(0, widget.position.x + widget.position.w - newW);
+          break;
+        case 'nw': // Northwest - resize width and height, move x and y
+          const newWidthNW = Math.max(minW, Math.round((currentRight - px) / cellW));
+          newW = Math.min(newWidthNW, widget.position.x + widget.position.w);
+          newX = Math.max(0, widget.position.x + widget.position.w - newW);
+          const newHeightNW = Math.max(minH, Math.round((currentBottom - py) / cellH));
+          newH = Math.min(newHeightNW, widget.position.y + widget.position.h);
+          newY = Math.max(0, widget.position.y + widget.position.h - newH);
+          break;
+        case 'n': // North - resize height, move y
+          const newHeightN = Math.max(minH, Math.round((currentBottom - py) / cellH));
+          newH = Math.min(newHeightN, widget.position.y + widget.position.h);
+          newY = Math.max(0, widget.position.y + widget.position.h - newH);
+          break;
+        case 'ne': // Northeast - resize width and height, move y
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), layout.columns - widget.position.x));
+          const newHeightNE = Math.max(minH, Math.round((currentBottom - py) / cellH));
+          newH = Math.min(newHeightNE, widget.position.y + widget.position.h);
+          newY = Math.max(0, widget.position.y + widget.position.h - newH);
+          break;
+      }
+
+      return { w: newW, h: newH, x: newX, y: newY };
     };
 
     const handleMove = (me: PointerEvent) => {
-      const { w, h } = calcSize(me.clientX, me.clientY);
-      setResizeState(prev => prev ? { ...prev, previewW: w, previewH: h } : null);
+      const { w, h, x, y } = calcSizeAndPosition(me.clientX, me.clientY);
+      setResizeState(prev => prev ? {
+        ...prev,
+        previewW: w,
+        previewH: h,
+        previewX: x,
+        previewY: y,
+      } : null);
     };
 
     const handleUp = (ue: PointerEvent) => {
@@ -242,14 +342,27 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       document.removeEventListener('pointerup', handleUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      const { w, h } = calcSize(ue.clientX, ue.clientY);
+
+      const { w, h, x, y } = calcSizeAndPosition(ue.clientX, ue.clientY);
+
+      // Apply changes if dimensions or position changed
       if (w !== widget.position.w || h !== widget.position.h) {
         resizeWidget(widget.id, w, h);
       }
+      if (x !== widget.position.x || y !== widget.position.y) {
+        moveWidget(widget.id, x, y);
+      }
+
       setResizeState(null);
     };
 
-    document.body.style.cursor = 'nwse-resize';
+    // Set cursor based on direction
+    const cursors: Record<ResizeDirection, string> = {
+      'se': 'nwse-resize', 'sw': 'nesw-resize', 'nw': 'nwse-resize', 'ne': 'nesw-resize',
+      'e': 'ew-resize', 'w': 'ew-resize', 'n': 'ns-resize', 's': 'ns-resize',
+    };
+
+    document.body.style.cursor = cursors[direction];
     document.body.style.userSelect = 'none';
     document.addEventListener('pointermove', handleMove);
     document.addEventListener('pointerup', handleUp);
@@ -296,6 +409,32 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               <Loader2 size={10} className="animate-spin" />
               AI working…
             </span>
+          )}
+          {schema.globalFilters.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              {schema.globalFilters.map((filter) => (
+                <span key={filter.field} className="flex items-center gap-1 pill pill-cyan text-xs">
+                  <Filter size={10} />
+                  {filter.label}
+                  <button
+                    onClick={() => removeGlobalFilter(filter.field)}
+                    className="ml-1 hover:bg-white/20 rounded px-1 transition-colors"
+                    title="Remove filter"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {schema.globalFilters.length > 1 && (
+                <button
+                  onClick={clearGlobalFilters}
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  title="Clear all filters"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -430,8 +569,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
                 onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
                 style={{
-                  gridColumn: `${widget.position.x + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
-                  gridRow: `${widget.position.y + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewH : widget.position.h}`,
+                  gridColumn: `${(resizeState?.widgetId === widget.id ? resizeState.previewX : widget.position.x) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
+                  gridRow: `${(resizeState?.widgetId === widget.id ? resizeState.previewY : widget.position.y) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewH : widget.position.h}`,
                 }}
                 className={`min-h-0 relative group transition-shadow ${
                   dragState?.widgetId === widget.id ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
@@ -446,6 +585,14 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <GripVertical size={12} className="text-[var(--text-muted)]" />
                 </div>
+                {/* Info/Explain button (top-right, third) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
+                  className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/90 border border-[var(--border-color)] opacity-90 hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
+                  title="Explain this metric"
+                >
+                  <HelpCircle size={12} className="text-[var(--text-secondary)] hover:text-accent-purple transition-colors" />
+                </button>
                 {/* Edit config button (top-right, second) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
@@ -462,25 +609,22 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
                 </button>
-                {/* Resize handle (SE corner) — prominent on hover */}
-                <div
-                  onPointerDown={(e) => handleResizeStart(e, widget)}
-                  className={`absolute bottom-0 right-0 z-10 w-7 h-7 flex items-end justify-end cursor-nwse-resize transition-all ${
-                    resizeState?.widgetId === widget.id
-                      ? 'opacity-100'
-                      : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                  title="Drag to resize"
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" className="m-0.5 text-[var(--text-muted)] group-hover:text-accent-purple transition-colors">
-                    <path d="M12 2L2 12M12 6L6 12M12 10L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </div>
+                {/* Enhanced resize handles (all edges and corners) */}
+                <ResizeHandles
+                  widget={widget}
+                  isActive={resizeState?.widgetId === widget.id}
+                  onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
+                />
                 <WidgetErrorBoundary
                   key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
                   widgetTitle={widget.title}
                 >
-                  <WidgetRenderer config={widget} onDetailClick={setDetailWidget} />
+                  <WidgetRenderer
+                    config={widget}
+                    onDetailClick={setDetailWidget}
+                    onExplainMetric={handleExplainMetric}
+                    onChartClick={handleChartClick}
+                  />
                 </WidgetErrorBoundary>
               </div>
             ))}
@@ -507,6 +651,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       {/* Modals — rendered outside the scroll container so fixed positioning works */}
       {showHelp && <ShortcutHelpOverlay onClose={() => setShowHelp(false)} />}
       {showShare && <ShareModal onClose={() => setShowShare(false)} />}
+      {explainWidget && (
+        <MetricExplanationModal
+          widget={explainWidget}
+          onClose={() => setExplainWidget(null)}
+        />
+      )}
       </div>
 
       {/* Widget config panel — slides in from right when editing */}

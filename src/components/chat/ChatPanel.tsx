@@ -6,9 +6,19 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
+import { generateChangeSummary } from '@/lib/ai/change-summarizer';
 
 interface ChatPanelProps {
   initialPrompt?: string;
+}
+
+interface StreamingState {
+  isStreaming: boolean;
+  progress: number;
+  message: string;
+  currentPatches: SchemaPatch[];
+  currentQuickActions: QuickAction[];
+  explanation: string;
 }
 
 export function ChatPanel({ initialPrompt }: ChatPanelProps) {
@@ -29,8 +39,19 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [streamingState, setStreamingState] = useState<StreamingState>({
+    isStreaming: false,
+    progress: 0,
+    message: '',
+    currentPatches: [],
+    currentQuickActions: [],
+    explanation: ''
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Speech-to-text
   const onSpeechResult = useCallback((transcript: string) => {
@@ -56,12 +77,66 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleMic]);
 
-  const { schema, applyPatch, canUndo, undo, setAiWorking } = useDashboardStore();
+  const { schema, applyPatch, canUndo, undo, setAiWorking, dashboardId } = useDashboardStore();
 
   const hasSentInitialPrompt = useRef(false);
 
+  // Load existing chat session if dashboardId is available
+  useEffect(() => {
+    if (!dashboardId || isLoadingHistory) return;
+
+    const loadChatHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        // Try to find existing session for this dashboard
+        const response = await fetch(`/api/chat/sessions?dashboardId=${dashboardId}&limit=1`);
+        if (!response.ok) throw new Error('Failed to fetch sessions');
+
+        const { sessions } = await response.json();
+
+        if (sessions && sessions.length > 0) {
+          const latestSession = sessions[0];
+          setSessionId(latestSession.id);
+
+          // Load messages from this session
+          const sessionResponse = await fetch(`/api/chat/sessions/${latestSession.id}`);
+          if (!sessionResponse.ok) throw new Error('Failed to fetch session messages');
+
+          const { messages: sessionMessages } = await sessionResponse.json();
+
+          if (sessionMessages && sessionMessages.length > 0) {
+            // Convert database messages to UI format
+            const uiMessages: ChatMessageUI[] = sessionMessages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              schemaPatches: msg.schemaChange ? JSON.parse(msg.schemaChange) : undefined,
+              createdAt: new Date(msg.createdAt),
+            }));
+
+            // Replace welcome message with loaded history
+            setMessages(uiMessages);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        // Keep the default welcome message on error
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadChatHistory();
+  }, [dashboardId, isLoadingHistory]);
+
   const sendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
+    if (!text.trim() || isLoading || streamingState.isStreaming) return;
+
+    // Clean up any existing EventSource
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
 
     const userMessage: ChatMessageUI = {
       id: `user-${Date.now()}`,
@@ -74,6 +149,16 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     setIsLoading(true);
     setAiWorking(true);
 
+    // Initialize streaming state
+    setStreamingState({
+      isStreaming: true,
+      progress: 0,
+      message: 'Starting...',
+      currentPatches: [],
+      currentQuickActions: [],
+      explanation: ''
+    });
+
     try {
       // Build conversation history for context (last 10 messages to keep prompt size reasonable)
       const recentMessages = [...messages, userMessage]
@@ -81,44 +166,197 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         .slice(-10)
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text,
-          currentSchema: schema,
-          conversationHistory: recentMessages,
-        }),
+      // Create EventSource with POST data as query parameters for streaming
+      const searchParams = new URLSearchParams({
+        message: text,
+        currentSchema: JSON.stringify(schema),
+        conversationHistory: JSON.stringify(recentMessages),
+        sessionId: sessionId || '',
+        dashboardId: dashboardId || '',
+        stream: 'true'
       });
 
-      if (!response.ok) {
-        // Parse the server error for a human-readable message
-        let serverError = `Request failed (${response.status})`;
+      const eventSource = new EventSource(`/api/chat?${searchParams.toString()}`);
+
+      eventSourceRef.current = eventSource;
+
+      let allPatches: SchemaPatch[] = [];
+      let finalQuickActions: QuickAction[] = [];
+      let finalExplanation = '';
+
+      eventSource.onmessage = (event) => {
         try {
-          const errBody = await response.json();
-          if (errBody.error) serverError = errBody.error;
-        } catch { /* response wasn't JSON, use status code message */ }
-        throw new Error(serverError);
-      }
-
-      const result = await response.json();
-
-      const patches: SchemaPatch[] = result.patches || [];
-      const quickActions: QuickAction[] = result.quickActions || [];
-
-      if (patches.length > 0) {
-        applyPatch(patches, result.explanation || 'AI update');
-      }
-
-      const assistantMessage: ChatMessageUI = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: result.explanation || 'Done!',
-        schemaPatches: patches,
-        quickActions,
-        createdAt: new Date(),
+          const data = JSON.parse(event.data);
+          console.log('SSE message:', event.type, data); // Debug log
+        } catch (error) {
+          console.error('Failed to parse SSE data:', error);
+        }
       };
-      setMessages(prev => [...prev, assistantMessage]);
+
+      // Handle progress events
+      eventSource.addEventListener('progress', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setStreamingState(prev => ({
+            ...prev,
+            progress: data.progress || 0,
+            message: data.message || 'Processing...'
+          }));
+        } catch (error) {
+          console.error('Failed to parse progress data:', error);
+        }
+      });
+
+      // Handle patch events (progressive widget updates)
+      eventSource.addEventListener('patch', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const patch = data.patch;
+
+          if (patch) {
+            allPatches.push(patch);
+            // Apply patch immediately for real-time updates
+            const changeSummary = `AI: Progressive update ${data.index + 1}/${data.total}`;
+            applyPatch([patch], changeSummary);
+
+            setStreamingState(prev => ({
+              ...prev,
+              currentPatches: [...prev.currentPatches, patch],
+              progress: data.progress || prev.progress
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to parse patch data:', error);
+        }
+      });
+
+      // Handle explanation event
+      eventSource.addEventListener('explanation', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          finalExplanation = data.explanation || '';
+          finalQuickActions = data.quickActions || [];
+
+          setStreamingState(prev => ({
+            ...prev,
+            explanation: finalExplanation,
+            currentQuickActions: finalQuickActions,
+            progress: data.progress || 100
+          }));
+        } catch (error) {
+          console.error('Failed to parse explanation data:', error);
+        }
+      });
+
+      // Handle completion
+      eventSource.addEventListener('complete', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          // Update session ID if returned
+          if (data.sessionId && !sessionId) {
+            setSessionId(data.sessionId);
+          }
+
+          // Auto-save version for significant AI changes (if dashboard exists)
+          if (dashboardId && allPatches.length > 0 && shouldAutoSavePatches(allPatches)) {
+            setTimeout(async () => {
+              try {
+                const currentSchema = useDashboardStore.getState().schema;
+                const changeSummary = generateChangeSummary(allPatches, finalExplanation);
+                await fetch(`/api/dashboards/${dashboardId}/versions`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    schema: currentSchema,
+                    changeNote: `AI: ${changeSummary}`
+                  }),
+                });
+              } catch (error) {
+                console.warn('Auto-save failed:', error);
+              }
+            }, 100);
+          }
+
+          // Add final assistant message
+          const assistantMessage: ChatMessageUI = {
+            id: `assistant-${Date.now()}`,
+            role: 'assistant',
+            content: finalExplanation || 'Done!',
+            schemaPatches: allPatches,
+            quickActions: finalQuickActions,
+            createdAt: new Date(),
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+
+          // Clean up
+          eventSource.close();
+          eventSourceRef.current = null;
+          setIsLoading(false);
+          setAiWorking(false);
+          setStreamingState(prev => ({ ...prev, isStreaming: false }));
+        } catch (error) {
+          console.error('Failed to parse completion data:', error);
+        }
+      });
+
+      // Handle errors
+      eventSource.addEventListener('error', (event) => {
+        try {
+          const data = JSON.parse((event as MessageEvent).data);
+          const rawMsg = data.error || 'An unexpected error occurred.';
+
+          // Provide actionable guidance based on the error type
+          const isApiKeyMissing = rawMsg.includes('ANTHROPIC_API_KEY');
+          const guidance = isApiKeyMissing
+            ? 'To fix this, add your Anthropic API key to the .env.local file and restart the dev server.'
+            : 'You can try rephrasing your request, or check the browser console for details.';
+
+          const errorMessage: ChatMessageUI = {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            content: `**Something went wrong:** ${rawMsg}\n\n${guidance}`,
+            createdAt: new Date(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        } catch (parseError) {
+          // Fallback for unparseable errors
+          const errorMessage: ChatMessageUI = {
+            id: `error-${Date.now()}`,
+            role: 'assistant',
+            content: '**Something went wrong:** Connection error. Please try again.',
+            createdAt: new Date(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        }
+
+        // Clean up
+        eventSource.close();
+        eventSourceRef.current = null;
+        setIsLoading(false);
+        setAiWorking(false);
+        setStreamingState(prev => ({ ...prev, isStreaming: false }));
+      });
+
+      // Handle connection errors
+      eventSource.onerror = () => {
+        console.error('EventSource connection error');
+        const errorMessage: ChatMessageUI = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: '**Connection error:** The stream disconnected. Please try again.',
+          createdAt: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+
+        // Clean up
+        eventSource.close();
+        eventSourceRef.current = null;
+        setIsLoading(false);
+        setAiWorking(false);
+        setStreamingState(prev => ({ ...prev, isStreaming: false }));
+      };
+
     } catch (error) {
       const rawMsg = error instanceof Error ? error.message : 'An unexpected error occurred.';
 
@@ -135,11 +373,21 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         createdAt: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
+
       setIsLoading(false);
       setAiWorking(false);
+      setStreamingState(prev => ({ ...prev, isStreaming: false }));
     }
   };
+
+  // Clean up EventSource on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
 
   // Send initial prompt (e.g. from template link) once after first render
   useEffect(() => {
@@ -229,11 +477,32 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           </div>
         ))}
 
-        {isLoading && (
+        {(isLoading || streamingState.isStreaming) && (
           <div className="flex justify-start">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-              <Loader2 size={14} className="animate-spin" />
-              Building your dashboard...
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-3 w-full max-w-[90%]">
+              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] mb-2">
+                <Loader2 size={14} className="animate-spin" />
+                {streamingState.isStreaming ? streamingState.message : 'Building your dashboard...'}
+              </div>
+              {streamingState.isStreaming && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-[var(--text-muted)]">
+                    <span>Progress</span>
+                    <span>{Math.round(streamingState.progress)}%</span>
+                  </div>
+                  <div className="w-full bg-[var(--bg-primary)] rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-accent-blue h-full rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${Math.min(streamingState.progress, 100)}%` }}
+                    />
+                  </div>
+                  {streamingState.currentPatches.length > 0 && (
+                    <div className="text-xs text-accent-green">
+                      {streamingState.currentPatches.length} widget{streamingState.currentPatches.length !== 1 ? 's' : ''} added
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -303,5 +572,23 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Determines whether the given patches are significant enough to warrant auto-saving a version.
+ * This helps avoid creating too many versions for minor changes.
+ */
+function shouldAutoSavePatches(patches: SchemaPatch[]): boolean {
+  if (!patches || patches.length === 0) {
+    return false;
+  }
+
+  // Auto-save for any structural changes (add/remove widgets or major schema changes)
+  return patches.some(patch =>
+    patch.type === 'add_widget' ||
+    patch.type === 'remove_widget' ||
+    patch.type === 'replace_all' ||
+    patch.type === 'use_widget'
   );
 }

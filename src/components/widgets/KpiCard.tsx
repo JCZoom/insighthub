@@ -1,8 +1,10 @@
 'use client';
 
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useRef } from 'react';
 import type { WidgetConfig } from '@/types';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
+import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 
 interface KpiCardProps {
   config: WidgetConfig;
@@ -42,6 +44,9 @@ function computeAggregation(
 }
 
 export function KpiCard({ config, data }: KpiCardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const responsive = useResponsiveWidget(containerRef);
+
   const row = data[0] || {};
   const agg = config.dataConfig.aggregation;
   const field = agg?.field || Object.keys(row)[0] || 'value';
@@ -73,23 +78,47 @@ export function KpiCard({ config, data }: KpiCardProps) {
   const TrendIcon = trendValue > 0 ? TrendingUp : trendValue < 0 ? TrendingDown : Minus;
   const trendColor = trendValue > 0 ? 'pill-green' : trendValue < 0 ? 'pill-red' : 'pill-blue';
 
+  // Responsive layout classes and sizes
+  const isMobile = responsive.size === 'mobile';
+  const isTablet = responsive.size === 'tablet';
+
+  const titleClass = isMobile
+    ? "text-[10px] font-medium uppercase tracking-wider text-[var(--text-secondary)] mb-1 truncate"
+    : "text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)] mb-1";
+
+  const valueClass = isMobile
+    ? "text-xl font-extrabold tracking-tight leading-none mb-1"
+    : isTablet
+    ? "text-2xl font-extrabold tracking-tight leading-none mb-1"
+    : "text-3xl font-extrabold tracking-tight leading-none mb-2";
+
+  const pillClass = isMobile
+    ? `pill ${trendColor} text-[9px] px-1.5 py-0.5`
+    : `pill ${trendColor}`;
+
+  const iconSize = isMobile ? 10 : 12;
+  const padding = isMobile ? "p-3" : isTablet ? "p-4" : "p-5";
+
   return (
-    <div className={`hero-card ${accentClass} p-5 h-full flex flex-col justify-between fade-in`}>
+    <div ref={containerRef} className={`hero-card ${accentClass} ${padding} h-full flex flex-col justify-between fade-in`}>
       <div>
-        <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)] mb-1">
+        <p className={titleClass}>
           {config.title}
         </p>
-        {config.subtitle && (
+        {config.subtitle && !isMobile && (
           <p className="text-[10px] text-[var(--text-muted)] mb-2">{config.subtitle}</p>
         )}
       </div>
       <div>
-        <p className="text-3xl font-extrabold tracking-tight leading-none mb-2" style={{ letterSpacing: '-0.02em' }}>
+        <p className={valueClass} style={{ letterSpacing: '-0.02em' }}>
           {formatted}
         </p>
-        <span className={`pill ${trendColor}`}>
-          <TrendIcon size={12} className="mr-1" />
-          {trendValue > 0 ? '+' : ''}{trendValue}% vs prev
+        <span className={pillClass}>
+          <TrendIcon size={iconSize} className="mr-1" />
+          {isMobile ?
+            `${trendValue > 0 ? '+' : ''}${trendValue}%` :
+            `${trendValue > 0 ? '+' : ''}${trendValue}% vs prev`
+          }
         </span>
       </div>
     </div>

@@ -1,19 +1,31 @@
 'use client';
 
+import { useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { WidgetConfig } from '@/types';
-import { getColorPalette, getAnimationDuration, TOOLTIP_STYLE } from './widget-utils';
+import { getColorPalette, getAnimationDuration, getTooltipConfig } from './widget-utils';
+import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 
 interface BarChartWidgetProps {
   config: WidgetConfig;
   data: Record<string, unknown>[];
+  onChartClick?: (field: string, value: unknown) => void;
 }
 
-export function BarChartWidget({ config, data }: BarChartWidgetProps) {
+export function BarChartWidget({ config, data, onChartClick }: BarChartWidgetProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const responsive = useResponsiveWidget(containerRef);
+
   const COLORS = getColorPalette(config.visualConfig.colorScheme);
   const animDuration = getAnimationDuration(config);
-  const showGrid = config.visualConfig.showGrid !== false;
-  const showLabels = config.visualConfig.showLabels !== false;
+
+  // Use responsive settings
+  const showGrid = config.visualConfig.showGrid !== false && responsive.showAxis;
+  const showLabels = config.visualConfig.showLabels !== false && responsive.showLabels;
+  const showLegend = config.visualConfig.showLegend !== false && responsive.showLegend;
+
+  const tooltipConfig = getTooltipConfig(responsive.isTouchDevice);
+
   if (!data.length) {
     return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
   }
@@ -33,42 +45,73 @@ export function BarChartWidget({ config, data }: BarChartWidgetProps) {
     );
   }
 
+  const isMobile = responsive.size === 'mobile';
+  const titleSize = isMobile ? 'text-xs' : 'text-sm';
+  const subtitleSize = isMobile ? 'text-[10px]' : 'text-xs';
+
   return (
-    <div className="card p-4 h-full flex flex-col fade-in">
+    <div ref={containerRef} className="card p-4 h-full flex flex-col fade-in">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{config.title}</h3>
-        {config.subtitle && <p className="text-xs text-[var(--text-muted)]">{config.subtitle}</p>}
+        <h3 className={`${titleSize} font-semibold text-[var(--text-primary)]`}>{config.title}</h3>
+        {config.subtitle && !isMobile && (
+          <p className={`${subtitleSize} text-[var(--text-muted)]`}>{config.subtitle}</p>
+        )}
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} />}
+          <BarChart data={data} margin={responsive.margin}>
+            {showGrid && (
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--border-color)"
+                opacity={0.5}
+              />
+            )}
             <XAxis
               dataKey={xKey}
-              tick={showLabels ? { fontSize: 11, fill: 'var(--text-secondary)' } : false}
-              axisLine={{ stroke: 'var(--border-color)' }}
+              tick={showLabels ? {
+                fontSize: responsive.fontSize,
+                fill: 'var(--text-secondary)'
+              } : false}
+              axisLine={responsive.showAxis ? { stroke: 'var(--border-color)' } : false}
               tickLine={false}
+              interval={responsive.size === 'mobile' ? 'preserveStartEnd' : 0}
+              tickCount={responsive.tickCount}
             />
             <YAxis
-              tick={showLabels ? { fontSize: 11, fill: 'var(--text-secondary)' } : false}
+              tick={showLabels ? {
+                fontSize: responsive.fontSize,
+                fill: 'var(--text-secondary)'
+              } : false}
               axisLine={false}
               tickLine={false}
+              tickCount={responsive.tickCount}
             />
             <Tooltip
-              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-              {...TOOLTIP_STYLE}
+              cursor={responsive.isTouchDevice ? false : { fill: 'rgba(255,255,255,0.04)' }}
+              {...tooltipConfig}
             />
-            {config.visualConfig.showLegend !== false && barKeys.length > 1 && (
-              <Legend wrapperStyle={{ fontSize: '11px' }} />
+            {showLegend && barKeys.length > 1 && (
+              <Legend wrapperStyle={{ fontSize: `${responsive.fontSize}px` }} />
             )}
             {barKeys.map((key, i) => (
               <Bar
                 key={key}
                 dataKey={key}
                 fill={COLORS[i % COLORS.length]}
-                radius={[4, 4, 0, 0]}
+                radius={isMobile ? [2, 2, 0, 0] : [4, 4, 0, 0]}
                 animationDuration={animDuration}
                 stackId={config.visualConfig.stacked ? 'stack' : undefined}
+                onClick={onChartClick ? (data: any) => {
+                  // When clicking a bar, filter by the X-axis category
+                  if (data && data.payload) {
+                    const xValue = data.payload[xKey];
+                    if (xValue !== undefined) {
+                      onChartClick(xKey, xValue);
+                    }
+                  }
+                } : undefined}
+                style={onChartClick ? { cursor: 'pointer' } : undefined}
               />
             ))}
           </BarChart>
