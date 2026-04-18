@@ -37,11 +37,14 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
     // Resolve CSS custom property to an actual color value html2canvas can use
     const root = document.documentElement;
     const computedBg = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
-    // Fallback to a sensible dark background if variable is empty or unresolvable
     const bgColor = computedBg && computedBg !== '' ? computedBg : '#0a0e14';
 
-    const html2canvasModule = await import('html2canvas');
-    const html2canvas = html2canvasModule.default;
+    // html2canvas v1.x may export as .default or as the module itself
+    const mod = await import('html2canvas');
+    const html2canvas = (typeof mod.default === 'function' ? mod.default : mod) as (
+      element: HTMLElement,
+      options?: Record<string, unknown>
+    ) => Promise<HTMLCanvasElement>;
 
     const canvas = await html2canvas(element, {
       backgroundColor: bgColor,
@@ -49,11 +52,9 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       useCORS: true,
       allowTaint: true,
       logging: false,
-      // Resolve CSS variables in the cloned DOM so html2canvas can read them
       onclone: (clonedDoc: Document) => {
         const clonedRoot = clonedDoc.documentElement;
         const rootStyles = getComputedStyle(root);
-        // Copy all CSS custom properties to the cloned document
         const varsToCopy = ['--bg-primary', '--bg-card', '--bg-card-hover', '--border-color', '--text-primary', '--text-secondary', '--text-muted'];
         varsToCopy.forEach(v => {
           const val = rootStyles.getPropertyValue(v).trim();
@@ -62,10 +63,12 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       },
     });
 
-    const dataUrl = canvas.toDataURL('image/png');
-    triggerDownload(dataURLtoBlob(dataUrl), `${filename}.png`);
+    canvas.toBlob((blob) => {
+      if (blob) triggerDownload(blob, `${filename}.png`);
+    }, 'image/png');
   } catch (error) {
     console.error('PNG export failed:', error);
+    alert('PNG export failed. Check browser console for details.');
   }
 }
 

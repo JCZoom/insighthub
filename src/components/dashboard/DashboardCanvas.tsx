@@ -405,7 +405,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       {/* Canvas + toolbar column */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm">
+      <div className="relative z-20 flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           {isEditingTitle ? (
             <input
