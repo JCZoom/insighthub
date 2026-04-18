@@ -5,11 +5,14 @@ import { useDashboardStore } from '@/stores/dashboard-store';
 import { WidgetRenderer } from './WidgetRenderer';
 import { WidgetErrorBoundary } from './WidgetErrorBoundary';
 import { WidgetDetailOverlay } from './WidgetDetailOverlay';
+import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
+import { ShareModal } from './ShareModal';
 import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
 import type { WidgetConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -18,8 +21,8 @@ interface DashboardCanvasProps {
 
 export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
   const {
-    schema, title, canUndo, canRedo, isDirty, isAiWorking,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle,
+    schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget,
   } = useDashboardStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -44,8 +47,16 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [detailWidget, setDetailWidget] = useState<WidgetConfig | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const router = useRouter();
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onSave: () => handleSave(),
+    onToggleHelp: () => setShowHelp(prev => !prev),
+  });
 
   const handleSave = async () => {
     const store = useDashboardStore.getState();
@@ -315,6 +326,21 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             </button>
           )}
           <button
+            onClick={() => setShowShare(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
+            title="Share dashboard"
+          >
+            <Share2 size={14} />
+            <span className="hidden lg:inline">Share</span>
+          </button>
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+            title="Keyboard shortcuts (?)"
+          >
+            <Keyboard size={14} className="text-[var(--text-muted)]" />
+          </button>
+          <button
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
@@ -335,6 +361,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       <div
         className="flex-1 overflow-auto p-4 relative"
         onContextMenu={handleCanvasContextMenu}
+        onClick={(e) => {
+          // Click on empty canvas deselects
+          if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-grid]')) {
+            selectWidget(null);
+          }
+        }}
       >
         {/* AI working shimmer overlay */}
         {isAiWorking && (
@@ -388,6 +420,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             {widgets.map((widget: WidgetConfig) => (
               <div
                 key={widget.id}
+                onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); }}
                 onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
                 style={{
                   gridColumn: `${widget.position.x + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
@@ -395,7 +428,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 }}
                 className={`min-h-0 relative group transition-shadow ${
                   dragState?.widgetId === widget.id ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
-                }${resizeState?.widgetId === widget.id ? ' ring-2 ring-accent-purple rounded-xl' : ''}`}
+                }${resizeState?.widgetId === widget.id ? ' ring-2 ring-accent-purple rounded-xl' : ''
+                }${selectedWidgetId === widget.id && !dragState && !resizeState ? ' ring-2 ring-accent-cyan rounded-xl' : ''}`}
               >
                 {/* Drag handle */}
                 <div
@@ -449,6 +483,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         {detailWidget && (
           <WidgetDetailOverlay config={detailWidget} onClose={() => setDetailWidget(null)} />
         )}
+
+        {/* Shortcut help overlay */}
+        {showHelp && <ShortcutHelpOverlay onClose={() => setShowHelp(false)} />}
+
+        {/* Share modal */}
+        {showShare && <ShareModal onClose={() => setShowShare(false)} />}
       </div>
     </div>
   );

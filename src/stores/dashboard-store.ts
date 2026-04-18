@@ -38,6 +38,7 @@ interface DashboardState {
   isDirty: boolean;
   isSaving: boolean;
   isAiWorking: boolean;
+  selectedWidgetId: string | null;
 
   // Undo/redo
   history: HistoryEntry[];
@@ -56,6 +57,7 @@ interface DashboardState {
   resizeWidget: (widgetId: string, w: number, h: number) => void;
   setTitle: (title: string) => void;
   setAiWorking: (working: boolean) => void;
+  selectWidget: (id: string | null) => void;
   undo: () => void;
   redo: () => void;
   markSaved: () => void;
@@ -69,6 +71,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   isDirty: false,
   isSaving: false,
   isAiWorking: false,
+  selectedWidgetId: null,
   history: [{ schema: EMPTY_DASHBOARD_SCHEMA, note: 'Initial state', timestamp: new Date() }],
   historyIndex: 0,
   canUndo: false,
@@ -199,6 +202,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   setAiWorking: (working) => set({ isAiWorking: working }),
 
+  selectWidget: (id) => set({ selectedWidgetId: id }),
+
   undo: () => {
     const { historyIndex, history } = get();
     if (historyIndex <= 0) return;
@@ -233,6 +238,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     schema: EMPTY_DASHBOARD_SCHEMA,
     isDirty: false,
     isSaving: false,
+    selectedWidgetId: null,
     history: [{ schema: EMPTY_DASHBOARD_SCHEMA, note: 'Initial state', timestamp: new Date() }],
     historyIndex: 0,
     canUndo: false,
