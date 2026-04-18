@@ -1,28 +1,36 @@
-version: '3.8'
+# Docker Compose for InsightHub
+#
+# NOTE: InsightHub uses SQLite — no database container needed.
+# This file exists for future use (e.g. PostgreSQL migration, Redis cache).
+#
+# To run InsightHub locally, just use:
+#   npm install && npm run db:push && npm run dev
+#
+# If you need PostgreSQL in the future:
+#   1. Change prisma/schema.prisma provider to "postgresql"
+#   2. Uncomment the services below
+#   3. Run: docker compose up -d
 
-# Usage:
-#   docker compose up -d        Start PostgreSQL
-#   docker compose down          Stop
-#   docker compose down -v       Stop + delete data volume
+services: {}
 
-services:
-  db:
-    image: postgres:16-alpine
-    container_name: insighthub-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: insighthub
-      POSTGRES_USER: insighthub
-      POSTGRES_PASSWORD: insighthub_dev
-    ports:
-      - '5432:5432'
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U insighthub']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  pgdata:
+# --- Future PostgreSQL setup (uncomment when ready) ---
+#  db:
+#    image: postgres:16-alpine
+#    container_name: insighthub-db
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_DB: insighthub
+#      POSTGRES_USER: insighthub
+#      POSTGRES_PASSWORD: insighthub_dev
+#    ports:
+#      - '5432:5432'
+#    volumes:
+#      - pgdata:/var/lib/postgresql/data
+#    healthcheck:
+#      test: ['CMD-SHELL', 'pg_isready -U insighthub']
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#volumes:
+#  pgdata:
