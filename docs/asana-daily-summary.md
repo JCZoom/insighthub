@@ -1,441 +1,184 @@
+# InsightHub — AI Dashboard Builder: Project Status
 
----
+**Last synced:** 2026-04-18T01:28:47.556321
+**Project GID:** 1214122597260827
 
-## Quick Stats
+## Overview
+- **Tasks:** 112 (40 completed)
+- **Milestones:** 0
+- **Subtasks:** 451 (71 completed)
+- **Sections:** 15
 
-| Metric | Count |
-|--------|-------|
-| Total tasks | 67 |
-| Completed tasks | 12 |
-| Total subtasks | 307 |
-| Completed subtasks | 49 |
-| **Overall progress** | **61/374 (16%)** |
+## Sections
 
----
+### Untitled section
+4/4 tasks done | 0 milestones
 
-# InsightHub — Asana Project Summary
+- ✅ **🔗 Dashboard Sharing UI — Link, Permissions & Embed** [0/6 subtasks]
+- ✅ **Fix Chat 404 — Revert Invalid Model Name (claude-sonnet-4-latest)**
+- ✅ **Upgrade Claude Model — claude-sonnet-4-latest**
+- ✅ **Fix Gallery Page Crash — Tags String to Array Conversion**
 
-> Generated: 2026-04-17 20:39:54
-> Project GID: 1214122597260827
-> [View in Asana](https://app.asana.com/0/1214122597260827)
+### 🏗️ Foundation & Infrastructure
+9/11 tasks done | 0 milestones
 
+- ✅ **Add prisma generate to postinstall Hook**
+- ✅ **Prisma Client Regeneration — Fix 12 Stale Type Errors**
+- ✅ **L0 Foundation Audit — PostgreSQL → SQLite migration** [10/10 subtasks]
+- ✅ **Environment validation on app startup**
+- ✅ **Page-level ErrorBoundary component**
+- ✅ **Toast notification system**
+- ✅ **Error handling & logging framework** [4/4 subtasks]
+- ✅ **Glossary YAML → DB sync system** [4/4 subtasks]
+- ✅ **Docker Compose for local development** [3/4 subtasks]
+- ⬜ **Environment configuration & secrets management** [2/4 subtasks]
+- ⬜ **Database migrations & seeding** [3/7 subtasks]
 
-## Untitled section
+### 🔐 Auth & Security
+0/6 tasks done | 0 milestones
 
+- ⬜ **Session timeout & security headers** [0/3 subtasks]
+- ⬜ **Audit logging** [0/6 subtasks]
+- ⬜ **API rate limiting** [0/4 subtasks]
+- ⬜ **🔐 Role-Based Access Control & Granular Data Permissions** [0/16 subtasks]
+- ⬜ **Google OAuth integration (NextAuth.js)** [0/7 subtasks]
+- ⬜ **🔴 SECURITY PRIORITY: Granular Data-Level Permissions Before Wider Rollout**
 
-## 🏗️ Foundation & Infrastructure
+### 🤖 AI & Chat System
+0/6 tasks done | 0 milestones
 
-- [x] **Environment validation on app startup**
-- [x] **Page-level ErrorBoundary component**
-- [x] **Toast notification system**
-- [x] **Error handling & logging framework**
-  - [x] Client-side error reporting (toast notifications)
-  - [x] Global error handler middleware for API routes
-  - [x] Structured JSON logging for API routes
-  - [x] Add React error boundaries for widget crashes
-- [x] **Glossary YAML → DB sync system**
-  - [x] Validate YAML schema before importing
-  - [x] Run sync on deploy (npm run glossary:sync)
-  - [x] Upsert logic — match by term name, update definition/formula
-  - [x] Build scripts/sync-glossary.ts CLI tool
-- [x] **Docker Compose for local development**
-  - [x] README instructions for docker compose up
-  - [x] Health check scripts
-  - [ ] Redis container for query caching (Phase 3)
-  - [x] PostgreSQL container with persistent volume
-- [ ] **Environment configuration & secrets management**
-  - [x] Set up environment validation on app startup
-  - [x] Create .env.example with all required variables documented
-  - [ ] Add Snowflake connection stubs for Phase 3
-  - [ ] Add Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-- [ ] **Database migrations & seeding**
-  - [ ] Verify seed data loads correctly and relationships are intact
-  - [ ] Generate 200 sales pipeline deals
-  - [ ] Generate product usage data with weekday-heavy patterns
-  - [ ] Generate monthly revenue events (~3-5% churn)
-  - [ ] Generate 50,000 support tickets with seasonal patterns
-  - [x] Build seed script (scripts/seed-sample-data.ts) with 5,000 customers
-  - [x] Run prisma migrate dev to create all tables
+- ⬜ **🤖 AI-Assisted SQL & Query Explanation** [0/6 subtasks]
+- ⬜ **Context-aware system prompt builder** [0/4 subtasks]
+- ⬜ **AI change summaries for version history** [0/3 subtasks]
+- ⬜ **Smart AI suggestions & quick actions** [0/4 subtasks]
+- ⬜ **Chat session persistence** [0/5 subtasks]
+- ⬜ **SSE streaming for AI responses** [0/5 subtasks]
 
-## 🔐 Auth & Security
+### 📊 Widget System
+0/7 tasks done | 0 milestones
 
-- [ ] **Session timeout & security headers**
-  - [ ] CSRF token validation on mutations
-  - [ ] Add security headers via Next.js middleware (CSP, HSTS, etc)
-  - [ ] Configure 8-hour session expiry
-- [ ] **Audit logging**
-  - [ ] Admin audit log viewer page (/admin/audit)
-  - [ ] Log: user.login, user.role_change
-  - [ ] Log: glossary.create, glossary.update, glossary.delete
-  - [ ] Log: version.save, version.revert
-  - [ ] Log: dashboard.create, dashboard.share, dashboard.delete
-  - [ ] AuditLog model already in Prisma — wire up creation
-- [ ] **API rate limiting**
-  - [ ] Return 429 with Retry-After header
-  - [ ] Dashboard CRUD: 60 requests/min per user
-  - [ ] Chat API: 30 requests/min per user
-  - [ ] Implement sliding window rate limiter
-- [ ] **Role-based access control (RBAC)**
-  - [ ] Creator+ check for dashboard creation
-  - [ ] Admin-only routes protection (/admin/*)
-  - [ ] UI conditional rendering based on user role
-  - [ ] API middleware to check role before processing requests
-  - [ ] Permission helper functions (src/lib/utils/permissions.ts)
-- [ ] **Google OAuth integration (NextAuth.js)**
-  - [ ] Redirect flow — login → onboarding (first visit) or gallery
-  - [ ] Login page with Google sign-in button
-  - [ ] Session persistence with JWT strategy
-  - [ ] Map roles from DB (default VIEWER, admin list for ADMIN)
-  - [ ] Auto-create User record on first login
-  - [ ] Domain restriction — only @uszoom.com emails allowed
-  - [ ] Configure NextAuth.js with Google provider
+- ⬜ **📊 Responsive Widget Rendering — Charts & Tables on All Screen Sizes** [0/5 subtasks]
+- ⬜ **"Explain this metric" tooltip** [0/4 subtasks]
+- ⬜ **Widget resize handles** [0/4 subtasks]
+- ⬜ **Widget interactions & drill-down** [0/5 subtasks]
+- ⬜ **Widget click-to-edit config panel** [0/6 subtasks]
+- ⬜ **Complete all widget renderers** [5/9 subtasks]
+- ⬜ **Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types**
 
-## 🤖 AI & Chat System
+### 🎨 Dashboard Canvas & UX
+15/25 tasks done | 0 milestones
 
-- [ ] **Context-aware system prompt builder**
-  - [ ] Include widget library listings for use_widget patches
-  - [ ] Filter available data sources by user role/permissions
-  - [ ] Inject current dashboard schema
-  - [ ] Inject full glossary into system prompt
-- [ ] **AI change summaries for version history**
-  - [ ] Show in version timeline sidebar
-  - [ ] Store changeNote in DashboardVersion record
-  - [ ] Generate change note on each patch application
-- [ ] **Smart AI suggestions & quick actions**
-  - [ ] "Explain this metric" button on widgets → AI explains the calculation
-  - [ ] "Add a filter by region" type suggestions based on current schema
-  - [ ] Quick action buttons below AI responses
-  - [ ] Post-generation suggestions ("you might also want NRR and LTV")
-- [ ] **Chat session persistence**
-  - [ ] API: GET /api/chat/sessions/[id] — get session + messages
-  - [ ] API: GET /api/chat/sessions — list user sessions
-  - [ ] Load session history when opening dashboard editor
-  - [ ] Save each ChatMessage to DB (user + assistant)
-  - [ ] Create/update ChatSession on conversation start
-- [ ] **SSE streaming for AI responses**
-  - [ ] Error recovery if stream disconnects
-  - [ ] Progress indicator while AI is generating
-  - [ ] Client-side EventSource handling in ChatPanel
-  - [ ] Stream partial JSON patches as they're generated
-  - [ ] Convert /api/chat to SSE endpoint (ReadableStream)
+- ✅ **🔎 Widget Data Transparency — Data Lineage Tab**
+- ✅ **⌨️ Keyboard Shortcuts & Power User UX** [0/9 subtasks]
+- ⬜ **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette** [0/11 subtasks]
+- ⬜ **🏠 Landing Page & Gallery — Mobile Polish** [0/5 subtasks]
+- ⬜ **👆 Touch Interaction Support — Drag, Resize, Context Menu** [0/5 subtasks]
+- ⬜ **📱 Responsive Editor Layout — Adaptive Canvas + Chat** [0/8 subtasks]
+- ⬜ **🖥️ Desktop Polish — Mac & Windows Browser Consistency** [0/8 subtasks]
+- ⬜ **🖥️📱 Cross-Platform Optimization — Desktop Excellence + Mobile/Tablet Support**
+- ✅ **Auto-Layout End-to-End Testing — All Cases Pass**
+- ⬜ **🔎 Widget Data Transparency — "Show Me the Query" on Every Widget** [0/6 subtasks]
+- ✅ **Drag Ghost Outline — Visual Feedback During Widget Drag**
+- ✅ **Widget Auto-Layout — Bin-Packing for AI-Generated Dashboards**
+- ✅ **Custom Favicon — SVG Sparkle Icon**
+- ✅ **OG Image — Dynamic Branded Preview Card**
+- ✅ **AI Prompt Cleanup — Remove Internal Phase References**
+- ✅ **Mobile "Best on Desktop" Notice**
+- ✅ **Landing Page Entrance Animations**
+- ✅ **OG Meta Tags + Social Preview Cards**
+- ✅ **UX Polish — Error Boundaries, Loading States & Empty States**
+- ✅ **Dashboard auto-save** [3/4 subtasks]
+- ✅ **Dark/light theme toggle** [4/4 subtasks]
+- ✅ **⌨️ Keyboard shortcuts — Phase 1 (basic: undo/redo/save/search/chat) ✅** [5/7 subtasks]
+- ⬜ **Onboarding flow (first-login walkthrough)** [0/6 subtasks]
+- ⬜ **Version timeline sidebar** [4/6 subtasks]
+- ⬜ **Responsive preview mode** [0/3 subtasks]
 
-## 📊 Widget System
+### 📁 Gallery & Sharing
+0/6 tasks done | 0 milestones
 
-- [ ] **"Explain this metric" tooltip**
-  - [ ] Power user toggle to show underlying query
-  - [ ] Popover showing definition, formula, data source
-  - [ ] Info icon on widget header
-  - [ ] Link widgets to glossaryTermIds
-- [ ] **Widget resize handles**
-  - [ ] Update store with new dimensions on resize end
-  - [ ] Minimum size constraints per widget type
-  - [ ] Snap to grid columns during resize
-  - [ ] Resize handles on widget edges (visible on hover)
-- [ ] **Widget interactions & drill-down**
-  - [ ] Full-screen mode for any widget
-  - [ ] Export widget data as CSV
-  - [ ] Export widget as PNG (html2canvas)
-  - [ ] Click a bar/slice to filter entire dashboard
-  - [ ] Hover tooltips showing exact values on all chart types
-- [ ] **Widget click-to-edit config panel**
-  - [ ] Live preview as settings change
-  - [ ] Threshold editor (value + color + label)
-  - [ ] Visual tab: color scheme, legend, grid, labels, stacked
-  - [ ] Data tab: source, filters, aggregation, groupBy
-  - [ ] General tab: title, subtitle, type selector
-  - [ ] WidgetEditor component with tabbed interface
-- [ ] **Complete all widget renderers**
-  - [ ] Divider widget (visual separator)
-  - [ ] ImageWidget (embedded image/logo)
-  - [x] MetricRow widget (horizontal row of KPIs)
-  - [x] Funnel widget
-  - [ ] PivotTable widget
-  - [ ] Heatmap widget
-  - [x] ScatterPlot widget
-  - [x] StackedBar widget
-  - [x] DonutChart widget (variation of PieChart with inner radius)
+- ⬜ **Dashboard thumbnails (auto-generated previews)** [0/4 subtasks]
+- ⬜ **Template system — promote to templates** [0/4 subtasks]
+- ⬜ **Dashboard cloning** [2/3 subtasks]
+- ⬜ **Folder system** [0/5 subtasks]
+- ⬜ **Dashboard sharing system** [2/6 subtasks]
+- ⬜ **Dashboard gallery improvements** [0/6 subtasks]
 
-## 🎨 Dashboard Canvas & UX
+### 📖 Glossary System
+1/4 tasks done | 0 milestones
 
-- [x] **Dashboard auto-save**
-  - [x] Save version to DB via API
-  - [ ] Unsaved changes warning on navigate away
-  - [x] isDirty indicator in toolbar
-  - [x] Debounced auto-save (30s after last change)
-- [x] **Dark/light theme toggle**
-  - [x] System preference detection as default
-  - [x] Persist theme preference in localStorage
-  - [x] CSS variables for dark and light palettes
-  - [x] ThemeToggle component in navbar
-- [x] **Keyboard shortcuts**
-  - [ ] Keyboard shortcuts help modal (?)
-  - [x] / → focus chat input
-  - [x] Cmd+K → search dashboards
-  - [x] Ctrl+S / Cmd+S → save version
-  - [x] Ctrl+Shift+Z / Cmd+Shift+Z → redo
-  - [x] Ctrl+Z / Cmd+Z → undo
-  - [ ] Global keyboard shortcut handler
-- [ ] **Onboarding flow (first-login walkthrough)**
-  - [ ] Auto-redirect first-time users to onboarding
-  - [ ] Store onboarding_completed flag in User record
-  - [ ] Template gallery prompt with 4-6 pre-built examples
-  - [ ] Guided first dashboard prompt in chat
-  - [ ] Welcome modal with animated walkthrough slides
-  - [ ] Create /onboarding page
-- [ ] **Version timeline sidebar**
-  - [ ] Visual diff overlay showing added/removed/modified widgets
-  - [ ] Named checkpoints ("Before Q4 changes")
-  - [x] One-click revert to any previous version
-  - [x] Show timestamp, change note, author for each version
-  - [x] Fetch version history from API
-  - [x] VersionTimeline component (already scaffolded)
-- [ ] **Responsive preview mode**
-  - [ ] Widget stacking on smaller viewports
-  - [ ] Responsive grid layout adaptation
-  - [ ] Preview toggle buttons in toolbar (desktop/tablet/mobile)
+- ⬜ **Glossary reference panel in dashboard editor** [0/4 subtasks]
+- ✅ **Glossary CRUD API** [4/5 subtasks]
+- ⬜ **Glossary browse & search UI** [0/5 subtasks]
+- ⬜ **Glossary → Widget Links: Browse & Add Relevant Widgets from Glossary Terms**
 
-## 📁 Gallery & Sharing
+### 💾 Data Layer
+1/7 tasks done | 0 milestones
 
-- [ ] **Dashboard thumbnails (auto-generated previews)**
-  - [ ] Fallback placeholder for dashboards without thumbnails
-  - [ ] Store in public/ or S3
-  - [ ] Generate thumbnail on save
-  - [ ] Server-side screenshot generation (Puppeteer or html2canvas)
-- [ ] **Template system — promote to templates**
-  - [ ] Template categories/tags
-  - [ ] "Use this template" creates a clone for the user
-  - [ ] /templates page showing all template dashboards
-  - [ ] Admin action to mark dashboard as template
-- [ ] **Dashboard cloning**
-  - [ ] "Duplicate" option in context menu and gallery card
-  - [x] Clone current version schema with new IDs
-  - [x] API: POST /api/dashboards/[id]/duplicate
-- [ ] **Folder system**
-  - [ ] Breadcrumb navigation
-  - [ ] Folder visibility (private/team/public)
-  - [ ] Drag dashboards between folders
-  - [ ] Create/rename/delete folders
-  - [ ] FolderTree component with nested navigation
-- [ ] **Dashboard sharing system**
-  - [ ] Email notification on share (optional)
-  - [ ] Publish to gallery (make public to all authenticated users)
-  - [ ] "Shared with Me" gallery section
-  - [x] API: POST /api/dashboards/[id]/share
-  - [x] Permission dropdown (View / Comment / Edit)
-  - [ ] Share modal — search and select users
-- [ ] **Dashboard gallery improvements**
-  - [ ] Favorites system (star dashboards)
-  - [ ] Recently viewed section
-  - [ ] Toggle between card view (thumbnails) and list view
-  - [ ] Sort by: recently updated, most viewed, alphabetical
-  - [ ] Filter by owner, department, tag, date range
-  - [ ] Full-text search across titles, descriptions, tags
+- ⬜ **📐 Visual Query Builder — Sigma-Style No-Code Data Exploration** [0/9 subtasks]
+- ⬜ **🧪 Query Playground — Interactive Scratch Pad** [0/7 subtasks]
+- ⬜ **🔍 Data Explorer & Schema Browser** [0/7 subtasks]
+- ⬜ **🟣 Power User Data Experience — SQL, Visual Query Builder & Data Verification**
+- ⬜ **Snowflake connector (Phase 3)** [0/7 subtasks]
+- ⬜ **Sample data query engine** [0/6 subtasks]
+- ✅ **Dashboard CRUD API** [8/8 subtasks]
 
-## 📖 Glossary System
+### ⚙️ Admin Panel
+0/3 tasks done | 0 milestones
 
-- [ ] **Glossary reference panel in dashboard editor**
-  - [ ] Widget hover shows linked term tooltips
-  - [ ] Link terms to widgets (glossaryTermIds)
-  - [ ] Search/browse terms inline
-  - [ ] Glossary panel toggle in editor toolbar
-- [x] **Glossary CRUD API**
-  - [x] GET /api/glossary/search?q= — full-text search
-  - [x] DELETE /api/glossary/[id] — remove term (Admin)
-  - [x] PUT /api/glossary/[id] — update term (Admin)
-  - [x] POST /api/glossary — add term (Admin)
-  - [ ] GET /api/glossary — list all terms
-- [ ] **Glossary browse & search UI**
-  - [ ] Approved by / last reviewed metadata
-  - [ ] Related terms links
-  - [ ] TermCard component showing definition, formula, data source
-  - [ ] Category filter pills
-  - [ ] /glossary page with searchable term listing
+- ⬜ **System settings & configuration** [0/4 subtasks]
+- ⬜ **Audit log viewer** [0/4 subtasks]
+- ⬜ **User management page** [0/5 subtasks]
 
-## 💾 Data Layer
+### 🧪 Testing & QA
+0/5 tasks done | 0 milestones
 
-- [ ] **Snowflake connector (Phase 3)**
-  - [ ] Row-level security for PII/financial data
-  - [ ] Data-level permission enforcement (sensitive data tags)
-  - [ ] Data source browser — table/view/column explorer
-  - [ ] Query caching layer (Redis) to avoid hammering Snowflake
-  - [ ] Query execution with parameterized queries (no SQL injection)
-  - [ ] Connection pool management
-  - [ ] Snowflake Node.js SDK integration
-- [ ] **Sample data query engine**
-  - [ ] API: GET /api/data/sources/[name]/schema (columns + types)
-  - [ ] API: GET /api/data/sources (list available tables)
-  - [ ] API: POST /api/data/query
-  - [ ] Support aggregation, groupBy, orderBy, limit, filters
-  - [ ] Sample data adapter using in-memory generated data
-  - [ ] Query engine abstraction (src/lib/data/query-engine.ts)
-- [x] **Dashboard CRUD API**
-  - [x] POST /api/dashboards/[id]/revert/[versionId] — revert
-  - [x] POST /api/dashboards/[id]/versions — save new version
-  - [x] GET /api/dashboards/[id]/versions — list versions
-  - [x] DELETE /api/dashboards/[id] — soft-delete (archive)
-  - [x] PUT /api/dashboards/[id] — update metadata
-  - [ ] GET /api/dashboards/[id] — get dashboard + current schema
-  - [ ] POST /api/dashboards — create new dashboard
-  - [ ] GET /api/dashboards — list (filtered by user access)
+- ⬜ **🧪 Cross-Platform Testing Matrix & Device Lab** [0/6 subtasks]
+- ⬜ **Performance testing & optimization** [0/7 subtasks]
+- ⬜ **E2E tests — critical user flows** [0/6 subtasks]
+- ⬜ **Integration tests — API routes** [0/5 subtasks]
+- ⬜ **Unit tests — core logic** [0/6 subtasks]
 
-## ⚙️ Admin Panel
+### 🚀 Deployment & DevOps
+10/13 tasks done | 0 milestones
 
-- [ ] **System settings & configuration**
-  - [ ] Feature flags for Phase 2/3 features
-  - [ ] Data source connection management
-  - [ ] AI model selection (Claude model version)
-  - [ ] Default user role for new signups
-- [ ] **Audit log viewer**
-  - [ ] Export audit log as CSV
-  - [ ] API: GET /api/admin/audit with query params
-  - [ ] Filterable table: user, action, resource type, date range
-  - [ ] /admin/audit page
-- [ ] **User management page**
-  - [ ] API: PUT /api/admin/users/[id]/role
-  - [ ] API: GET /api/admin/users
-  - [ ] User activity summary (dashboards created, last login)
-  - [ ] Role dropdown to change user roles
-  - [ ] /admin page with user list table
+- ✅ **Production Redeploy — L5 Model Fix + postinstall**
+- ✅ **BitBucket Pipelines CI/CD Configuration**
+- ✅ **Production Redeploy — L4 Bug Fixes + Canvas UX**
+- ✅ **Fix Readonly Database — Absolute DB Path + Symlink**
+- ✅ **Production Redeploy — L3 Brand Identity + Type Safety**
+- ✅ **Production Redeploy — L2 Polish Changes**
+- ✅ **EC2 Production Deployment — dashboards.jeffcoy.net** [8/8 subtasks]
+- ✅ **Health check endpoint (/api/health)**
+- ✅ **Domain & DNS setup** [0/4 subtasks]
+- ⬜ **Backup & disaster recovery** [0/3 subtasks]
+- ⬜ **Production monitoring & alerting** [0/6 subtasks]
+- ⬜ **CI/CD pipeline** [0/6 subtasks]
+- ✅ **EC2 deployment setup** [0/7 subtasks]
 
-## 🧪 Testing & QA
+### 🔮 Advanced Features (Phase 4)
+0/12 tasks done | 0 milestones
 
-- [ ] **Performance testing & optimization**
-  - [ ] Virtual scrolling for data tables
-  - [ ] Lazy-load widgets below the fold
-  - [ ] Search results: < 200ms
-  - [ ] Widget data refresh: < 3s per widget
-  - [ ] AI response (first token): < 1s via SSE
-  - [ ] Dashboard canvas render: < 2s (all widgets)
-  - [ ] Gallery load: < 1s
-- [ ] **E2E tests — critical user flows**
-  - [ ] Test: Glossary → Add term → Verify appears in AI prompt
-  - [ ] Test: Admin → Change user role → Verify permissions
-  - [ ] Test: Share dashboard → Verify recipient can view
-  - [ ] Test: Open existing dashboard → Edit via chat → Undo → Redo
-  - [ ] Test: Login → Gallery → New Dashboard → Chat → Save
-  - [ ] Set up Playwright
-- [ ] **Integration tests — API routes**
-  - [ ] Test /api/data/query with sample data
-  - [ ] Test /api/admin routes (role enforcement)
-  - [ ] Test /api/glossary CRUD
-  - [ ] Test /api/dashboards CRUD
-  - [ ] Test /api/chat route (mock Claude responses)
-- [ ] **Unit tests — core logic**
-  - [ ] Test dashboard store actions (undo/redo, widget CRUD)
-  - [ ] Test sample data generation
-  - [ ] Test glossary sync logic
-  - [ ] Test permissions.ts (role-based checks)
-  - [ ] Test schema-patcher.ts (all patch types)
-  - [ ] Set up Jest/Vitest for the project
+- ⬜ **🔄 Snowflake Cross-Validation Mode** [0/6 subtasks]
+- ⬜ **"Ask about this data" — contextual AI queries** [0/3 subtasks]
+- ⬜ **API access (programmatic dashboard creation)** [0/3 subtasks]
+- ⬜ **Scheduled dashboard snapshots & email digests** [0/4 subtasks]
+- ⬜ **Dashboard embedding (iframe mode)** [0/4 subtasks]
+- ⬜ **🔮 SQL Editor Mode — Full Query Environment for Power Users** [0/9 subtasks]
+- ⬜ **📐 Custom Calculated Fields — Sigma-Style Formulas & SQL Expressions** [0/9 subtasks]
+- ⬜ **Dashboard alerts & notifications** [0/4 subtasks]
+- ⬜ **Natural language filtering** [0/3 subtasks]
+- ⬜ **Collaborative editing (real-time)** [0/4 subtasks]
+- ⬜ **Dashboard comments & annotations** [0/3 subtasks]
+- ⬜ **Voice Input: Speech-to-Text for Dashboard Prompts**
 
-## 🚀 Deployment & DevOps
+### 📝 Documentation
+0/3 tasks done | 0 milestones
 
-- [x] **Health check endpoint (/api/health)**
-- [ ] **Domain & DNS setup**
-  - [ ] Update NEXTAUTH_URL for production domain
-  - [ ] SSL certificate provisioning
-  - [ ] DNS A/CNAME records pointing to EC2
-  - [ ] Register subdomain (e.g., insighthub.uszoom.com or insighthub.jeffcoy.net)
-- [ ] **Backup & disaster recovery**
-  - [ ] Backup verification/restoration test procedure
-  - [ ] Point-in-time recovery documentation
-  - [ ] Automated daily PostgreSQL backups to S3
-- [ ] **Production monitoring & alerting**
-  - [ ] Disk space / memory alerts
-  - [ ] Database connection pool monitoring
-  - [ ] Performance monitoring (Web Vitals)
-  - [ ] Error tracking (Sentry or similar)
-  - [ ] Uptime monitoring (e.g., UptimeRobot)
-  - [ ] Health check endpoint (/api/health)
-- [ ] **CI/CD pipeline**
-  - [ ] Database migration on deploy
-  - [ ] Manual promotion to production
-  - [ ] Auto-deploy to staging on merge to develop
-  - [ ] Run unit + integration tests on PR
-  - [ ] Run linting + type checking on PR
-  - [ ] GitHub Actions or BitBucket Pipelines config
-- [ ] **EC2 deployment setup**
-  - [ ] PostgreSQL production database setup
-  - [ ] Environment variables in production (.env.production)
-  - [ ] PM2 or systemd process manager for Next.js
-  - [ ] SSL certificate (Let's Encrypt or ACM)
-  - [ ] Configure Nginx reverse proxy to Next.js (port 3000)
-  - [ ] Install Node.js, PostgreSQL, Nginx
-  - [ ] Provision EC2 instance (t3.medium or similar)
+- ⬜ **README and project setup** [0/6 subtasks]
+- ⬜ **Developer documentation** [0/7 subtasks]
+- ⬜ **User documentation / help center** [0/6 subtasks]
 
-## 🔮 Advanced Features (Phase 4)
+### TO SORT
+0/0 tasks done | 0 milestones
 
-- [ ] **"Ask about this data" — contextual AI queries**
-  - [ ] AI cross-references with other data sources
-  - [ ] Send data context + question to AI
-  - [ ] Right-click context menu on chart data points
-- [ ] **API access (programmatic dashboard creation)**
-  - [ ] API documentation (OpenAPI/Swagger)
-  - [ ] Rate limiting for API consumers
-  - [ ] API key management for service accounts
-- [ ] **Scheduled dashboard snapshots & email digests**
-  - [ ] Subscription management (weekly/monthly)
-  - [ ] Email template with dashboard preview
-  - [ ] Screenshot generation via Puppeteer
-  - [ ] Cron job for scheduled snapshots
-- [ ] **Dashboard embedding (iframe mode)**
-  - [ ] Copy embed code button in share modal
-  - [ ] Configurable toolbar visibility in embed mode
-  - [ ] Token-based authentication for embedded views
-  - [ ] Embed-specific view route (/dashboard/[id]/embed)
-- [ ] **SQL editor mode for power users**
-  - [ ] Save query as widget data source
-  - [ ] Query execution with results preview
-  - [ ] SQL syntax highlighting and autocomplete
-  - [ ] Code editor component (Monaco or CodeMirror)
-- [ ] **Custom calculated fields**
-  - [ ] Save custom fields to schema
-  - [ ] Expression parser and evaluator
-  - [ ] Formula editor UI
-- [ ] **Dashboard alerts & notifications**
-  - [ ] Alert history and acknowledgement
-  - [ ] Email/Slack notifications
-  - [ ] Threshold evaluation on data refresh
-  - [ ] Alert rule configuration per widget
-- [ ] **Natural language filtering**
-  - [ ] Filter chips showing active NL filters
-  - [ ] Apply parsed filters to global/widget filters
-  - [ ] NL filter parser using Claude
-- [ ] **Collaborative editing (real-time)**
-  - [ ] "X is editing" indicator
-  - [ ] Conflict resolution for simultaneous edits
-  - [ ] Cursor presence indicators
-  - [ ] WebSocket server for real-time updates
-- [ ] **Dashboard comments & annotations**
-  - [ ] Notification when someone comments on your dashboard
-  - [ ] Comment thread UI on widgets
-  - [ ] Comment data model (linked to widget + position)
-
-## 📝 Documentation
-
-- [ ] **README and project setup**
-  - [ ] Deployment instructions
-  - [ ] Running locally instructions
-  - [ ] Environment variables reference
-  - [ ] Installation and setup steps
-  - [ ] Prerequisites (Node.js, Docker, etc)
-  - [ ] Project overview and feature list
-- [ ] **Developer documentation**
-  - [ ] Deployment runbook
-  - [ ] API endpoint reference
-  - [ ] Database schema reference
-  - [ ] AI system prompt customization guide
-  - [ ] Adding new widget types guide
-  - [ ] Local development setup guide
-  - [ ] Architecture overview diagram
-- [ ] **User documentation / help center**
-  - [ ] FAQ / troubleshooting
-  - [ ] Glossary guide for admins
-  - [ ] Widget types reference with examples
-  - [ ] How to share and organize dashboards
-  - [ ] How to create a dashboard via chat
-  - [ ] Getting started guide
-
-## TO SORT
-
-_No items in inbox._

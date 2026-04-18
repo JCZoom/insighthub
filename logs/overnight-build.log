@@ -1,0 +1,11 @@
+[2026-04-18 01:28:47] ============================================================
+[2026-04-18 01:28:47] 🌙 Overnight Builder starting
+[2026-04-18 01:28:47]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 01:28:47]    Model: claude-sonnet-4-20250514
+[2026-04-18 01:28:47]    Max tasks: 10
+[2026-04-18 01:28:47]    Max consecutive failures: 3
+[2026-04-18 01:28:47]    Dry run: False
+[2026-04-18 01:28:47]    Budget cap: $25.00
+[2026-04-18 01:28:47]    AI triage: True
+[2026-04-18 01:28:47] ============================================================
+[2026-04-18 01:28:47] ⚠️  Uncommitted changes detected. Committing before starting...
