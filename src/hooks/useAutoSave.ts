@@ -58,5 +58,6 @@ export function useAutoSave({ onSave, enabled = true }: AutoSaveOptions = {}) {
   }, [enabled, isDirty, dashboardId, schema, save]);
 
   // Manual save (for Cmd+S)
-  return { save, isSaving: isSavingRef.current };
+  // Return a getter to avoid accessing ref.current during render
+  return { save, getIsSaving: () => isSavingRef.current };
 }

@@ -2,6 +2,7 @@
 
 import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
+import Link from 'next/link';
 
 interface Props {
   children: ReactNode;
@@ -47,13 +48,13 @@ export class ErrorBoundary extends Component<Props, State> {
                 <RotateCcw size={14} />
                 Try Again
               </button>
-              <a
+              <Link
                 href="/"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--bg-card-hover)] text-[var(--text-secondary)] text-sm font-medium hover:text-[var(--text-primary)] transition-colors"
               >
                 <Home size={14} />
                 Go Home
-              </a>
+              </Link>
             </div>
           </div>
         </div>

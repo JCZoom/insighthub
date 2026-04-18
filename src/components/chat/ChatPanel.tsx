@@ -35,18 +35,6 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
   const hasSentInitialPrompt = useRef(false);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
-    if (initialPrompt && !hasSentInitialPrompt.current) {
-      hasSentInitialPrompt.current = true;
-      sendMessage(initialPrompt);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPrompt]);
-
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -127,6 +115,15 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       setAiWorking(false);
     }
   };
+
+  // Send initial prompt (e.g. from template link) once after first render
+  useEffect(() => {
+    if (initialPrompt && !hasSentInitialPrompt.current) {
+      hasSentInitialPrompt.current = true;
+      sendMessage(initialPrompt);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
