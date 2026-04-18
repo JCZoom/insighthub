@@ -136,3 +136,15 @@
 [2026-04-18 07:19:32]    Total tokens: 1,796 in + 102,112 out
 [2026-04-18 07:19:32] ============================================================
 [2026-04-18 07:19:32] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18.md
+[2026-04-18 12:20:47] ============================================================
+[2026-04-18 12:20:47] 🌙 Overnight Builder starting
+[2026-04-18 12:20:47]    Project: /Users/Jeffrey.Coy/CascadeProjects/windsurf-project-7
+[2026-04-18 12:20:47]    Model: claude-sonnet-4-20250514
+[2026-04-18 12:20:47]    Max tasks: 10
+[2026-04-18 12:20:47]    Max consecutive failures: 3
+[2026-04-18 12:20:47]    Dry run: False
+[2026-04-18 12:20:47]    Budget cap: $25.00
+[2026-04-18 12:20:47]    AI triage: True
+[2026-04-18 12:20:47]    Operator notes: PRIORITY ORDER - work top to bottom. 1) Widget resize handles - drag handles on ...
+[2026-04-18 12:20:47] ============================================================
+[2026-04-18 12:20:47] ⚠️  Uncommitted changes detected. Committing before starting...
