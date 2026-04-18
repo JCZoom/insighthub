@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser, canCreateDashboard } from '@/lib/auth/session';
 import { EMPTY_DASHBOARD_SCHEMA } from '@/types';
+import { logDashboardAction, AuditAction } from '@/lib/audit';
 
 // GET /api/dashboards — list dashboards accessible by the current user
 export async function GET(request: NextRequest) {
@@ -96,6 +97,19 @@ export async function POST(request: NextRequest) {
         versions: { orderBy: { version: 'desc' }, take: 1 },
       },
     });
+
+    // Log dashboard creation for audit
+    await logDashboardAction(
+      user.id,
+      AuditAction.DASHBOARD_CREATE,
+      dashboard.id,
+      {
+        title: dashboard.title,
+        description: dashboard.description,
+        isPublic: dashboard.isPublic,
+        tags: dashboard.tags,
+      }
+    );
 
     return NextResponse.json({ dashboard }, { status: 201 });
   } catch (error) {

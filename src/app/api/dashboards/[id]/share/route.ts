@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { logDashboardAction, AuditAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -50,6 +51,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
         user: { select: { id: true, name: true, email: true } },
       },
     });
+
+    // Log dashboard share for audit
+    await logDashboardAction(
+      user.id,
+      AuditAction.DASHBOARD_SHARE,
+      id,
+      {
+        dashboardTitle: dashboard.title,
+        sharedWithUserId: userId,
+        sharedWithUser: share.user.name,
+        permission: permission || 'VIEW',
+      }
+    );
 
     return NextResponse.json({ share }, { status: 201 });
   } catch (error) {

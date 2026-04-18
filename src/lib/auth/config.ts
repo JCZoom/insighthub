@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { logUserAction, AuditAction } from '@/lib/audit';
 
 const DEV_USER = {
   id: 'dev-admin-user',
@@ -36,6 +37,22 @@ export const authOptions: NextAuthOptions = {
         token.role = 'ADMIN';
         token.department = 'Engineering';
         token.iat = Math.floor(Date.now() / 1000); // Set issued at time
+
+        // Log user login for audit
+        try {
+          await logUserAction(
+            user.id,
+            AuditAction.USER_LOGIN,
+            user.id,
+            {
+              email: user.email,
+              name: user.name,
+              loginTime: new Date().toISOString(),
+            }
+          );
+        } catch (error) {
+          console.error('Failed to log user login audit:', error);
+        }
       }
       return token;
     },

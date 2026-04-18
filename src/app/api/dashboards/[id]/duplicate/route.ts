@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser, canCreateDashboard } from '@/lib/auth/session';
+import { logDashboardAction, AuditAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -59,6 +60,18 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         versions: { take: 1 },
       },
     });
+
+    // Log dashboard duplication for audit
+    await logDashboardAction(
+      user.id,
+      AuditAction.DASHBOARD_DUPLICATE,
+      clone.id,
+      {
+        title: clone.title,
+        sourceDashboardId: id,
+        sourceDashboardTitle: source.title,
+      }
+    );
 
     return NextResponse.json({ dashboard: clone }, { status: 201 });
   } catch (error) {

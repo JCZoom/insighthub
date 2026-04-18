@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { logVersionAction, AuditAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string; versionId: string }>;
@@ -54,6 +55,20 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         data: { currentVersion: nextVersion },
       }),
     ]);
+
+    // Log version revert for audit
+    await logVersionAction(
+      user.id,
+      AuditAction.VERSION_REVERT,
+      version.id,
+      {
+        dashboardId: id,
+        dashboardTitle: dashboard.title,
+        fromVersion: dashboard.currentVersion,
+        toVersion: targetVersion.version,
+        targetVersionId: versionId,
+      }
+    );
 
     return NextResponse.json({ version, schema: JSON.parse(targetVersion.schema) });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser, canEditGlossary } from '@/lib/auth/session';
+import { logGlossaryAction, AuditAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -59,6 +60,27 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
     });
 
+    // Log glossary update for audit
+    const changedFields = [];
+    if (term !== undefined) changedFields.push('term');
+    if (definition !== undefined) changedFields.push('definition');
+    if (formula !== undefined) changedFields.push('formula');
+    if (category !== undefined) changedFields.push('category');
+    if (examples !== undefined) changedFields.push('examples');
+    if (relatedTermsStr !== undefined) changedFields.push('relatedTerms');
+    if (dataSource !== undefined) changedFields.push('dataSource');
+
+    await logGlossaryAction(
+      user.id,
+      AuditAction.GLOSSARY_UPDATE,
+      id,
+      {
+        term: updated.term,
+        category: updated.category,
+        changedFields,
+      }
+    );
+
     return NextResponse.json({ term: updated });
   } catch (error) {
     console.error('Update glossary term error:', error);
@@ -75,7 +97,26 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    // Get the term data before deleting for audit purposes
+    const termToDelete = await prisma.glossaryTerm.findUnique({ where: { id } });
+    if (!termToDelete) {
+      return NextResponse.json({ error: 'Term not found' }, { status: 404 });
+    }
+
     await prisma.glossaryTerm.delete({ where: { id } });
+
+    // Log glossary deletion for audit
+    await logGlossaryAction(
+      user.id,
+      AuditAction.GLOSSARY_DELETE,
+      id,
+      {
+        term: termToDelete.term,
+        category: termToDelete.category,
+        definition: termToDelete.definition.substring(0, 100) + (termToDelete.definition.length > 100 ? '...' : ''),
+      }
+    );
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete glossary term error:', error);

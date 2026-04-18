@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { logDashboardAction, AuditAction } from '@/lib/audit';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -96,6 +97,25 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
     });
 
+    // Log dashboard update for audit
+    const changedFields = [];
+    if (title !== undefined) changedFields.push('title');
+    if (description !== undefined) changedFields.push('description');
+    if (tagsStr !== undefined) changedFields.push('tags');
+    if (isPublic !== undefined) changedFields.push('isPublic');
+    if (isTemplate !== undefined) changedFields.push('isTemplate');
+
+    await logDashboardAction(
+      user.id,
+      AuditAction.DASHBOARD_UPDATE,
+      id,
+      {
+        title: dashboard.title,
+        changedFields,
+        oldTitle: existing.title !== dashboard.title ? existing.title : undefined,
+      }
+    );
+
     return NextResponse.json({ dashboard });
   } catch (error) {
     console.error('Update dashboard error:', error);
@@ -121,6 +141,18 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       where: { id },
       data: { archivedAt: new Date() },
     });
+
+    // Log dashboard deletion for audit
+    await logDashboardAction(
+      user.id,
+      AuditAction.DASHBOARD_DELETE,
+      id,
+      {
+        title: existing.title,
+        description: existing.description,
+        isArchive: true, // Soft delete
+      }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
