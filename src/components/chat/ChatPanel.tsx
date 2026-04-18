@@ -290,15 +290,16 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
           // Auto-save version for significant AI changes (if dashboard exists)
           if (dashboardId && allPatches.length > 0 && shouldAutoSavePatches(allPatches)) {
+            // Capture schema synchronously to avoid stale state during setTimeout delay
+            const schemaToSave = schema;
             setTimeout(async () => {
               try {
-                const currentSchema = useDashboardStore.getState().schema;
                 const changeSummary = generateChangeSummary(allPatches, finalExplanation);
                 await fetch(`/api/dashboards/${dashboardId}/versions`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    schema: currentSchema,
+                    schema: schemaToSave,
                     changeNote: `AI: ${changeSummary}`
                   }),
                 });
