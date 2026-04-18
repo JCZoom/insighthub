@@ -92,7 +92,21 @@ Created `bitbucket-pipelines.yml` with three pipeline stages:
 | `APP_DIR` | `/opt/insighthub` |
 | `SITE_DOMAIN` | `dashboards.jeffcoy.net` |
 
-**Next step:** Create the `insighthub` repo in the `uszoomllc` BitBucket workspace, add the remote, push, and configure the repository variables.
+**Pivot to GitHub:** The BB token lacked `repository:admin` scope, so we created the repo on GitHub instead using the `gh` CLI (already authenticated as `JCZoom`).
+
+- **Repo:** https://github.com/JCZoom/insighthub (private)
+- **GitHub Actions workflow:** `.github/workflows/ci-deploy.yml` — equivalent 3-stage pipeline
+- **BB pipeline file kept** for future migration if needed
+
+**To activate GitHub Actions deploy**, add these in repo Settings → Secrets and variables → Actions:
+
+| Type | Name | Value |
+|------|------|-------|
+| Secret | `EC2_SSH_KEY` | Raw ED25519 private key |
+| Variable | `EC2_HOST` | `autoqa` |
+| Variable | `EC2_USER` | `jeffreycoy` |
+| Variable | `APP_DIR` | `/opt/insighthub` |
+| Variable | `SITE_DOMAIN` | `dashboards.jeffcoy.net` |
 
 ---
 
