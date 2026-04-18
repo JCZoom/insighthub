@@ -111,3 +111,91 @@ jobs:
           name: playwright-report
           path: e2e/playwright-report/
           retention-days: 7
+
+  # ── Deploy to EC2 (manual trigger only) ──────────────────
+  deploy:
+    name: Deploy to EC2
+    needs: e2e
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ vars.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Deploy
+        run: |
+          EC2_USER="${{ vars.EC2_USER }}"
+          EC2_HOST="${{ vars.EC2_HOST }}"
+          APP_DIR="${{ vars.APP_DIR }}"
+          SITE_DOMAIN="${{ vars.SITE_DOMAIN }}"
+          GIT_COMMIT="${{ github.sha }}"
+
+          echo "Deploying $GIT_COMMIT to $SITE_DOMAIN..."
+
+          # Pre-deploy backup
+          ssh $EC2_USER@$EC2_HOST "
+            mkdir -p $APP_DIR/backups &&
+            sqlite3 $APP_DIR/prisma/dev.db '.backup $APP_DIR/backups/pre-deploy-ci-$(date +%Y%m%d-%H%M%S).db' 2>/dev/null || true
+          "
+
+          # Preserve previous build
+          ssh $EC2_USER@$EC2_HOST "
+            cd $APP_DIR &&
+            rm -rf .next-previous &&
+            cp -r .next .next-previous 2>/dev/null || true
+          "
+
+          # Sync files
+          sudo apt-get update -qq && sudo apt-get install -y -qq rsync > /dev/null
+          rsync -az --delete \
+            --exclude '.git' --exclude 'node_modules' --exclude '.next' \
+            --exclude '.next-previous' --exclude '.env.local' \
+            --exclude 'prisma/dev.db' --exclude 'prisma/dev.db-journal' \
+            --exclude 'backups' --exclude 'e2e/test-results' \
+            --exclude 'e2e/playwright-report' --exclude '.DS_Store' \
+            ./ $EC2_USER@$EC2_HOST:$APP_DIR/
+
+          # Build and restart
+          ssh $EC2_USER@$EC2_HOST "
+            cd $APP_DIR &&
+            npm ci --production=false 2>&1 | tail -3 &&
+            DATABASE_URL='file:$APP_DIR/prisma/dev.db' npx prisma db push --accept-data-loss 2>&1 | tail -3 &&
+            GIT_COMMIT='$GIT_COMMIT' npm run build 2>&1 | tail -5 &&
+            cp -r public .next/standalone/public 2>/dev/null || true &&
+            cp -r .next/static .next/standalone/.next/static &&
+            cp -r glossary .next/standalone/glossary &&
+            cp -r prisma .next/standalone/prisma &&
+            ln -sf $APP_DIR/prisma/dev.db .next/standalone/prisma/dev.db 2>/dev/null || true &&
+            cp -r node_modules/.prisma .next/standalone/node_modules/.prisma 2>/dev/null || true &&
+            cp -r node_modules/@prisma .next/standalone/node_modules/@prisma 2>/dev/null || true &&
+            sudo systemctl set-environment GIT_COMMIT='$GIT_COMMIT' 2>/dev/null || true &&
+            sudo systemctl restart insighthub
+          "
+
+          # Health check with retry
+          sleep 5
+          for i in 1 2 3 4 5; do
+            if curl -sf --max-time 10 "https://$SITE_DOMAIN/api/health" > /dev/null; then
+              echo "✅ Health check passed (attempt $i)"
+              echo "Deployed: https://$SITE_DOMAIN"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+
+          # Auto-rollback on failure
+          echo "❌ Health check failed — rolling back..."
+          ssh $EC2_USER@$EC2_HOST "
+            cd $APP_DIR &&
+            if [ -d .next-previous ]; then
+              rm -rf .next && mv .next-previous .next &&
+              sudo systemctl restart insighthub
+            fi
+          "
+          exit 1
