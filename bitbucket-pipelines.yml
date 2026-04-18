@@ -11,12 +11,19 @@ definitions:
 
   steps:
     - step: &typecheck
-        name: Type Check & Lint
+        name: Type Check
         caches:
           - npm
         script:
           - npm ci
           - npx tsc --noEmit
+
+    - step: &lint
+        name: ESLint
+        caches:
+          - npm
+        script:
+          - npm ci
           - npm run lint
 
     - step: &build
@@ -26,9 +33,27 @@ definitions:
           - nextbuild
         script:
           - npm ci
-          - npm run build
+          - npx prisma generate
+          - DATABASE_URL="file:./dev.db" npx prisma db push --accept-data-loss
+          - DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" NEXT_PUBLIC_DEV_MODE="true" npm run db:seed
+          - NEXT_PUBLIC_DEV_MODE="true" DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" npm run build
         artifacts:
           - .next/**
+          - prisma/dev.db
+
+    - step: &e2e
+        name: E2E Tests
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npx prisma generate
+          - npx playwright install chromium --with-deps
+          - |
+            DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" NEXT_PUBLIC_DEV_MODE="true" \
+            PORT=3000 npm run start &
+            npx wait-on http://localhost:3000/api/health --timeout 30000
+            PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test --project=chromium
 
     - step: &deploy-ec2
         name: Deploy to EC2
@@ -91,15 +116,20 @@ definitions:
           - curl -sf "https://$SITE_DOMAIN/api/health" || echo "⚠️ Final health check failed"
 
 pipelines:
-  # Every push — typecheck + lint only (fast feedback)
+  # Every push — typecheck + lint (fast feedback)
   default:
-    - step: *typecheck
+    - parallel:
+        - step: *typecheck
+        - step: *lint
 
-  # Push to main — full pipeline: check → build → deploy
+  # Push to main — full pipeline: check → build → test → deploy
   branches:
     main:
-      - step: *typecheck
+      - parallel:
+          - step: *typecheck
+          - step: *lint
       - step: *build
+      - step: *e2e
       - step: *deploy-ec2
 
   # Manual triggers
@@ -108,11 +138,13 @@ pipelines:
     deploy-only:
       - step: *deploy-ec2
 
-    # Full pipeline from any branch
+    # Full pipeline from any branch (without deploy)
     full-pipeline:
-      - step: *typecheck
+      - parallel:
+          - step: *typecheck
+          - step: *lint
       - step: *build
-      - step: *deploy-ec2
+      - step: *e2e
 
 # ===================================================================
 # REQUIRED REPOSITORY VARIABLES (Repository Settings → Repository variables)

@@ -1,0 +1,41 @@
+# InsightHub — systemd service file
+# Install: sudo cp infra/insighthub.service /etc/systemd/system/insighthub.service
+#          sudo systemctl daemon-reload && sudo systemctl enable insighthub
+#
+[Unit]
+Description=InsightHub — AI Dashboard Builder (Next.js)
+After=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=jeffreycoy
+Group=jeffreycoy
+WorkingDirectory=/opt/insighthub
+EnvironmentFile=/opt/insighthub/.env.local
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=DATABASE_URL=file:/opt/insighthub/prisma/dev.db
+ExecStart=/usr/bin/node /opt/insighthub/.next/standalone/server.js
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/insighthub/prisma /opt/insighthub/backups /opt/insighthub/logs
+PrivateTmp=yes
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=80%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=insighthub
+
+[Install]
+WantedBy=multi-user.target

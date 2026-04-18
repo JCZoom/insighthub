@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/e2e/test-results/
+/e2e/playwright-report/
+/playwright/.cache/
 
 # next.js
 /.next/
@@ -38,6 +41,9 @@ yarn-error.log*
 # SQLite database
 prisma/dev.db
 prisma/dev.db-journal
+
+# Database backups
+/backups/
 
 # vercel
 .vercel
