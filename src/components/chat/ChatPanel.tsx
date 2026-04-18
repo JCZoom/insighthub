@@ -30,6 +30,8 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -61,6 +63,54 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
   const hasSentInitialPrompt = useRef(false);
 
+  // Load existing chat session if dashboardId is available
+  useEffect(() => {
+    if (!dashboardId || isLoadingHistory) return;
+
+    const loadChatHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        // Try to find existing session for this dashboard
+        const response = await fetch(`/api/chat/sessions?dashboardId=${dashboardId}&limit=1`);
+        if (!response.ok) throw new Error('Failed to fetch sessions');
+
+        const { sessions } = await response.json();
+
+        if (sessions && sessions.length > 0) {
+          const latestSession = sessions[0];
+          setSessionId(latestSession.id);
+
+          // Load messages from this session
+          const sessionResponse = await fetch(`/api/chat/sessions/${latestSession.id}`);
+          if (!sessionResponse.ok) throw new Error('Failed to fetch session messages');
+
+          const { messages: sessionMessages } = await sessionResponse.json();
+
+          if (sessionMessages && sessionMessages.length > 0) {
+            // Convert database messages to UI format
+            const uiMessages: ChatMessageUI[] = sessionMessages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              schemaPatches: msg.schemaChange ? JSON.parse(msg.schemaChange) : undefined,
+              createdAt: new Date(msg.createdAt),
+            }));
+
+            // Replace welcome message with loaded history
+            setMessages(uiMessages);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        // Keep the default welcome message on error
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadChatHistory();
+  }, [dashboardId, isLoadingHistory]);
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
@@ -89,6 +139,8 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           message: text,
           currentSchema: schema,
           conversationHistory: recentMessages,
+          sessionId: sessionId,
+          dashboardId: dashboardId,
         }),
       });
 
@@ -103,6 +155,11 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       }
 
       const result = await response.json();
+
+      // Update session ID if returned from API
+      if (result.sessionId && !sessionId) {
+        setSessionId(result.sessionId);
+      }
 
       const patches: SchemaPatch[] = result.patches || [];
       const quickActions: QuickAction[] = result.quickActions || [];

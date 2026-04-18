@@ -7,6 +7,9 @@ import { buildSystemPrompt } from '@/lib/ai/prompts';
 import type { DashboardSchema } from '@/types';
 import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
 import { getCurrentUser } from '@/lib/auth/session';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 interface YamlGlossaryEntry {
   term: string;
@@ -42,10 +45,12 @@ export async function POST(request: NextRequest) {
   return withRateLimit(request, chatRateLimiter, 'chat', async () => {
     try {
       const body = await request.json();
-      const { message, currentSchema, conversationHistory } = body as {
+      const { message, currentSchema, conversationHistory, sessionId, dashboardId } = body as {
         message: string;
         currentSchema: DashboardSchema | null;
         conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
+        sessionId?: string;
+        dashboardId?: string;
       };
 
       if (!message?.trim()) {
@@ -73,7 +78,55 @@ export async function POST(request: NextRequest) {
         currentUser = undefined;
       }
 
+      // Handle chat session persistence (only if user is authenticated)
+      let chatSession = null;
+      if (currentUser) {
+        try {
+          if (sessionId) {
+            // Try to get existing session
+            chatSession = await prisma.chatSession.findUnique({
+              where: {
+                id: sessionId,
+                userId: currentUser.id // Ensure user owns the session
+              }
+            });
+
+            if (!chatSession) {
+              console.warn(`Session ${sessionId} not found or access denied for user ${currentUser.id}`);
+            }
+          }
+
+          // Create new session if none exists
+          if (!chatSession) {
+            chatSession = await prisma.chatSession.create({
+              data: {
+                userId: currentUser.id,
+                dashboardId: dashboardId || null,
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Failed to handle chat session:', error);
+          // Continue without persistence rather than fail
+        }
+      }
+
       const systemPrompt = buildSystemPrompt(glossaryTerms, currentSchema, undefined, currentUser);
+
+      // Save user message to database
+      if (chatSession) {
+        try {
+          await prisma.chatMessage.create({
+            data: {
+              sessionId: chatSession.id,
+              role: 'user',
+              content: message,
+            }
+          });
+        } catch (error) {
+          console.error('Failed to save user message:', error);
+        }
+      }
 
       // Build message array: use conversation history if available, otherwise just the current message
       const messages: { role: 'user' | 'assistant'; content: string }[] =
@@ -162,13 +215,40 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Save assistant message to database
+      if (chatSession) {
+        try {
+          const schemaChangeString = parsed.patches && parsed.patches.length > 0
+            ? JSON.stringify(parsed.patches)
+            : null;
+
+          await prisma.chatMessage.create({
+            data: {
+              sessionId: chatSession.id,
+              role: 'assistant',
+              content: parsed.explanation || '',
+              schemaChange: schemaChangeString,
+            }
+          });
+
+          // Update session timestamp
+          await prisma.chatSession.update({
+            where: { id: chatSession.id },
+            data: { updatedAt: new Date() }
+          });
+        } catch (error) {
+          console.error('Failed to save assistant message:', error);
+        }
+      }
+
       return NextResponse.json({
         explanation: parsed.explanation,
         patches: parsed.patches || [],
         quickActions: parsed.quickActions || [],
         sql: parsed.sql || undefined,
         sqlType: parsed.sqlType || undefined,
-        isSqlMode
+        isSqlMode,
+        sessionId: chatSession?.id // Return session ID for client to use in subsequent calls
       });
     } catch (error) {
       console.error('Chat API error:', error);
@@ -176,6 +256,8 @@ export async function POST(request: NextRequest) {
         { error: error instanceof Error ? error.message : 'Internal server error' },
         { status: 500 },
       );
+    } finally {
+      await prisma.$disconnect();
     }
   });
 }
