@@ -58,6 +58,8 @@ const GALLERY_SHORTCUTS: ShortcutGroup = {
   title: 'Dashboards Gallery',
   shortcuts: [
     { keys: ['/'], description: 'Focus the search bar' },
+    { keys: ['Alt', '←'], description: 'Previous tab' },
+    { keys: ['Alt', '→'], description: 'Next tab' },
   ],
 };
 
@@ -71,6 +73,7 @@ function isMacOS(): boolean {
 function resolveKey(key: string, mac: boolean): string {
   if (key === 'Mod') return mac ? '⌘' : 'Ctrl';
   if (key === 'Shift') return mac ? '⇧' : 'Shift';
+  if (key === 'Alt') return mac ? '⌥' : 'Alt';
   if (key === 'Delete') return mac ? 'Delete' : 'Del';
   return key;
 }

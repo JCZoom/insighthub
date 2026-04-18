@@ -337,3 +337,14 @@
 [2026-04-18 14:50:29]   💰 Task cost: $0.2256 | Running total: $0.44 / $25.00
 [2026-04-18 14:50:29]   📊 Tokens: 72 in + 4,066 out | cache: 261,745 read + 22,331 create
 [2026-04-18 14:50:29]   🔨 Running build check...
+[2026-04-18 14:50:42]   ✅ Build passed
+[2026-04-18 14:50:42]   ✅ Task completed successfully
+[2026-04-18 14:50:43]   ✅ Asana task 1214122629529165 → completed
+[2026-04-18 14:50:44]   💤 Pausing 15s before next task...
+[2026-04-18 14:50:59] 
+────────────────────────────────────────────────────────────
+[2026-04-18 14:50:59] 📋 Iteration 3/10 | Spent so far: $0.44 / $25.00
+[2026-04-18 14:50:59] ────────────────────────────────────────────────────────────
+[2026-04-18 14:50:59] 📌 Task: [Review Fix] Duplicated response parsing logic (3 copies)
+[2026-04-18 14:50:59]    Section: Untitled section | Priority: Normal
+[2026-04-18 14:50:59]   🤖 Running Claude Code (claude-sonnet-4-20250514)...

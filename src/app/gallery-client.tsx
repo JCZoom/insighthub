@@ -93,6 +93,25 @@ export function GalleryPage() {
   const [allCollapsed, setAllCollapsed] = useState(false);
   const { toast } = useToast();
 
+  // Option+Arrow Left/Right to cycle tabs
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      e.preventDefault();
+      const ids = TABS.map(t => t.id);
+      setActiveTab(prev => {
+        const idx = ids.indexOf(prev);
+        if (e.key === 'ArrowRight') return ids[(idx + 1) % ids.length];
+        return ids[(idx - 1 + ids.length) % ids.length];
+      });
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   // Close sort dropdown on outside click
   useEffect(() => {
     if (!showSort) return;
