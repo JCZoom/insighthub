@@ -8,6 +8,7 @@ import type { DashboardSchema } from '@/types';
 import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
 import { getCurrentUser } from '@/lib/auth/session';
 import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
@@ -17,6 +18,32 @@ interface YamlGlossaryEntry {
   definition: string;
   formula?: string;
 }
+
+// Input validation schemas
+const ConversationHistoryItemSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1, 'Message content cannot be empty').max(10000, 'Message content cannot exceed 10,000 characters')
+});
+
+const ChatRequestSchema = z.object({
+  message: z.string()
+    .min(1, 'Message is required')
+    .max(10000, 'Message cannot exceed 10,000 characters'),
+  currentSchema: z.any().nullable().optional(),
+  conversationHistory: z.array(ConversationHistoryItemSchema)
+    .max(20, 'Conversation history cannot exceed 20 entries')
+    .optional()
+    .default([]),
+  sessionId: z.string()
+    .uuid('Session ID must be a valid UUID')
+    .optional(),
+  dashboardId: z.string()
+    .uuid('Dashboard ID must be a valid UUID')
+    .optional(),
+  stream: z.boolean()
+    .optional()
+    .default(false)
+});
 
 /**
  * Load glossary from the canonical YAML file so the AI prompt and the
@@ -191,59 +218,83 @@ async function* processRealStream(
 export async function GET(request: NextRequest) {
   return withRateLimit(request, chatRateLimiter, 'chat', async () => {
     const { searchParams } = new URL(request.url);
-    const message = searchParams.get('message');
-    const currentSchemaStr = searchParams.get('currentSchema');
-    const conversationHistoryStr = searchParams.get('conversationHistory');
-    const sessionId = searchParams.get('sessionId') || undefined;
-    const dashboardId = searchParams.get('dashboardId') || undefined;
-    const stream = searchParams.get('stream') === 'true';
-
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
-    }
-
-    // Parse JSON parameters
-    let currentSchema = null;
-    let conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [];
 
     try {
-      if (currentSchemaStr) currentSchema = JSON.parse(currentSchemaStr);
-      if (conversationHistoryStr) conversationHistory = JSON.parse(conversationHistoryStr);
-    } catch (error) {
-      console.error('Failed to parse GET parameters:', error);
-    }
+      // Parse and validate query parameters
+      const message = searchParams.get('message');
+      const currentSchemaStr = searchParams.get('currentSchema');
+      const conversationHistoryStr = searchParams.get('conversationHistory');
+      const sessionId = searchParams.get('sessionId') || undefined;
+      const dashboardId = searchParams.get('dashboardId') || undefined;
+      const stream = searchParams.get('stream') === 'true';
 
-    return handleChatRequest({
-      message,
-      currentSchema,
-      conversationHistory,
-      sessionId,
-      dashboardId,
-      stream
-    });
+      // Parse JSON parameters
+      let currentSchema = null;
+      let conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [];
+
+      try {
+        if (currentSchemaStr) currentSchema = JSON.parse(currentSchemaStr);
+        if (conversationHistoryStr) conversationHistory = JSON.parse(conversationHistoryStr);
+      } catch (error) {
+        return NextResponse.json(
+          { error: 'Invalid JSON in query parameters' },
+          { status: 400 }
+        );
+      }
+
+      // Validate the parsed data
+      const validatedData = ChatRequestSchema.parse({
+        message,
+        currentSchema,
+        conversationHistory,
+        sessionId,
+        dashboardId,
+        stream
+      });
+
+      return handleChatRequest(validatedData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.issues[0];
+        return NextResponse.json(
+          { error: `Validation error: ${firstError.message}` },
+          { status: 400 }
+        );
+      }
+
+      console.error('GET chat API error:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
+    }
   });
 }
 
 export async function POST(request: NextRequest) {
   return withRateLimit(request, chatRateLimiter, 'chat', async () => {
-    const body = await request.json();
-    const { message, currentSchema, conversationHistory, sessionId, dashboardId, stream = false } = body as {
-      message: string;
-      currentSchema: DashboardSchema | null;
-      conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
-      sessionId?: string;
-      dashboardId?: string;
-      stream?: boolean;
-    };
+    try {
+      const body = await request.json();
 
-    return handleChatRequest({
-      message,
-      currentSchema,
-      conversationHistory,
-      sessionId,
-      dashboardId,
-      stream
-    });
+      // Validate request body against schema
+      const validatedData = ChatRequestSchema.parse(body);
+
+      return handleChatRequest(validatedData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.issues[0];
+        return NextResponse.json(
+          { error: `Validation error: ${firstError.message}` },
+          { status: 400 }
+        );
+      }
+
+      console.error('POST chat API error:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
+    }
   });
 }
 
@@ -251,22 +302,12 @@ export async function POST(request: NextRequest) {
 async function handleChatRequest({
   message,
   currentSchema,
-  conversationHistory,
+  conversationHistory = [],
   sessionId,
   dashboardId,
   stream
-}: {
-  message: string;
-  currentSchema: DashboardSchema | null;
-  conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
-  sessionId?: string;
-  dashboardId?: string;
-  stream: boolean;
-}) {
+}: z.infer<typeof ChatRequestSchema>) {
   try {
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
-    }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
@@ -341,7 +382,7 @@ async function handleChatRequest({
 
     // Build message array: use conversation history if available, otherwise just the current message
     const messages: { role: 'user' | 'assistant'; content: string }[] =
-      conversationHistory && conversationHistory.length > 0
+      conversationHistory.length > 0
         ? conversationHistory
         : [{ role: 'user', content: message }];
 
