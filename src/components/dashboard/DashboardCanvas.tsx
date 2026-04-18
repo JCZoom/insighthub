@@ -9,6 +9,7 @@ import { WidgetConfigPanel } from './WidgetConfigPanel';
 import { ShortcutHelpOverlay } from './ShortcutHelpOverlay';
 import { ShareModal } from './ShareModal';
 import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
+import { MetricExplanationModal } from './MetricExplanationModal';
 import type { WidgetConfig } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2 } from 'lucide-react';
@@ -52,6 +53,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [showHelp, setShowHelp] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [configWidgetId, setConfigWidgetId] = useState<string | null>(null);
+  const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
 
   const router = useRouter();
 
@@ -60,6 +62,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     onSave: () => handleSave(),
     onToggleHelp: () => setShowHelp(prev => !prev),
   });
+
+  // Handle explain metric requests
+  const handleExplainMetric = useCallback((widget: WidgetConfig) => {
+    setExplainWidget(widget);
+  }, []);
 
   const handleSave = async () => {
     const store = useDashboardStore.getState();
@@ -482,7 +489,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
                   widgetTitle={widget.title}
                 >
-                  <WidgetRenderer config={widget} onDetailClick={setDetailWidget} />
+                  <WidgetRenderer
+                    config={widget}
+                    onDetailClick={setDetailWidget}
+                    onExplainMetric={handleExplainMetric}
+                  />
                 </WidgetErrorBoundary>
               </div>
             ))}
@@ -509,6 +520,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       {/* Modals — rendered outside the scroll container so fixed positioning works */}
       {showHelp && <ShortcutHelpOverlay onClose={() => setShowHelp(false)} />}
       {showShare && <ShareModal onClose={() => setShowShare(false)} />}
+      {explainWidget && (
+        <MetricExplanationModal
+          widget={explainWidget}
+          onClose={() => setExplainWidget(null)}
+        />
+      )}
       </div>
 
       {/* Widget config panel — slides in from right when editing */}

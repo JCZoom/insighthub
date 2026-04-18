@@ -130,6 +130,7 @@ export function buildSystemPrompt(
     : '{ "layout": { "columns": 12, "rowHeight": 80, "gap": 16 }, "globalFilters": [], "widgets": [] }';
 
   const availableDataSources = getAvailableDataSources(user);
+  const smartSuggestions = generateSchemaBasedSuggestions(currentSchema);
 
   return `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
 
@@ -144,6 +145,8 @@ ${schemaSection}
 \`\`\`
 
 ${availableDataSources}
+
+${smartSuggestions}
 
 ## Widget Types Available
 kpi_card, line_chart, bar_chart, area_chart, pie_chart, donut_chart, stacked_bar, scatter_plot, table, funnel, gauge, metric_row, text_block, divider
@@ -349,6 +352,29 @@ Place widgets in this exact vertical order. BANNER AND HEADER text_blocks GO AT 
 8. **Full-width visuals** (heatmap, map) — detailed views
 9. **Tables** — always at the bottom (detail data)
 
+## Post-Generation Suggestions
+
+After adding metrics to a dashboard, suggest related metrics that provide additional business context:
+
+**Revenue/Financial Metrics:**
+- If adding MRR → suggest ARR, NRR, LTV, CAC
+- If adding revenue → suggest growth rate, revenue per customer, churn impact
+- If adding churn → suggest retention rate, cohort analysis, churn reasons
+
+**Customer/Usage Metrics:**
+- If adding customer counts → suggest customer acquisition cost, lifetime value, satisfaction scores
+- If adding feature usage → suggest adoption rates, power user analysis, feature correlation
+- If adding support tickets → suggest resolution time, customer satisfaction, escalation rate
+
+**Operational Metrics:**
+- If adding team performance → suggest workload distribution, efficiency ratios, capacity planning
+- If adding process metrics → suggest cycle time, error rates, throughput analysis
+
+**Comparative Analysis:**
+- Always suggest adding time-based trends if only showing current values
+- Suggest regional/segment breakdowns if showing aggregated data
+- Recommend benchmark comparisons where applicable
+
 ## Rules
 1. Always reference glossary definitions when calculating metrics. If a user asks for "churn", use the EXACT definition and formula from the glossary.
 2. Generate unique widget IDs using format "widget-{type}-{random4chars}" e.g. "widget-kpi-a3f2".
@@ -357,7 +383,7 @@ Place widgets in this exact vertical order. BANNER AND HEADER text_blocks GO AT 
 5. If the user's request is ambiguous, ask a clarifying question (still use the JSON format, with empty patches array).
 6. Never expose raw SQL to the user unless they explicitly ask.
 7. For chart data, use the dataConfig.source field to reference the table name, and dataConfig.groupBy / dataConfig.aggregation for the query shape.
-8. Suggest 2-3 quick actions that the user might want to do next.
+8. Suggest 2-3 quick actions that the user might want to do next. Prioritize suggestions from the "Smart Quick Actions" section above and "Post-Generation Suggestions" that are contextually relevant to what was just added.
 9. When creating a brand new dashboard from scratch, use "replace_all" with a full schema that includes multiple widgets for a rich initial view.
 10. Use sensible color schemes. Default: "default". Options: "default", "warm", "cool", "monochrome", "vibrant".
 11. PREFER using "use_widget" to reuse widgets from the library when they match the user's request. Mention that you found an existing widget (e.g. "I found an existing MRR KPI widget from the Executive Summary dashboard — I'll reuse that for consistency."). You can mix use_widget and add_widget patches.
@@ -372,4 +398,72 @@ function buildWidgetLibrarySection(library: WidgetTemplate[]): string {
   return library.map(w =>
     `- **${w.id}**: "${w.title}" (${w.type}) — ${w.description} [from: ${w.sourceDashboardTitle}] [tags: ${w.tags.join(', ')}]`
   ).join('\n');
+}
+
+function generateSchemaBasedSuggestions(currentSchema: DashboardSchema | null): string {
+  if (!currentSchema || currentSchema.widgets.length === 0) {
+    return `## Smart Quick Actions
+
+Based on common business needs, consider these actions:
+- "Create an executive summary with MRR, churn, and CSAT"
+- "Add a customer segmentation analysis"
+- "Build a support operations dashboard"`;
+  }
+
+  const dataSources = [...new Set(currentSchema.widgets.map(w => w.dataConfig.source).filter(Boolean))];
+  const widgetTypes = [...new Set(currentSchema.widgets.map(w => w.type))];
+  const hasFilters = currentSchema.globalFilters.length > 0;
+  const hasTimeBasedData = dataSources.some(source =>
+    source.includes('month') || source.includes('time') || source.includes('date')
+  );
+
+  const suggestions: string[] = [];
+
+  // Data source specific suggestions
+  if (dataSources.includes('sample_tickets')) {
+    if (!hasFilters) suggestions.push('"Add a filter by ticket category"');
+    if (!widgetTypes.includes('funnel')) suggestions.push('"Add a support funnel showing ticket resolution stages"');
+    if (!widgetTypes.includes('gauge')) suggestions.push('"Add a CSAT satisfaction gauge"');
+  }
+
+  if (dataSources.includes('sample_customers') || dataSources.includes('sample_subscriptions')) {
+    if (!hasFilters) suggestions.push('"Add a filter by customer region"');
+    if (!widgetTypes.includes('pie_chart')) suggestions.push('"Add a customer plan distribution pie chart"');
+    if (!widgetTypes.includes('line_chart')) suggestions.push('"Show customer growth trend over time"');
+  }
+
+  if (dataSources.some(s => s.includes('revenue') || s.includes('mrr'))) {
+    if (!hasTimeBasedData) suggestions.push('"Add monthly revenue trend analysis"');
+    if (!widgetTypes.includes('bar_chart')) suggestions.push('"Add revenue breakdown by source"');
+    suggestions.push('"Add NRR and LTV metrics"');
+  }
+
+  // General enhancement suggestions
+  if (!widgetTypes.includes('text_block')) {
+    suggestions.push('"Add insight callouts highlighting key findings"');
+  }
+
+  if (currentSchema.widgets.length < 3) {
+    suggestions.push('"Expand dashboard with related metrics"');
+  }
+
+  if (!hasFilters && dataSources.length > 0) {
+    suggestions.push('"Add time period filtering"');
+  }
+
+  // Fallback suggestions if none specific
+  if (suggestions.length === 0) {
+    suggestions.push(
+      '"Add comparative analysis across regions"',
+      '"Include trend analysis over time"',
+      '"Add performance benchmarks and thresholds"'
+    );
+  }
+
+  const suggestionText = suggestions.slice(0, 4).join('\n- ');
+
+  return `## Smart Quick Actions
+
+Based on your current dashboard structure, consider these enhancements:
+- ${suggestionText}`;
 }

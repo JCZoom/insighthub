@@ -18,6 +18,7 @@ import { HeatmapWidget } from '@/components/widgets/HeatmapWidget';
 interface WidgetRendererProps {
   config: WidgetConfig;
   onDetailClick?: (config: WidgetConfig) => void;
+  onExplainMetric?: (config: WidgetConfig) => void;
 }
 
 /**
@@ -38,7 +39,7 @@ function sanitizeData(rows: Record<string, unknown>[]): Record<string, unknown>[
   });
 }
 
-export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRendererProps) {
+export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetric }: WidgetRendererProps) {
   // Normalize: ensure dataConfig and visualConfig always exist as objects.
   // The AI frequently omits these, causing "Cannot read properties of undefined" crashes.
   const config: WidgetConfig = {
@@ -139,12 +140,22 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick }: WidgetRende
   return (
     <div className="relative h-full group/detail select-none cursor-pointer" onClick={handleClick}>
       {widget}
-      <button
-        onClick={(e) => { e.stopPropagation(); onDetailClick(config); }}
-        className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 text-[10px] text-accent-cyan hover:text-accent-cyan/80 transition-all flex items-center gap-0.5 cursor-pointer"
-      >
-        ▸ view data
-      </button>
+      <div className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 flex flex-col items-end gap-1 transition-all">
+        <button
+          onClick={(e) => { e.stopPropagation(); onDetailClick(config); }}
+          className="text-[10px] text-accent-cyan hover:text-accent-cyan/80 transition-colors flex items-center gap-0.5 cursor-pointer"
+        >
+          ▸ view data
+        </button>
+        {onExplainMetric && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onExplainMetric(config); }}
+            className="text-[10px] text-accent-purple hover:text-accent-purple/80 transition-colors flex items-center gap-0.5 cursor-pointer"
+          >
+            ✦ explain metric
+          </button>
+        )}
+      </div>
     </div>
   );
 }
