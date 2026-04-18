@@ -16,7 +16,10 @@
     "glossary:sync": "tsx scripts/sync-glossary.ts",
     "test:e2e": "npx playwright test",
     "test:e2e:ci": "npx playwright test --project=chromium",
-    "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://dashboards.jeffcoy.net npx playwright test e2e/production-health.spec.ts"
+    "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://dashboards.jeffcoy.net npx playwright test e2e/production-health.spec.ts",
+    "test:a11y": "npx playwright test e2e/accessibility.spec.ts --project=chromium",
+    "check:types": "tsc --noEmit",
+    "check:all": "npm run check:types && npm run lint && npm run test:e2e:ci"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
@@ -45,6 +48,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@faker-js/faker": "^10.4.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",

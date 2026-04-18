@@ -65,6 +65,20 @@ jobs:
           npm run db:seed
       - name: Build Next.js
         run: npm run build
+      - name: Report bundle size
+        run: |
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          du -sh .next/standalone/ 2>/dev/null || echo "standalone not available"
+          find .next/static -name '*.js' -exec du -sh {} + 2>/dev/null | sort -rh | head -10
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          # Fail if total JS bundle exceeds 2MB
+          TOTAL_JS=$(find .next/static -name '*.js' -exec cat {} + 2>/dev/null | wc -c)
+          TOTAL_MB=$((TOTAL_JS / 1024 / 1024))
+          echo "Total JS: ${TOTAL_MB}MB"
+          if [ "$TOTAL_MB" -gt 2 ]; then
+            echo "::warning::JS bundle exceeds 2MB budget (${TOTAL_MB}MB)"
+          fi
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
