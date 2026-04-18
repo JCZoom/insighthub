@@ -107,7 +107,7 @@ export function WidgetRenderer({ config, onDetailClick }: WidgetRendererProps) {
         onClick={(e) => { e.stopPropagation(); onDetailClick(config); }}
         className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 text-[10px] text-accent-cyan hover:text-accent-cyan/80 transition-all flex items-center gap-0.5 cursor-pointer"
       >
-        ▸ detail
+        ▸ view data
       </button>
     </div>
   );

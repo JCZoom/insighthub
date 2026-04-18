@@ -29,6 +29,15 @@ export function LineChartWidget({ config, data }: LineChartWidgetProps) {
   ) || Object.keys(sampleRow)[0];
   const lineKeys = Object.keys(sampleRow).filter(k => k !== xKey && typeof sampleRow[k] === 'number');
 
+  if (lineKeys.length === 0) {
+    return (
+      <div className="card p-4 h-full flex flex-col items-center justify-center text-center gap-1">
+        <p className="text-xs font-medium text-[var(--text-primary)]">{config.title}</p>
+        <p className="text-[10px] text-[var(--text-muted)]">No numeric data found to chart</p>
+      </div>
+    );
+  }
+
   return (
     <div className="card p-4 h-full flex flex-col fade-in">
       <div className="mb-3">

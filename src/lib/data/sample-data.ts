@@ -226,6 +226,21 @@ const DATA_GENERATORS: Record<string, () => Record<string, unknown>[]> = {
   'sample_revenue': generateRevenueByMonth,
   'sample_usage': generateUsageByMonth,
   'sample_deals': generateDealsPipeline,
+  // Common AI-generated source name variations
+  'churn_rate_by_month': generateChurnByMonth,
+  'churn_rate_by_region': generateChurnByRegion,
+  'churn_rate_by_plan': generateChurnByPlan,
+  'monthly_churn': generateChurnByMonth,
+  'monthly_revenue': generateRevenueByMonth,
+  'monthly_mrr': generateMrrByMonth,
+  'ticket_volume': generateTicketsByMonth,
+  'ticket_volume_by_month': generateTicketsByMonth,
+  'tickets_by_status': generateTicketsByCategory,
+  'pipeline': generateDealsPipeline,
+  'pipeline_by_stage': generateDealsPipeline,
+  'customer_distribution': generateCustomersByPlan,
+  'overall_kpi': generateKpiSummary,
+  'summary': generateKpiSummary,
 };
 
 // Cache generated data so values stay stable across re-renders.

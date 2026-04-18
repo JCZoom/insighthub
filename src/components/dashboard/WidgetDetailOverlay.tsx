@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Database, BarChart3, Copy, Check, Table2, Filter, Layers } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -216,7 +216,154 @@ function DetailStats({ data }: { data: Record<string, unknown>[] }) {
 
 // --- Main Overlay ---
 
+// --- Data Lineage Tab ---
+
+function DataLineageTab({ config, data }: { config: WidgetConfig; data: Record<string, unknown>[] }) {
+  const [copied, setCopied] = useState(false);
+  const source = config.dataConfig.source;
+  const { groupBy, filters, aggregation, orderBy, limit, query } = config.dataConfig;
+  const columns = data.length > 0 ? Object.keys(data[0]) : [];
+
+  const handleCopyConfig = () => {
+    const configObj = {
+      widgetId: config.id,
+      title: config.title,
+      type: config.type,
+      dataConfig: config.dataConfig,
+    };
+    navigator.clipboard.writeText(JSON.stringify(configObj, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Source Badge */}
+      <div className="flex items-start gap-4">
+        <div className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Database size={14} className="text-accent-blue" />
+            <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Data Source</h4>
+          </div>
+          <p className="text-sm font-mono text-accent-cyan">{source}</p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-1">
+            {FRIENDLY_NAMES[source] || source.replace(/_/g, ' ')}
+          </p>
+        </div>
+        <div className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Table2 size={14} className="text-accent-purple" />
+            <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Shape</h4>
+          </div>
+          <p className="text-sm text-[var(--text-primary)]">
+            <span className="font-semibold">{data.length}</span> rows × <span className="font-semibold">{columns.length}</span> columns
+          </p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-1">
+            Widget type: {config.type.replace(/_/g, ' ')}
+          </p>
+        </div>
+      </div>
+
+      {/* Query Configuration */}
+      <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-accent-amber" />
+            <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Query Configuration</h4>
+          </div>
+          <button
+            onClick={handleCopyConfig}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+          >
+            {copied ? <><Check size={10} className="text-accent-green" /> Copied</> : <><Copy size={10} /> Copy Config</>}
+          </button>
+        </div>
+        <div className="space-y-2 text-xs">
+          {query && (
+            <div className="flex gap-2">
+              <span className="text-[var(--text-muted)] min-w-[80px]">Query:</span>
+              <span className="font-mono text-[var(--text-primary)]">{query}</span>
+            </div>
+          )}
+          {groupBy && groupBy.length > 0 && (
+            <div className="flex gap-2">
+              <span className="text-[var(--text-muted)] min-w-[80px]">Group by:</span>
+              <span className="font-mono text-accent-cyan">{groupBy.join(', ')}</span>
+            </div>
+          )}
+          {aggregation && (
+            <div className="flex gap-2">
+              <span className="text-[var(--text-muted)] min-w-[80px]">Aggregation:</span>
+              <span className="font-mono text-accent-purple">{aggregation.function}({aggregation.field})</span>
+            </div>
+          )}
+          {filters && filters.length > 0 && (
+            <div className="flex gap-2">
+              <span className="text-[var(--text-muted)] min-w-[80px]">Filters:</span>
+              <span className="font-mono text-accent-amber">{filters.map(f => `${f.field}: ${f.type}`).join(', ')}</span>
+            </div>
+          )}
+          {orderBy && orderBy.length > 0 && (
+            <div className="flex gap-2">
+              <span className="text-[var(--text-muted)] min-w-[80px]">Order by:</span>
+              <span className="font-mono text-[var(--text-primary)]">{orderBy.map(o => `${o.field} ${o.direction}`).join(', ')}</span>
+            </div>
+          )}
+          {limit && (
+            <div className="flex gap-2">
+              <span className="text-[var(--text-muted)] min-w-[80px]">Limit:</span>
+              <span className="font-mono text-[var(--text-primary)]">{limit}</span>
+            </div>
+          )}
+          {!query && !groupBy?.length && !aggregation && !filters?.length && !orderBy?.length && !limit && (
+            <p className="text-[var(--text-muted)] italic">No query modifiers — using full dataset from source</p>
+          )}
+        </div>
+      </div>
+
+      {/* Column Schema */}
+      {columns.length > 0 && (
+        <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Layers size={14} className="text-accent-green" />
+            <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Column Schema</h4>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {columns.map(col => {
+              const sampleVal = data[0][col];
+              const colType = typeof sampleVal;
+              const typeColor = colType === 'number' ? 'text-accent-blue' : colType === 'string' ? 'text-accent-green' : 'text-[var(--text-muted)]';
+              return (
+                <div key={col} className="flex items-center gap-2 py-1 px-2 rounded-md bg-[var(--bg-card-hover)]">
+                  <span className={`text-[10px] font-mono ${typeColor} min-w-[40px]`}>{colType === 'number' ? 'NUM' : colType === 'string' ? 'STR' : 'ANY'}</span>
+                  <span className="text-xs text-[var(--text-primary)] font-mono truncate">{col}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Raw Data Preview */}
+      {data.length > 0 && (
+        <div>
+          <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Table2 size={14} className="text-[var(--text-muted)]" />
+            Raw Data ({data.length} rows)
+          </h4>
+          <DetailTable data={data} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Main Overlay ---
+
+type TabId = 'insights' | 'data';
+
 export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProps) {
+  const [activeTab, setActiveTab] = useState<TabId>('insights');
   const sections = generateDetailSections(config);
   const source = config.dataConfig.source;
   const { data: primaryData } = queryData(source, config.dataConfig.groupBy);
@@ -246,39 +393,70 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
       {/* Overlay panel */}
       <div className="relative z-10 w-full max-w-4xl max-h-[90vh] mt-[5vh] mx-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] shadow-2xl shadow-black/20 overflow-y-auto fade-in">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
-          <div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">{config.title}</h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              {config.subtitle || `${config.type.replace(/_/g, ' ')} · ${primaryData.length} records · Source: ${source}`}
-            </p>
+        <div className="sticky top-0 z-10 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">{config.title}</h2>
+              <p className="text-xs text-[var(--text-muted)]">
+                {config.subtitle || `${config.type.replace(/_/g, ' ')} · ${primaryData.length} records · Source: ${source}`}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <X size={18} />
-          </button>
+          {/* Tabs */}
+          <div className="flex gap-1 px-6 pb-0">
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+                activeTab === 'insights'
+                  ? 'border-accent-blue text-accent-blue'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <BarChart3 size={12} /> Insights
+            </button>
+            <button
+              onClick={() => setActiveTab('data')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+                activeTab === 'data'
+                  ? 'border-accent-cyan text-accent-cyan'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              <Database size={12} /> Data Lineage
+            </button>
+          </div>
         </div>
 
-        {/* Detail sections */}
-        <div className="p-6 space-y-6">
-          {sections.map((section, i) => (
-            <div key={i}>
-              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">{section.title}</h3>
-              {section.type === 'chart' && <DetailChart section={section} />}
-              {section.type === 'table' && section.data && <DetailTable data={section.data} />}
-              {section.type === 'stats' && section.data && <DetailStats data={section.data} />}
-              {section.type === 'text' && (
-                <p className="text-xs text-[var(--text-secondary)]">{section.text}</p>
+        {/* Tab content */}
+        <div className="p-6">
+          {activeTab === 'insights' && (
+            <div className="space-y-6">
+              {sections.map((section, i) => (
+                <div key={i}>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">{section.title}</h3>
+                  {section.type === 'chart' && <DetailChart section={section} />}
+                  {section.type === 'table' && section.data && <DetailTable data={section.data} />}
+                  {section.type === 'stats' && section.data && <DetailStats data={section.data} />}
+                  {section.type === 'text' && (
+                    <p className="text-xs text-[var(--text-secondary)]">{section.text}</p>
+                  )}
+                </div>
+              ))}
+              {sections.length === 0 && (
+                <p className="text-sm text-[var(--text-muted)] text-center py-8">
+                  No additional detail data available for this widget type.
+                </p>
               )}
             </div>
-          ))}
-
-          {sections.length === 0 && (
-            <p className="text-sm text-[var(--text-muted)] text-center py-8">
-              No additional detail data available for this widget type.
-            </p>
+          )}
+          {activeTab === 'data' && (
+            <DataLineageTab config={config} data={primaryData} />
           )}
         </div>
       </div>
