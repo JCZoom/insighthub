@@ -8,7 +8,7 @@ import { WidgetDetailOverlay } from './WidgetDetailOverlay';
 import { ContextMenu, getCanvasActions, getWidgetActions, type ContextMenuAction } from './ContextMenu';
 import type { WidgetConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Maximize2 } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 interface DashboardCanvasProps {
@@ -19,8 +19,11 @@ interface DashboardCanvasProps {
 export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle,
   } = useDashboardStore();
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(title);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const { widgets, layout } = schema;
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const { toast } = useToast();
@@ -73,7 +76,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         router.replace(`/dashboard/${dashboardId}`);
         markSaved();
         setSaveStatus('saved');
-        toast({ type: 'success', title: 'Dashboard created & saved' });
+        toast({ type: 'success', title: 'Dashboard saved!', description: 'Saved to your gallery. Find it anytime at /dashboards.' });
       } else {
         // Existing dashboard — save a new version
         const res = await fetch(`/api/dashboards/${dashboardId}/versions`, {
@@ -84,7 +87,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         if (res.ok) {
           markSaved();
           setSaveStatus('saved');
-          toast({ type: 'success', title: 'Dashboard saved' });
+          toast({ type: 'success', title: 'Dashboard saved!', description: 'New version saved successfully.' });
         } else {
           toast({ type: 'error', title: 'Save failed', description: 'Could not save to server.' });
           setSaveStatus('idle');
@@ -243,7 +246,34 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h1>
+          {isEditingTitle ? (
+            <input
+              ref={titleInputRef}
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={() => {
+                const trimmed = editTitle.trim();
+                if (trimmed && trimmed !== title) setTitle(trimmed);
+                else setEditTitle(title);
+                setIsEditingTitle(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+                if (e.key === 'Escape') { setEditTitle(title); setIsEditingTitle(false); }
+              }}
+              className="text-lg font-semibold text-[var(--text-primary)] bg-transparent border-b-2 border-accent-blue outline-none px-1 -ml-1 w-64"
+              autoFocus
+            />
+          ) : (
+            <button
+              onClick={() => { setEditTitle(title); setIsEditingTitle(true); }}
+              className="flex items-center gap-1.5 text-lg font-semibold text-[var(--text-primary)] hover:text-accent-blue transition-colors group/title"
+              title="Click to rename"
+            >
+              {title}
+              <Pencil size={12} className="text-[var(--text-muted)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
+            </button>
+          )}
           {isDirty && <span className="pill pill-amber">Unsaved</span>}
           {isAiWorking && (
             <span className="flex items-center gap-1.5 pill pill-blue">
@@ -375,15 +405,27 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <GripVertical size={12} className="text-[var(--text-muted)]" />
                 </div>
-                {/* Resize handle (SE corner) */}
+                {/* Delete button (top-right) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
+                  className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
+                  title={`Delete ${widget.title}`}
+                >
+                  <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
+                </button>
+                {/* Resize handle (SE corner) — prominent on hover */}
                 <div
                   onPointerDown={(e) => handleResizeStart(e, widget)}
-                  className={`absolute bottom-0 right-0 z-10 w-5 h-5 flex items-end justify-end cursor-nwse-resize transition-opacity ${
-                    resizeState?.widgetId === widget.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  className={`absolute bottom-0 right-0 z-10 w-7 h-7 flex items-end justify-end cursor-nwse-resize transition-all ${
+                    resizeState?.widgetId === widget.id
+                      ? 'opacity-100'
+                      : 'opacity-0 group-hover:opacity-100'
                   }`}
                   title="Drag to resize"
                 >
-                  <Maximize2 size={10} className="text-[var(--text-muted)] rotate-90 m-1" />
+                  <svg width="14" height="14" viewBox="0 0 14 14" className="m-0.5 text-[var(--text-muted)] group-hover:text-accent-purple transition-colors">
+                    <path d="M12 2L2 12M12 6L6 12M12 10L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
                 </div>
                 <WidgetErrorBoundary widgetTitle={widget.title}>
                   <WidgetRenderer config={widget} onDetailClick={setDetailWidget} />
