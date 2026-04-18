@@ -27,8 +27,8 @@ interface DashboardCanvasProps {
 
 export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCanvasProps) {
   const {
-    schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, resizeWidget, setTitle, selectWidget, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
+    schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
   } = useDashboardStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -62,6 +62,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [marqueeState, setMarqueeState] = useState<{
+    startX: number; startY: number;
+    currentX: number; currentY: number;
+    containerRect: DOMRect;
+  } | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Track active event listeners for cleanup on unmount
   const activeListenersRef = useRef<{
@@ -250,10 +256,78 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     });
   };
 
-  // --- Drag-and-drop ---
+  // --- Marquee (lasso) multi-select ---
+  const handleMarqueeStart = (e: React.PointerEvent) => {
+    // Only start marquee on left-click directly on the scroll container or grid background
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Don't start if clicking on a widget or interactive element
+    if (target.closest('[data-widget-id]') || target.closest('button') || target.closest('a')) return;
+    // Only start on the container or grid background
+    if (!scrollContainerRef.current) return;
+    const containerRect = scrollContainerRef.current.getBoundingClientRect();
+    setMarqueeState({
+      startX: e.clientX,
+      startY: e.clientY,
+      currentX: e.clientX,
+      currentY: e.clientY,
+      containerRect,
+    });
+
+    const handleMove = (me: PointerEvent) => {
+      setMarqueeState(prev => prev ? { ...prev, currentX: me.clientX, currentY: me.clientY } : null);
+    };
+
+    const handleUp = () => {
+      document.removeEventListener('pointermove', handleMove);
+      document.removeEventListener('pointerup', handleUp);
+      activeListenersRef.current.pointermove = undefined;
+      activeListenersRef.current.pointerup = undefined;
+
+      // Compute which widgets are inside the marquee
+      setMarqueeState(prev => {
+        if (!prev || !gridRef.current) return null;
+        const minX = Math.min(prev.startX, prev.currentX);
+        const maxX = Math.max(prev.startX, prev.currentX);
+        const minY = Math.min(prev.startY, prev.currentY);
+        const maxY = Math.max(prev.startY, prev.currentY);
+        // Only count as marquee if dragged at least 10px
+        if (maxX - minX < 10 && maxY - minY < 10) {
+          // This was a click, not a drag — deselect
+          selectWidget(null);
+          setConfigWidgetId(null);
+          return null;
+        }
+        const selected: string[] = [];
+        for (const w of widgets) {
+          const el = document.getElementById(`widget-${w.id}`);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          // Check overlap (not full containment — partial overlap selects)
+          if (rect.right > minX && rect.left < maxX && rect.bottom > minY && rect.top < maxY) {
+            selected.push(w.id);
+          }
+        }
+        if (selected.length > 0) {
+          selectWidgets(selected);
+        } else {
+          selectWidget(null);
+        }
+        return null;
+      });
+    };
+
+    activeListenersRef.current.pointermove = handleMove;
+    activeListenersRef.current.pointerup = handleUp;
+    document.addEventListener('pointermove', handleMove);
+    document.addEventListener('pointerup', handleUp);
+  };
+
+  // --- Drag-and-drop (supports multi-selection) ---
   const handleDragStart = (e: React.PointerEvent, widget: WidgetConfig) => {
     e.preventDefault();
     e.stopPropagation();
+    const isMultiDrag = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(widget.id);
     setDragState({
       widgetId: widget.id,
       startX: e.clientX,
@@ -279,7 +353,6 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
     const handleUp = (ue: PointerEvent) => {
       document.removeEventListener('pointermove', handleMove);
       document.removeEventListener('pointerup', handleUp);
-      // Clear from active listeners tracking
       activeListenersRef.current.pointermove = undefined;
       activeListenersRef.current.pointerup = undefined;
 
@@ -289,10 +362,28 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
       const cellH = layout.rowHeight + layout.gap;
       const dx = ue.clientX - e.clientX;
       const dy = ue.clientY - e.clientY;
-      const newX = Math.max(0, Math.min(layout.columns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
-      const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
-      if (newX !== widget.position.x || newY !== widget.position.y) {
-        moveWidget(widget.id, newX, newY);
+      const deltaCol = Math.round(dx / cellW);
+      const deltaRow = Math.round(dy / cellH);
+
+      if (deltaCol !== 0 || deltaRow !== 0) {
+        if (isMultiDrag) {
+          // Move all selected widgets by the same delta
+          const store = useDashboardStore.getState();
+          const moves = selectedWidgetIds.map(id => {
+            const w = store.schema.widgets.find(wg => wg.id === id);
+            if (!w) return null;
+            return {
+              id,
+              x: Math.max(0, Math.min(layout.columns - w.position.w, w.position.x + deltaCol)),
+              y: Math.max(0, w.position.y + deltaRow),
+            };
+          }).filter((m): m is {id: string; x: number; y: number} => m !== null);
+          if (moves.length > 0) moveWidgets(moves);
+        } else {
+          const newX = Math.max(0, Math.min(layout.columns - widget.position.w, widget.position.x + deltaCol));
+          const newY = Math.max(0, widget.position.y + deltaRow);
+          moveWidget(widget.id, newX, newY);
+        }
       }
       setDragState(null);
     };
@@ -626,15 +717,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
 
       {/* Widget grid */}
       <div
+        ref={scrollContainerRef}
         className="flex-1 overflow-auto p-4 relative"
         onContextMenu={handleCanvasContextMenu}
-        onClick={(e) => {
-          // Click on empty canvas deselects
-          if (e.target === e.currentTarget || (e.target as HTMLElement).closest('[data-grid]')) {
-            selectWidget(null);
-            setConfigWidgetId(null);
-          }
-        }}
+        onPointerDown={handleMarqueeStart}
       >
         {/* AI working shimmer overlay */}
         {isAiWorking && (
@@ -671,10 +757,31 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               gridAutoRows: `${layout.rowHeight}px`,
             }}
           >
-            {/* Drag ghost outline */}
+            {/* Drag ghost outline(s) — shows destination for all selected widgets during multi-drag */}
             {dragState && (() => {
               const draggedWidget = widgets.find(w => w.id === dragState.widgetId);
               if (!draggedWidget) return null;
+              const deltaCol = dragState.ghostX - draggedWidget.position.x;
+              const deltaRow = dragState.ghostY - draggedWidget.position.y;
+              const isMulti = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(dragState.widgetId);
+              if (isMulti) {
+                return selectedWidgetIds.map(id => {
+                  const w = widgets.find(wg => wg.id === id);
+                  if (!w) return null;
+                  const ghostX = Math.max(0, Math.min(layout.columns - w.position.w, w.position.x + deltaCol));
+                  const ghostY = Math.max(0, w.position.y + deltaRow);
+                  return (
+                    <div
+                      key={`ghost-${id}`}
+                      style={{
+                        gridColumn: `${ghostX + 1} / span ${w.position.w}`,
+                        gridRow: `${ghostY + 1} / span ${w.position.h}`,
+                      }}
+                      className="rounded-xl border-2 border-dashed border-accent-blue/50 bg-accent-blue/5 pointer-events-none transition-all duration-100"
+                    />
+                  );
+                });
+              }
               return (
                 <div
                   style={{
@@ -686,21 +793,37 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
               );
             })()}
 
-            {widgets.map((widget: WidgetConfig) => (
+            {widgets.map((widget: WidgetConfig) => {
+              const isSelected = selectedWidgetIds.includes(widget.id);
+              const isMultiSelected = isSelected && selectedWidgetIds.length > 1;
+              const isDragging = dragState?.widgetId === widget.id;
+              const isMultiDragging = isDragging && selectedWidgetIds.length > 1 && isSelected;
+              const isResizing = resizeState?.widgetId === widget.id;
+              return (
               <div
                 key={widget.id}
                 id={`widget-${widget.id}`}
-                onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); }}
+                data-widget-id={widget.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (e.shiftKey || e.metaKey) {
+                    toggleSelection(widget.id);
+                  } else {
+                    selectWidget(widget.id);
+                  }
+                }}
                 onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
                 onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
                 style={{
-                  gridColumn: `${(resizeState?.widgetId === widget.id ? resizeState.previewX : widget.position.x) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewW : widget.position.w}`,
-                  gridRow: `${(resizeState?.widgetId === widget.id ? resizeState.previewY : widget.position.y) + 1} / span ${resizeState?.widgetId === widget.id ? resizeState.previewH : widget.position.h}`,
+                  gridColumn: `${(isResizing ? resizeState.previewX : widget.position.x) + 1} / span ${isResizing ? resizeState.previewW : widget.position.w}`,
+                  gridRow: `${(isResizing ? resizeState.previewY : widget.position.y) + 1} / span ${isResizing ? resizeState.previewH : widget.position.h}`,
                 }}
                 className={`min-h-0 relative group transition-shadow ${
-                  dragState?.widgetId === widget.id ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
-                }${resizeState?.widgetId === widget.id ? ' ring-2 ring-accent-purple rounded-xl' : ''
-                }${selectedWidgetId === widget.id && !dragState && !resizeState ? ' ring-2 ring-accent-cyan rounded-xl' : ''}`}
+                  isDragging ? 'opacity-40 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''
+                }${isMultiDragging ? '' : ''}${
+                  isResizing ? ' ring-2 ring-accent-purple rounded-xl' : ''
+                }${isSelected && !isDragging && !isResizing ? (isMultiSelected ? ' ring-2 ring-accent-blue rounded-xl' : ' ring-2 ring-accent-cyan rounded-xl') : ''
+                }${isMultiDragging === false && isSelected && selectedWidgetIds.length > 1 && dragState && !isDragging ? ' opacity-60 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''}`}
               >
                 {/* Drag handle */}
                 <div
@@ -760,7 +883,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                   />
                 </WidgetErrorBoundary>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -777,6 +901,28 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         {/* Widget detail overlay */}
         {detailWidget && (
           <WidgetDetailOverlay config={detailWidget} onClose={() => setDetailWidget(null)} />
+        )}
+
+        {/* Marquee selection rectangle */}
+        {marqueeState && (() => {
+          const left = Math.min(marqueeState.startX, marqueeState.currentX) - marqueeState.containerRect.left;
+          const top = Math.min(marqueeState.startY, marqueeState.currentY) - marqueeState.containerRect.top + (scrollContainerRef.current?.scrollTop || 0);
+          const width = Math.abs(marqueeState.currentX - marqueeState.startX);
+          const height = Math.abs(marqueeState.currentY - marqueeState.startY);
+          if (width < 5 && height < 5) return null;
+          return (
+            <div
+              className="absolute border-2 border-accent-blue/60 bg-accent-blue/10 rounded-sm pointer-events-none z-40"
+              style={{ left, top, width, height }}
+            />
+          );
+        })()}
+
+        {/* Multi-selection count badge */}
+        {selectedWidgetIds.length > 1 && !dragState && (
+          <div className="absolute top-2 left-2 z-40 px-2 py-1 rounded-lg bg-accent-blue/90 text-white text-xs font-medium shadow-lg pointer-events-none">
+            {selectedWidgetIds.length} widgets selected
+          </div>
         )}
 
       </div>
