@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Copy, Check, Link2, Globe, Lock, Users } from 'lucide-react';
+import { X, Copy, Check, Link2, Lock, Users } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 
 interface ShareModalProps {
@@ -119,25 +119,21 @@ export function ShareModal({ onClose }: ShareModalProps) {
                 </div>
               </div>
 
-              {/* Visibility toggle */}
+              {/* Visibility toggle — "Private" is the label, toggle controls private on/off */}
               <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {isPublic ? (
-                      <div className="w-8 h-8 rounded-lg bg-accent-green/10 flex items-center justify-center">
-                        <Globe size={14} className="text-accent-green" />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-[var(--bg-card-hover)] flex items-center justify-center">
-                        <Lock size={14} className="text-[var(--text-muted)]" />
-                      </div>
-                    )}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                      !isPublic ? 'bg-accent-blue/10' : 'bg-[var(--bg-card-hover)]'
+                    }`}>
+                      <Lock size={14} className={`transition-colors ${
+                        !isPublic ? 'text-accent-blue' : 'text-[var(--text-muted)]/40'
+                      }`} />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {isPublic ? 'Public' : 'Private'}
-                      </p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">Private</p>
                       <p className="text-[10px] text-[var(--text-muted)]">
-                        {isPublic ? 'Anyone with the link can view' : 'Only you and shared users can access'}
+                        {!isPublic ? 'Only you and shared users can access' : 'Anyone with the link can view'}
                       </p>
                     </div>
                   </div>
@@ -145,11 +141,11 @@ export function ShareModal({ onClose }: ShareModalProps) {
                     onClick={togglePublic}
                     disabled={saving}
                     className={`relative w-11 h-6 rounded-full transition-colors ${
-                      isPublic ? 'bg-accent-green' : 'bg-[var(--bg-card-hover)] border border-[var(--border-color)]'
+                      !isPublic ? 'bg-accent-blue' : 'bg-[var(--bg-card-hover)] border border-[var(--border-color)]'
                     } ${saving ? 'opacity-50' : ''}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                      isPublic ? 'translate-x-[22px]' : 'translate-x-0.5'
+                      !isPublic ? 'translate-x-[22px]' : 'translate-x-0.5'
                     }`} />
                   </button>
                 </div>
