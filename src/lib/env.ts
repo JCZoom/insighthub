@@ -37,6 +37,12 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     example: 'sk-ant-...',
     validate: (v) => v.startsWith('sk-ant-'),
   },
+  OPENAI_API_KEY: {
+    required: false,
+    description: 'OpenAI API key for Whisper voice transcription',
+    example: 'sk-...',
+    validate: (v) => v.startsWith('sk-'),
+  },
   GOOGLE_CLIENT_ID: {
     required: false,
     description: 'Google OAuth client ID (required in production)',
@@ -132,6 +138,10 @@ export function validateEnv(): EnvValidationResult {
     warnings.push('ANTHROPIC_API_KEY not set — AI chat will not work');
   }
 
+  if (!process.env.OPENAI_API_KEY) {
+    warnings.push('OPENAI_API_KEY not set — voice input will not work');
+  }
+
   if (!isDevMode && !process.env.GOOGLE_CLIENT_ID) {
     warnings.push('GOOGLE_CLIENT_ID not set and DEV_MODE is off — auth will fail');
   }
@@ -185,6 +195,7 @@ export const env = {
   DATABASE_URL: process.env.DATABASE_URL!,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   NEXT_PUBLIC_DEV_MODE: process.env.NEXT_PUBLIC_DEV_MODE === 'true',
   ALLOWED_DOMAIN: process.env.ALLOWED_DOMAIN || 'uszoom.com',
   GIT_COMMIT: process.env.GIT_COMMIT || '',

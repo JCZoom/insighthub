@@ -14,10 +14,11 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
+import { exportToPNG, exportToSVG } from '@/lib/export-utils';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -59,6 +60,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
   const [showShare, setShowShare] = useState(false);
   const [configWidgetId, setConfigWidgetId] = useState<string | null>(null);
   const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const router = useRouter();
 
@@ -477,6 +479,35 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             <Share2 size={14} />
             <span className="hidden lg:inline">Share</span>
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(prev => !prev)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
+              title="Export dashboard"
+            >
+              <Download size={14} />
+              <span className="hidden lg:inline">Export</span>
+            </button>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl shadow-black/20 py-1">
+                  <button
+                    onClick={() => { exportToPNG('dashboard-grid', `${title.replace(/[^a-zA-Z0-9]/g, '_')}_dashboard`); setShowExportMenu(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <Camera size={12} /> Export Dashboard as PNG
+                  </button>
+                  <button
+                    onClick={() => { exportToSVG('dashboard-grid', `${title.replace(/[^a-zA-Z0-9]/g, '_')}_dashboard`); setShowExportMenu(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <Image size={12} /> Export Dashboard as SVG
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
@@ -541,6 +572,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
         ) : (
           <div
             ref={gridRef}
+            id="dashboard-grid"
             className="grid gap-4"
             style={{
               gridTemplateColumns: `repeat(${layout.columns}, 1fr)`,
@@ -565,6 +597,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
             {widgets.map((widget: WidgetConfig) => (
               <div
                 key={widget.id}
+                id={`widget-${widget.id}`}
                 onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); }}
                 onDoubleClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
                 onContextMenu={(e) => handleWidgetContextMenu(e, widget)}
@@ -585,13 +618,21 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen }: DashboardCan
                 >
                   <GripVertical size={12} className="text-[var(--text-muted)]" />
                 </div>
+                {/* Download/export button (top-right, fourth) */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
+                  className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
+                  title="Export widget as PNG"
+                >
+                  <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
+                </button>
                 {/* Info/Explain button (top-right, third) */}
                 <button
                   onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
-                  className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/90 border border-[var(--border-color)] opacity-90 hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
+                  className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
                   title="Explain this metric"
                 >
-                  <HelpCircle size={12} className="text-[var(--text-secondary)] hover:text-accent-purple transition-colors" />
+                  <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
                 </button>
                 {/* Edit config button (top-right, second) */}
                 <button

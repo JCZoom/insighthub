@@ -33,29 +33,20 @@ export async function POST(request: NextRequest) {
 
       const anthropic = new Anthropic({ apiKey });
 
-      // Build explanation prompt
-      const prompt = `You are a data analytics expert. Explain this dashboard widget's metric calculation in simple, business-friendly terms.
+      // Build a concise explanation prompt (Haiku for speed)
+      const prompt = `Briefly explain this dashboard widget for a business user. Be concise — 3-4 short bullet points max.
 
-Widget Details:
-- Title: ${widget.title}
-- Type: ${widget.type}
-- Data Source: ${widget.dataConfig.source}
-${widget.dataConfig.aggregation ? `- Aggregation: ${widget.dataConfig.aggregation.function}(${widget.dataConfig.aggregation.field})` : ''}
-${widget.dataConfig.groupBy?.length ? `- Grouped by: ${widget.dataConfig.groupBy.join(', ')}` : ''}
-${widget.dataConfig.filters?.length ? `- Filters: ${JSON.stringify(widget.dataConfig.filters)}` : ''}
-${widget.subtitle ? `- Subtitle: ${widget.subtitle}` : ''}
+Widget: "${widget.title}" (${widget.type.replace(/_/g, ' ')})
+Source: ${widget.dataConfig.source}${widget.dataConfig.aggregation ? ` | ${widget.dataConfig.aggregation.function}(${widget.dataConfig.aggregation.field})` : ''}${widget.dataConfig.groupBy?.length ? ` | grouped by ${widget.dataConfig.groupBy.join(', ')}` : ''}
 
-Please provide:
-1. **What this metric measures** - A clear, concise explanation of what this widget shows
-2. **How it's calculated** - The business logic behind the calculation
-3. **Business insights** - What trends or patterns this metric helps identify
-4. **Actionable takeaways** - How teams can use this information
-
-Keep the explanation accessible to non-technical stakeholders. Use bullet points for clarity.`;
+Reply with:
+• **What it shows** (one sentence)
+• **How it's calculated** (one sentence)
+• **Why it matters** (one sentence)`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
+        model: 'claude-haiku-4-20250414',
+        max_tokens: 250,
         messages: [{ role: 'user', content: prompt }],
       });
 

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
+import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
 import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
@@ -61,7 +62,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     });
   }, []);
 
-  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError } = useSpeechToText({
+  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError, audioStream } = useSpeechToText({
     onResult: onSpeechResult,
   });
 
@@ -558,8 +559,16 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           </button>
         </div>
         {isListening && (
-          <p className="text-[10px] text-accent-red mt-1 px-1 truncate italic animate-pulse">
-            {interimTranscript ? `${interimTranscript}…` : 'Listening — speak now...'}
+          <div className="flex items-center gap-2 mt-1 px-1">
+            <VoiceWaveform stream={audioStream} barCount={5} height={16} />
+            <p className="text-[10px] text-accent-red truncate italic animate-pulse">
+              Recording — speak now...
+            </p>
+          </div>
+        )}
+        {!isListening && interimTranscript && (
+          <p className="text-[10px] text-accent-purple mt-1 px-1 truncate italic animate-pulse">
+            {interimTranscript}
           </p>
         )}
         {micError && !isListening && (

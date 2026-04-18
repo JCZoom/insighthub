@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
+import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
 import Link from 'next/link';
 
 const QUICK_ACTIONS = [
@@ -61,7 +62,7 @@ export default function Home() {
     });
   }, []);
 
-  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError } = useSpeechToText({
+  const { isListening, toggle: toggleMic, isSupported: micSupported, interimTranscript, error: micError, audioStream } = useSpeechToText({
     onResult: onSpeechResult,
   });
 
@@ -230,8 +231,16 @@ export default function Home() {
             </div>
           </div>
           {isListening && (
-            <p className="text-xs text-accent-red mb-4 italic truncate animate-pulse">
-              {interimTranscript ? `${interimTranscript}…` : 'Listening — speak now...'}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <VoiceWaveform stream={audioStream} barCount={7} height={20} />
+              <p className="text-xs text-accent-red italic truncate animate-pulse">
+                Recording — speak now...
+              </p>
+            </div>
+          )}
+          {!isListening && interimTranscript && (
+            <p className="text-xs text-accent-purple mb-4 italic truncate animate-pulse">
+              {interimTranscript}
             </p>
           )}
           {micError && !isListening && (

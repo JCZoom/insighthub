@@ -24,121 +24,156 @@ interface SpeechToTextReturn {
   stop: () => void;
   /** Toggle listening on/off. */
   toggle: () => void;
-  /** Whether the browser supports the Web Speech API. */
+  /** Whether the browser supports voice input (MediaRecorder). */
   isSupported: boolean;
   /** Current interim transcript while user is speaking. */
   interimTranscript: string;
   /** Human-readable error message, or null if no error. Cleared on next start(). */
   error: string | null;
+  /** Live MediaStream while recording (null otherwise). Use for audio visualization. */
+  audioStream: MediaStream | null;
 }
 
 /**
- * Hook for browser-native speech-to-text using the Web Speech API.
- * Works in Chrome, Edge, Safari. Firefox does not support it.
- * No API key required — runs entirely client-side.
+ * Hook for speech-to-text using MediaRecorder + OpenAI Whisper API.
+ * Works in any modern browser (Chrome, Firefox, Brave, Safari, Edge).
+ * Audio is sent to /api/voice/transcribe — API key stays server-side.
+ *
+ * Flow: click mic → recording → click mic → transcribing → text delivered via onResult.
  */
 export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToTextReturn {
   const {
-    onInterim,
     onResult,
     onEnd,
-    lang = 'en-US',
-    continuous = true,
   } = options;
 
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const isSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const isSupported = typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined';
 
   // Keep callbacks fresh via refs
-  const onInterimRef = useRef(onInterim);
   const onResultRef = useRef(onResult);
   const onEndRef = useRef(onEnd);
-  useEffect(() => { onInterimRef.current = onInterim; }, [onInterim]);
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
   useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      recognitionRef.current?.abort();
-      recognitionRef.current = null;
+      mediaRecorderRef.current?.stop();
+      streamRef.current?.getTracks().forEach(t => t.stop());
     };
   }, []);
 
-  const start = useCallback(() => {
-    if (!isSupported || isListening) return;
+  const transcribe = useCallback(async (audioBlob: Blob) => {
+    setInterimTranscript('Transcribing…');
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = lang;
-    recognition.continuous = continuous;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+      const res = await fetch('/api/voice/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setInterimTranscript('');
-      setError(null);
-    };
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      let final = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final += transcript;
-        } else {
-          interim += transcript;
-        }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Transcription failed.' }));
+        throw new Error(body.error || `HTTP ${res.status}`);
       }
 
-      if (interim) {
-        setInterimTranscript(interim);
-        onInterimRef.current?.(interim);
+      const { text } = await res.json();
+      if (text) {
+        onResultRef.current?.(text);
       }
-      if (final) {
-        setInterimTranscript('');
-        onResultRef.current?.(final);
-      }
-    };
-
-    recognition.onerror = (event) => {
-      // 'aborted' is expected when calling stop() — don't log it
-      if (event.error !== 'aborted') {
-        console.warn('Speech recognition error:', event.error);
-        const messages: Record<string, string> = {
-          'not-allowed': 'Microphone access denied. Check your browser permissions.',
-          'no-speech': 'No speech detected. Try again.',
-          'network': 'Speech recognition needs an internet connection.',
-          'audio-capture': 'No microphone found. Check your audio input device.',
-          'service-not-allowed': 'Speech service not available. Try a different browser.',
-        };
-        setError(messages[event.error] || `Speech error: ${event.error}`);
-      }
-      setIsListening(false);
-      setInterimTranscript('');
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
+    } catch (err) {
+      console.error('Transcription error:', err);
+      setError(err instanceof Error ? err.message : 'Transcription failed. Try again.');
+    } finally {
       setInterimTranscript('');
       onEndRef.current?.();
-      recognitionRef.current = null;
-    };
+    }
+  }, []);
 
-    recognitionRef.current = recognition;
-    recognition.start();
-  }, [isSupported, isListening, lang, continuous]);
+  const start = useCallback(async () => {
+    if (!isSupported || isListening) return;
+
+    setError(null);
+    setInterimTranscript('');
+    chunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      setAudioStream(stream);
+
+      // Prefer webm/opus (small files, fast upload), fall back to whatever is available
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : undefined; // let browser pick default
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        setAudioStream(null);
+
+        const audioBlob = new Blob(chunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        });
+        chunksRef.current = [];
+
+        if (audioBlob.size > 0) {
+          transcribe(audioBlob);
+        } else {
+          setInterimTranscript('');
+          onEndRef.current?.();
+        }
+      };
+
+      recorder.onerror = () => {
+        setError('Recording failed. Check your microphone.');
+        setIsListening(false);
+        setInterimTranscript('');
+        setAudioStream(null);
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsListening(true);
+    } catch (err) {
+      console.warn('Microphone access error:', err);
+      const messages: Record<string, string> = {
+        NotAllowedError: 'Microphone access denied. Check your browser permissions.',
+        NotFoundError: 'No microphone found. Check your audio input device.',
+        NotReadableError: 'Microphone is in use by another application.',
+      };
+      const name = err instanceof DOMException ? err.name : '';
+      setError(messages[name] || 'Could not access microphone.');
+    }
+  }, [isSupported, isListening, transcribe]);
 
   const stop = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
     }
+    setIsListening(false);
   }, []);
 
   const toggle = useCallback(() => {
@@ -149,5 +184,5 @@ export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToText
     }
   }, [isListening, start, stop]);
 
-  return { isListening, start, stop, toggle, isSupported, interimTranscript, error };
+  return { isListening, start, stop, toggle, isSupported, interimTranscript, error, audioStream };
 }
