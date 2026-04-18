@@ -46,39 +46,30 @@ function formatSSE(event: string, data: any): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-// Simulate streaming by breaking response processing into chunks
-async function* processResponseStream(
-  rawText: string,
-  message: string,
-  isSqlMode: boolean
-): AsyncGenerator<{ event: string; data: any }> {
-  // Simulate processing delay and send progress updates
-  yield { event: 'progress', data: { message: 'Processing your request...', progress: 10 } };
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  yield { event: 'progress', data: { message: 'Analyzing requirements...', progress: 30 } };
-  await new Promise(resolve => setTimeout(resolve, 150));
-
-  // Parse the response
-  let parsed: { explanation: string; patches?: unknown[]; quickActions?: unknown[]; sql?: string; sqlType?: string };
-
+/**
+ * Parse AI response text into structured format, handling both SQL and dashboard modes
+ */
+function parseAIResponse(rawText: string, isSqlMode: boolean): {
+  explanation: string;
+  patches?: unknown[];
+  quickActions?: unknown[];
+  sql?: string;
+  sqlType?: string;
+} {
   if (isSqlMode) {
-    yield { event: 'progress', data: { message: 'Generating SQL query...', progress: 60 } };
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     // For SQL mode, handle different response formats
     try {
       const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
       const jsonStr = jsonMatch[1]?.trim();
 
       if (jsonStr) {
-        parsed = JSON.parse(jsonStr);
+        return JSON.parse(jsonStr);
       } else {
         // Extract SQL from code blocks if present
         const sqlMatch = rawText.match(/```sql\s*([\s\S]*?)```/);
         const sql = sqlMatch ? sqlMatch[1].trim() : null;
 
-        parsed = {
+        return {
           explanation: rawText.replace(/```sql[\s\S]*?```/g, '').trim() || 'Here\'s your SQL query:',
           patches: [],
           quickActions: sql ? [
@@ -95,7 +86,7 @@ async function* processResponseStream(
       const sqlMatch = rawText.match(/```sql\s*([\s\S]*?)```/);
       const sql = sqlMatch ? sqlMatch[1].trim() : null;
 
-      parsed = {
+      return {
         explanation: rawText.replace(/```sql[\s\S]*?```/g, '').trim() || 'I can help you with SQL queries and optimization.',
         patches: [],
         quickActions: sql ? [
@@ -107,24 +98,46 @@ async function* processResponseStream(
       };
     }
   } else {
-    yield { event: 'progress', data: { message: 'Generating dashboard schema...', progress: 60 } };
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     // Regular dashboard mode
     try {
       // Try to extract JSON from the response (Claude sometimes wraps in markdown code blocks)
       const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
       const jsonStr = jsonMatch[1]?.trim() || rawText.trim();
-      parsed = JSON.parse(jsonStr);
+      return JSON.parse(jsonStr);
     } catch {
       // If JSON parsing fails, treat the whole response as an explanation with no patches
-      parsed = {
+      return {
         explanation: rawText || 'I understood your request but had trouble generating the schema. Could you try rephrasing?',
         patches: [],
         quickActions: [],
       };
     }
   }
+}
+
+// Simulate streaming by breaking response processing into chunks
+async function* processResponseStream(
+  rawText: string,
+  message: string,
+  isSqlMode: boolean
+): AsyncGenerator<{ event: string; data: any }> {
+  // Simulate processing delay and send progress updates
+  yield { event: 'progress', data: { message: 'Processing your request...', progress: 10 } };
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  yield { event: 'progress', data: { message: 'Analyzing requirements...', progress: 30 } };
+  await new Promise(resolve => setTimeout(resolve, 150));
+
+  // Parse the response using shared parsing logic
+  if (isSqlMode) {
+    yield { event: 'progress', data: { message: 'Generating SQL query...', progress: 60 } };
+    await new Promise(resolve => setTimeout(resolve, 100));
+  } else {
+    yield { event: 'progress', data: { message: 'Generating dashboard schema...', progress: 60 } };
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  const parsed = parseAIResponse(rawText, isSqlMode);
 
   yield { event: 'progress', data: { message: 'Finalizing response...', progress: 90 } };
   await new Promise(resolve => setTimeout(resolve, 50));
@@ -421,66 +434,8 @@ async function handleChatRequest({
       const textBlock = response.content.find(b => b.type === 'text');
       const rawText = textBlock?.type === 'text' ? textBlock.text : '';
 
-      // Parse the response - try JSON first, then handle SQL mode responses
-      let parsed: { explanation: string; patches?: unknown[]; quickActions?: unknown[]; sql?: string; sqlType?: string };
-
-      if (isSqlMode) {
-        // For SQL mode, handle different response formats
-        try {
-          const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
-          const jsonStr = jsonMatch[1]?.trim();
-
-          if (jsonStr) {
-            parsed = JSON.parse(jsonStr);
-          } else {
-            // Extract SQL from code blocks if present
-            const sqlMatch = rawText.match(/```sql\s*([\s\S]*?)```/);
-            const sql = sqlMatch ? sqlMatch[1].trim() : null;
-
-            parsed = {
-              explanation: rawText.replace(/```sql[\s\S]*?```/g, '').trim() || 'Here\'s your SQL query:',
-              patches: [],
-              quickActions: sql ? [
-                { label: 'Run in Snowflake', prompt: 'Copy this query to your Snowflake worksheet' },
-                { label: 'Add to Dashboard', prompt: 'Create a widget from this query' },
-                { label: 'Explain Query', prompt: 'Explain what this query does step by step' }
-              ] : [],
-              sql: sql || undefined,
-              sqlType: sql ? 'generated' : undefined
-            };
-          }
-        } catch {
-          // Fallback for SQL mode
-          const sqlMatch = rawText.match(/```sql\s*([\s\S]*?)```/);
-          const sql = sqlMatch ? sqlMatch[1].trim() : null;
-
-          parsed = {
-            explanation: rawText.replace(/```sql[\s\S]*?```/g, '').trim() || 'I can help you with SQL queries and optimization.',
-            patches: [],
-            quickActions: sql ? [
-              { label: 'Run in Snowflake', prompt: 'Copy this query to your Snowflake worksheet' },
-              { label: 'Add to Dashboard', prompt: 'Create a widget from this query' }
-            ] : [],
-            sql: sql || undefined,
-            sqlType: sql ? 'explained' : undefined
-          };
-        }
-      } else {
-        // Regular dashboard mode
-        try {
-          // Try to extract JSON from the response (Claude sometimes wraps in markdown code blocks)
-          const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, rawText];
-          const jsonStr = jsonMatch[1]?.trim() || rawText.trim();
-          parsed = JSON.parse(jsonStr);
-        } catch {
-          // If JSON parsing fails, treat the whole response as an explanation with no patches
-          parsed = {
-            explanation: rawText || 'I understood your request but had trouble generating the schema. Could you try rephrasing?',
-            patches: [],
-            quickActions: [],
-          };
-        }
-      }
+      // Parse the response using shared parsing logic
+      const parsed = parseAIResponse(rawText, isSqlMode);
 
       // Save assistant message to database
       if (chatSession) {
