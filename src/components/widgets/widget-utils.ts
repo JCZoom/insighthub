@@ -46,3 +46,37 @@ export const TOOLTIP_STYLE = {
   labelStyle: { color: 'var(--text-primary)', fontWeight: 600 },
   itemStyle: { color: 'var(--text-secondary)' },
 };
+
+/** Widget minimum height constraints to prevent unreadable rendering */
+export const MIN_WIDGET_HEIGHTS: Record<string, number> = {
+  kpi_card: 120,
+  line_chart: 150,
+  bar_chart: 150,
+  area_chart: 150,
+  pie_chart: 150,
+  donut_chart: 150,
+  stacked_bar: 150,
+  scatter_plot: 150,
+  heatmap: 180,
+  table: 200,
+  pivot_table: 200,
+  funnel: 150,
+  gauge: 120,
+  metric_row: 80,
+  text_block: 60,
+  image: 100,
+  divider: 20,
+  map: 200,
+};
+
+/** Get responsive tooltip configuration for touch vs desktop */
+export function getTooltipConfig(isTouchDevice: boolean) {
+  if (isTouchDevice) {
+    return {
+      ...TOOLTIP_STYLE,
+      trigger: 'click' as const,
+      allowEscapeViewBox: { x: true, y: true },
+    };
+  }
+  return TOOLTIP_STYLE;
+}

@@ -1,0 +1,121 @@
+/* Responsive widget utility styles */
+
+/* Container queries for widget sizing */
+@container widget (max-width: 200px) {
+  .widget-text-lg { font-size: 0.875rem; }
+  .widget-text-sm { font-size: 0.75rem; }
+  .widget-text-xs { font-size: 0.625rem; }
+  .widget-padding-compact { padding: 0.75rem; }
+}
+
+@container widget (max-width: 400px) {
+  .widget-text-lg { font-size: 1rem; }
+  .widget-text-sm { font-size: 0.875rem; }
+  .widget-text-xs { font-size: 0.75rem; }
+  .widget-padding-compact { padding: 1rem; }
+}
+
+/* Touch-friendly hover states */
+@media (hover: none) and (pointer: coarse) {
+  .widget-hover-effect:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .widget-hover-effect:active {
+    transform: scale(0.98);
+    transition-duration: 0.1s;
+  }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  .widget-border {
+    border-width: 2px;
+  }
+
+  .widget-text {
+    font-weight: 600;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .widget-animation {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Scroll indicator utilities */
+.scroll-indicator {
+  position: relative;
+}
+
+.scroll-indicator::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1rem;
+  background: linear-gradient(to left, var(--bg-card), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.scroll-indicator.has-scroll::after {
+  opacity: 1;
+}
+
+/* Mobile table scroll hints */
+.table-scroll-hint {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.5rem;
+  padding: 0.25rem;
+  background: var(--bg-card);
+  border-radius: 0.25rem;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.table-scroll-hint.visible {
+  opacity: 1;
+}
+
+/* KPI Card responsive layouts */
+@media (max-width: 768px) {
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .kpi-grid .kpi-card {
+    scroll-snap-align: start;
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.75rem;
+    padding: 0 0.5rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .kpi-grid .kpi-card {
+    flex: 0 0 auto;
+    width: 120px;
+    scroll-snap-align: start;
+  }
+}

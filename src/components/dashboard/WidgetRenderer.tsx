@@ -14,6 +14,7 @@ import { FunnelWidget } from '@/components/widgets/FunnelWidget';
 import { MetricRowWidget } from '@/components/widgets/MetricRowWidget';
 import { ScatterPlotWidget } from '@/components/widgets/ScatterPlotWidget';
 import { HeatmapWidget } from '@/components/widgets/HeatmapWidget';
+import { MIN_WIDGET_HEIGHTS } from '@/components/widgets/widget-utils';
 
 interface WidgetRendererProps {
   config: WidgetConfig;
@@ -125,7 +126,18 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
       showDetail = false;
   }
 
-  if (!showDetail || !onDetailClick) return <div className="h-full select-none">{widget}</div>;
+  const minHeight = MIN_WIDGET_HEIGHTS[config.type] || MIN_WIDGET_HEIGHTS.kpi_card;
+
+  if (!showDetail || !onDetailClick) {
+    return (
+      <div
+        className="h-full select-none"
+        style={{ minHeight: `${minHeight}px` }}
+      >
+        {widget}
+      </div>
+    );
+  }
 
   const handleClick = (e: React.MouseEvent) => {
     // Only open detail when clicking blank space — skip interactive child elements
@@ -138,7 +150,11 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
   };
 
   return (
-    <div className="relative h-full group/detail select-none cursor-pointer" onClick={handleClick}>
+    <div
+      className="relative h-full group/detail select-none cursor-pointer"
+      onClick={handleClick}
+      style={{ minHeight: `${minHeight}px` }}
+    >
       {widget}
       <div className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 flex flex-col items-end gap-1 transition-all">
         <button
