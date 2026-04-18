@@ -34,8 +34,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = 'ADMIN';
-        token.department = 'Engineering';
+        // TODO: When Google OAuth is wired up, query the DB for the user's actual role:
+        //   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+        //   token.role = dbUser?.role || 'VIEWER';
+        //   token.department = dbUser?.department || null;
+        // For now, use the dev user's role from the constant (only CredentialsProvider is active)
+        token.role = DEV_USER.role;
+        token.department = DEV_USER.department;
         token.iat = Math.floor(Date.now() / 1000); // Set issued at time
 
         // Log user login for audit

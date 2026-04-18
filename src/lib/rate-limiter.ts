@@ -26,6 +26,11 @@ export class SlidingWindowRateLimiter {
     this.windowSizeMs = windowSizeMs;
   }
 
+  /** Public accessor for the configured request limit */
+  get limit(): number {
+    return this.maxRequests;
+  }
+
   /**
    * Check if a request should be rate limited
    * @param userId - User ID to rate limit
@@ -175,7 +180,7 @@ export function createRateLimitMiddleware(
         );
 
         // Set standard rate limiting headers
-        response.headers.set('X-RateLimit-Limit', rateLimiter['maxRequests'].toString());
+        response.headers.set('X-RateLimit-Limit', rateLimiter.limit.toString());
         response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
         response.headers.set('X-RateLimit-Reset', result.resetTime.toString());
         response.headers.set('Retry-After', result.retryAfter!.toString());
@@ -247,7 +252,7 @@ export async function withRateLimit<T>(
       },
       { status: 429 }
     );
-    response.headers.set('X-RateLimit-Limit', rateLimiter['maxRequests'].toString());
+    response.headers.set('X-RateLimit-Limit', rateLimiter.limit.toString());
     response.headers.set('X-RateLimit-Remaining', '0');
     response.headers.set('X-RateLimit-Reset', result.resetTime.toString());
     response.headers.set('Retry-After', result.retryAfter!.toString());

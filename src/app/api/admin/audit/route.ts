@@ -49,10 +49,14 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
-    // Parse metadata JSON strings back to objects
+    // Parse metadata JSON strings back to objects (safe — malformed data won't crash the endpoint)
     const logsWithParsedMetadata = result.logs.map(log => ({
       ...log,
-      metadata: log.metadata ? JSON.parse(log.metadata) : null,
+      metadata: (() => {
+        if (!log.metadata) return null;
+        try { return JSON.parse(String(log.metadata)); }
+        catch { return { _parseError: true, raw: log.metadata }; }
+      })(),
     }));
 
     return NextResponse.json({

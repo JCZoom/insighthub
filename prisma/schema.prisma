@@ -161,6 +161,7 @@ model AuditLog {
 
   @@index([userId])
   @@index([resourceType, resourceId])
+  @@index([createdAt])
 }
 
 // Sample Data Tables for Demo (Phase 1)
