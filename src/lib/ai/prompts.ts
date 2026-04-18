@@ -123,17 +123,59 @@ The system auto-arranges widgets after your patches, so focus on choosing the ri
 - **scatter_plot / funnel**: w=6, h=4 (2 per row)
 - **heatmap / map**: w=12, h=5 (full width)
 - **table / pivot_table**: w=12, h=5 (full width, placed at bottom)
-- **text_block**: w=6, h=2 | **divider**: w=12, h=1
+- **text_block**: w=6, h=2 (default) — or w=12, h=1 for full-width banners/headers | **divider**: w=12, h=1
+
+## Text Block Styling (customStyles in visualConfig)
+text_block widgets support rich styling via \`visualConfig.customStyles\`. Use these to create banners, callouts, section headers, and styled notes.
+
+### Variants (set \`customStyles.variant\`)
+- **"plain"** — default, no background, simple title + body text
+- **"banner"** — colored background, centered text, great for dashboard title banners (w=12, h=1 or h=2)
+- **"callout"** — left border accent, light background tint, for insights and warnings (w=6, h=2)
+- **"header"** — section header with large title and bottom gradient line, no background (w=12, h=1)
+- **"quote"** — purple-tinted left border, for quotes or key takeaways
+
+### customStyles fields
+- **variant**: "plain" | "banner" | "callout" | "header" | "quote"
+- **backgroundColor**: named color ("blue","green","purple","amber","cyan","red","dark") or any CSS color
+- **textColor**: named ("blue","green","purple","amber","cyan","red","white","muted","primary","secondary") or CSS color
+- **titleColor**: same as textColor (overrides title specifically)
+- **textAlign**: "left" | "center" | "right"
+- **fontSize**: "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl"
+- **fontWeight**: "normal" | "medium" | "semibold" | "bold"
+- **borderAccent**: named color or CSS color for left border stripe
+- **icon**: "info" | "warning" | "success" | "error" | "lightbulb" | "target" | "trending" | "star" | "zap" | "file"
+
+### Examples
+Dashboard title banner (full-width):
+\`\`\`json
+{ "type": "text_block", "title": "Executive Summary — Q2 2026", "subtitle": "Key metrics and trends", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "banner", "backgroundColor": "blue" } } }
+\`\`\`
+Insight callout:
+\`\`\`json
+{ "type": "text_block", "title": "Churn spiked 3× in APAC", "subtitle": "Investigate Enterprise plan cancellations in Q1.", "position": { "x": 0, "y": 0, "w": 6, "h": 2 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "callout", "borderAccent": "red", "backgroundColor": "red", "icon": "warning" } } }
+\`\`\`
+Section header:
+\`\`\`json
+{ "type": "text_block", "title": "Revenue Metrics", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "header", "titleColor": "blue" } } }
+\`\`\`
+
+When building dashboards, consider adding:
+- A **banner** (w=12, h=1) at the top with the dashboard title for a polished look
+- **Section headers** (w=12, h=1) between widget groups (e.g. between KPIs and charts)
+- **Callouts** (w=6, h=2) to highlight key insights or anomalies
 
 ## Dashboard Layout Order
 Widgets are auto-sorted by priority. Place them in this conceptual order:
-1. **KPI cards** — top of dashboard (summary metrics at a glance)
-2. **Gauges** — after KPIs if used
-3. **Charts** (line, bar, area, stacked) — the analytical middle
-4. **Circular charts** (pie, donut, funnel) — supplementary breakdowns
-5. **Full-width visuals** (heatmap, map) — detailed views
-6. **Tables** — always at the bottom (detail data)
-7. **Text / dividers** — last
+1. **Banner text_block** — optional full-width title banner at the very top
+2. **KPI cards** — summary metrics at a glance
+3. **Gauges** — after KPIs if used
+4. **Section header text_block** — optional, between widget groups
+5. **Charts** (line, bar, area, stacked) — the analytical middle
+6. **Circular charts** (pie, donut, funnel) — supplementary breakdowns
+7. **Full-width visuals** (heatmap, map) — detailed views
+8. **Tables** — always at the bottom (detail data)
+9. **Callout text_blocks** — alongside charts or at the bottom for insights
 
 ## Rules
 1. Always reference glossary definitions when calculating metrics. If a user asks for "churn", use the EXACT definition and formula from the glossary.

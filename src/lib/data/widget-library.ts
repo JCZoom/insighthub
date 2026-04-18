@@ -73,8 +73,113 @@ function inferTags(w: WidgetConfig, dashboardTitle: string): string[] {
   return [...new Set(tags)];
 }
 
+/**
+ * Built-in text block templates — these are not extracted from template dashboards
+ * but provided as first-class library entries so users can discover and use them.
+ */
+const TEXT_BLOCK_TEMPLATES: WidgetTemplate[] = [
+  {
+    id: 'wlib-text-banner',
+    title: 'Title Banner',
+    description: 'Full-width colored banner for dashboard titles and headings',
+    type: 'text_block',
+    tags: ['text', 'banner', 'header', 'title', 'heading'],
+    sourceDashboardId: 'built-in',
+    sourceDashboardTitle: 'Built-in Templates',
+    usageCount: 50,
+    config: {
+      id: 'widget-text-banner',
+      type: 'text_block',
+      title: 'Dashboard Title',
+      subtitle: 'Add a subtitle or description here',
+      position: { x: 0, y: 0, w: 12, h: 1 },
+      dataConfig: { source: '' },
+      visualConfig: { customStyles: { variant: 'banner', backgroundColor: 'blue' } },
+    },
+  },
+  {
+    id: 'wlib-text-callout',
+    title: 'Callout Box',
+    description: 'Highlighted callout with left border accent — great for insights and alerts',
+    type: 'text_block',
+    tags: ['text', 'callout', 'alert', 'insight', 'note', 'warning'],
+    sourceDashboardId: 'built-in',
+    sourceDashboardTitle: 'Built-in Templates',
+    usageCount: 40,
+    config: {
+      id: 'widget-text-callout',
+      type: 'text_block',
+      title: 'Key Insight',
+      subtitle: 'Add your observation or alert text here.',
+      position: { x: 0, y: 0, w: 6, h: 2 },
+      dataConfig: { source: '' },
+      visualConfig: { customStyles: { variant: 'callout', borderAccent: 'amber', icon: 'lightbulb' } },
+    },
+  },
+  {
+    id: 'wlib-text-section-header',
+    title: 'Section Header',
+    description: 'Large text with gradient underline — use to separate dashboard sections',
+    type: 'text_block',
+    tags: ['text', 'header', 'section', 'divider', 'heading', 'separator'],
+    sourceDashboardId: 'built-in',
+    sourceDashboardTitle: 'Built-in Templates',
+    usageCount: 45,
+    config: {
+      id: 'widget-text-header',
+      type: 'text_block',
+      title: 'Section Title',
+      subtitle: '',
+      position: { x: 0, y: 0, w: 12, h: 1 },
+      dataConfig: { source: '' },
+      visualConfig: { customStyles: { variant: 'header' } },
+    },
+  },
+  {
+    id: 'wlib-text-quote',
+    title: 'Quote Block',
+    description: 'Purple-accented block for key takeaways, quotes, or executive highlights',
+    type: 'text_block',
+    tags: ['text', 'quote', 'takeaway', 'highlight', 'executive'],
+    sourceDashboardId: 'built-in',
+    sourceDashboardTitle: 'Built-in Templates',
+    usageCount: 25,
+    config: {
+      id: 'widget-text-quote',
+      type: 'text_block',
+      title: 'Key Takeaway',
+      subtitle: 'Add your quote or executive summary here.',
+      position: { x: 0, y: 0, w: 6, h: 2 },
+      dataConfig: { source: '' },
+      visualConfig: { customStyles: { variant: 'quote', icon: 'star' } },
+    },
+  },
+  {
+    id: 'wlib-text-plain',
+    title: 'Text Note',
+    description: 'Simple text block for notes, instructions, or context on a dashboard',
+    type: 'text_block',
+    tags: ['text', 'note', 'plain', 'description', 'instructions', 'context'],
+    sourceDashboardId: 'built-in',
+    sourceDashboardTitle: 'Built-in Templates',
+    usageCount: 35,
+    config: {
+      id: 'widget-text-plain',
+      type: 'text_block',
+      title: 'Note',
+      subtitle: 'Add your text content here.',
+      position: { x: 0, y: 0, w: 6, h: 2 },
+      dataConfig: { source: '' },
+      visualConfig: {},
+    },
+  },
+];
+
 /** The full static widget library — available at import time */
-export const WIDGET_LIBRARY: WidgetTemplate[] = buildStaticLibrary();
+export const WIDGET_LIBRARY: WidgetTemplate[] = [
+  ...buildStaticLibrary(),
+  ...TEXT_BLOCK_TEMPLATES,
+];
 
 /** Search the widget library by query string (matches title, description, tags) */
 export function searchWidgets(query: string, limit = 10): WidgetTemplate[] {

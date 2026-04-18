@@ -411,6 +411,62 @@ function DataTab({
   );
 }
 
+// ── Text Block constants ──────────────────────────────────────────────────────
+
+const TEXT_VARIANTS: { value: string; label: string }[] = [
+  { value: 'plain', label: 'Plain' },
+  { value: 'banner', label: 'Banner' },
+  { value: 'callout', label: 'Callout' },
+  { value: 'header', label: 'Section Header' },
+  { value: 'quote', label: 'Quote' },
+];
+
+const TEXT_BG_COLORS: { value: string; label: string; color: string }[] = [
+  { value: '', label: 'Default', color: 'transparent' },
+  { value: 'blue', label: 'Blue', color: 'rgba(107,170,255,0.15)' },
+  { value: 'green', label: 'Green', color: 'rgba(86,196,122,0.15)' },
+  { value: 'purple', label: 'Purple', color: 'rgba(180,142,255,0.15)' },
+  { value: 'amber', label: 'Amber', color: 'rgba(219,166,68,0.15)' },
+  { value: 'cyan', label: 'Cyan', color: 'rgba(77,206,194,0.15)' },
+  { value: 'red', label: 'Red', color: 'rgba(244,118,112,0.15)' },
+  { value: 'dark', label: 'Dark', color: 'rgba(0,0,0,0.5)' },
+];
+
+const TEXT_COLORS: { value: string; label: string; color: string }[] = [
+  { value: '', label: 'Default', color: '#999' },
+  { value: 'blue', label: 'Blue', color: '#6baaff' },
+  { value: 'green', label: 'Green', color: '#56c47a' },
+  { value: 'purple', label: 'Purple', color: '#b48eff' },
+  { value: 'amber', label: 'Amber', color: '#dba644' },
+  { value: 'cyan', label: 'Cyan', color: '#4dcec2' },
+  { value: 'red', label: 'Red', color: '#f47670' },
+  { value: 'white', label: 'White', color: '#ffffff' },
+];
+
+const FONT_SIZES: { value: string; label: string }[] = [
+  { value: '', label: 'Default' },
+  { value: 'xs', label: 'XS' },
+  { value: 'sm', label: 'SM' },
+  { value: 'base', label: 'Base' },
+  { value: 'lg', label: 'LG' },
+  { value: 'xl', label: 'XL' },
+  { value: '2xl', label: '2XL' },
+  { value: '3xl', label: '3XL' },
+];
+
+const TEXT_ICONS: { value: string; label: string }[] = [
+  { value: '', label: 'None' },
+  { value: 'info', label: 'Info' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'success', label: 'Success' },
+  { value: 'error', label: 'Error' },
+  { value: 'lightbulb', label: 'Lightbulb' },
+  { value: 'target', label: 'Target' },
+  { value: 'trending', label: 'Trending' },
+  { value: 'star', label: 'Star' },
+  { value: 'zap', label: 'Zap' },
+];
+
 // ── Visual Tab ───────────────────────────────────────────────────────────────
 
 function VisualTab({
@@ -426,6 +482,162 @@ function VisualTab({
     update({ visualConfig: { ...vc, ...changes } });
   };
 
+  const updateCustomStyle = (key: string, value: string) => {
+    const current = vc.customStyles ?? {};
+    const draft: Record<string, string> = { ...current, [key]: value };
+    // Clean out empty values
+    if (!draft[key]) delete draft[key];
+    updateVisual({ customStyles: Object.keys(draft).length > 0 ? draft : undefined });
+  };
+
+  const isTextBlock = widget.type === 'text_block';
+  const cs = vc.customStyles ?? {};
+
+  // Text block gets a specialized panel
+  if (isTextBlock) {
+    return (
+      <>
+        <div>
+          <FieldLabel>Variant</FieldLabel>
+          <SelectInput
+            value={cs.variant || 'plain'}
+            onChange={(v) => updateCustomStyle('variant', v)}
+            options={TEXT_VARIANTS}
+          />
+          <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+            Sets the overall look — banner, callout, section header, etc.
+          </p>
+        </div>
+
+        <div>
+          <FieldLabel>Background Color</FieldLabel>
+          <div className="flex gap-2 flex-wrap">
+            {TEXT_BG_COLORS.map(({ value, label, color }) => (
+              <button
+                key={value}
+                onClick={() => updateCustomStyle('backgroundColor', value)}
+                title={label}
+                className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                  (cs.backgroundColor || '') === value
+                    ? 'border-white scale-110 shadow-lg'
+                    : 'border-[var(--border-color)] hover:border-white/30 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color || 'var(--bg-card)' }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Title Color</FieldLabel>
+          <div className="flex gap-2 flex-wrap">
+            {TEXT_COLORS.map(({ value, label, color }) => (
+              <button
+                key={value}
+                onClick={() => updateCustomStyle('titleColor', value)}
+                title={label}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                  (cs.titleColor || '') === value
+                    ? 'border-white scale-110 shadow-lg'
+                    : 'border-transparent hover:border-white/30 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Text Color</FieldLabel>
+          <div className="flex gap-2 flex-wrap">
+            {TEXT_COLORS.map(({ value, label, color }) => (
+              <button
+                key={value}
+                onClick={() => updateCustomStyle('textColor', value)}
+                title={label}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                  (cs.textColor || '') === value
+                    ? 'border-white scale-110 shadow-lg'
+                    : 'border-transparent hover:border-white/30 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Border Accent</FieldLabel>
+          <div className="flex gap-2 flex-wrap">
+            {TEXT_COLORS.map(({ value, label, color }) => (
+              <button
+                key={value}
+                onClick={() => updateCustomStyle('borderAccent', value)}
+                title={label}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                  (cs.borderAccent || '') === value
+                    ? 'border-white scale-110 shadow-lg'
+                    : 'border-transparent hover:border-white/30 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel>Font Size</FieldLabel>
+            <SelectInput
+              value={cs.fontSize || ''}
+              onChange={(v) => updateCustomStyle('fontSize', v)}
+              options={FONT_SIZES}
+            />
+          </div>
+          <div>
+            <FieldLabel>Alignment</FieldLabel>
+            <SelectInput
+              value={cs.textAlign || ''}
+              onChange={(v) => updateCustomStyle('textAlign', v)}
+              options={[
+                { value: '', label: 'Default' },
+                { value: 'left', label: 'Left' },
+                { value: 'center', label: 'Center' },
+                { value: 'right', label: 'Right' },
+              ]}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel>Font Weight</FieldLabel>
+            <SelectInput
+              value={cs.fontWeight || ''}
+              onChange={(v) => updateCustomStyle('fontWeight', v)}
+              options={[
+                { value: '', label: 'Default' },
+                { value: 'normal', label: 'Normal' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'semibold', label: 'Semibold' },
+                { value: 'bold', label: 'Bold' },
+              ]}
+            />
+          </div>
+          <div>
+            <FieldLabel>Icon</FieldLabel>
+            <SelectInput
+              value={cs.icon || ''}
+              onChange={(v) => updateCustomStyle('icon', v)}
+              options={TEXT_ICONS}
+            />
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Standard chart/widget visual controls
   return (
     <>
       <div>
