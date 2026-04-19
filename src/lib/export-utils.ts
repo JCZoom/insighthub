@@ -50,7 +50,7 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
     const fontFixStyle = document.createElement('style');
     fontFixStyle.setAttribute('data-export-font-fix', '1');
     fontFixStyle.textContent = `
-      * {
+      *:not(svg):not(svg *) {
         font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                      "Helvetica Neue", Arial, sans-serif !important;
       }
