@@ -5,12 +5,27 @@
     "default_view": "board"
   },
   "custom_fields_meta": {},
-  "synced_at": "2026-04-18T19:59:44.462467",
+  "synced_at": "2026-04-18T22:28:40.705231",
   "sections": [
     {
       "gid": "1214122597260846",
       "name": "Untitled section",
       "tasks": [
+        {
+          "gid": "1214127961565881",
+          "name": "[Review Fix] Sprint 5 \u2014 Gallery folder filter, thumbnail auth, onboarding config",
+          "notes": "Sprint 5 review identified and fixed 3 issues:\n\n1. **Gallery folder filter excludes template dashboards** \u2014 Template dashboards have folderId=undefined while root folder uses null. The check `d.folderId !== currentFolderId` evaluates `undefined !== null` as true, hiding all templates from the gallery. Fixed with nullish coalescing: `(d.folderId ?? null) !== currentFolderId`.\n\n2. **Thumbnail API missing authentication** \u2014 /api/thumbnails POST, DELETE, and GET endpoints had no auth check, allowing unauthenticated file writes to public/thumbnails/. Added getCurrentUser() guard to all three handlers.\n\n3. **Onboarding page dead route config** \u2014 onboarding/page.tsx had `export const dynamic = 'force-dynamic'` inside a 'use client' component where it has no effect (route segment config only works in server components). Removed the dead config.",
+          "completed": true,
+          "completed_at": "2026-04-19T01:49:34.992Z",
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "Untitled section"
+        },
         {
           "gid": "1214133177816175",
           "name": "[Review Fix] Auto-save captures stale schema \u2014 fix is incomplete",
@@ -1097,6 +1112,73 @@
       "name": "\ud83d\udd10 Auth & Security",
       "tasks": [
         {
+          "gid": "1214122641299988",
+          "name": "\ud83d\udd10 Metric-Level RBAC \u2014 Granular Financial Data Restrictions & Builder UX",
+          "notes": "## Overview\n\nThe current RBAC system enforces permissions at the **data category level** (Revenue, Sales, Support, etc.) with FULL/NONE/FILTERED access. This works for broad access control but lacks the granularity needed for real-world scenarios where:\n\n- A junior Creator should be able to build dashboards but NOT access specific financial metrics\n- Financial data spans multiple categories (Revenue, Sales, Operations KPIs) and needs a unified classification  \n- The dashboard builder should proactively show what's available vs. restricted BEFORE the user tries to use it\n- The FILTERED access level exists in the type system but has no implementation\n\n## Current State (What Works)\n- 7 data categories with per-group access levels\n- AI prompt filtering blocks restricted data in chat\n- API query enforcement returns 'Access Denied' messages\n- Creator role template already blocks Revenue/Sales by default\n\n## Gap Analysis\n1. No metric-level granularity within a category (all-or-nothing)\n2. No 'Financial' meta-category grouping all money-related data\n3. No proactive UX in dashboard builder showing available vs. restricted sources\n4. Widget config doesn't prevent adding restricted data sources at build time\n5. FILTERED access level is unimplemented (behaves as FULL)\n\n## Acceptance Criteria\n- [ ] Admins can define metric-level restrictions within a data category\n- [ ] 'Financial' meta-category groups Revenue + Sales + financial KPIs\n- [ ] Dashboard builder shows lock icons on restricted data sources\n- [ ] Widget config panel prevents selecting restricted sources with helpful messaging\n- [ ] FILTERED access level supports aggregate-only access (no customer-level breakdowns)\n- [ ] Users see clear 'Contact your administrator' messaging with specific data category names",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 5,
+          "custom_fields": {},
+          "dependencies": [
+            {
+              "gid": "1214124671515358",
+              "name": "?"
+            }
+          ],
+          "section": "\ud83d\udd10 Auth & Security",
+          "subtasks": [
+            {
+              "gid": "1214124670702136",
+              "name": "\ud83d\udccb Define Metric-Level Restriction Rules \u2014 Admin Configuration Schema",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214125706308711",
+              "name": "\ud83d\udee1\ufe0f Widget Build-Time Enforcement \u2014 Block Restricted Data at Configuration",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214124670678804",
+              "name": "\ud83c\udfa8 Proactive Dashboard Builder UX \u2014 Data Source Availability Indicators",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214125706350871",
+              "name": "\ud83c\udff7\ufe0f Add Financial Meta-Category \u2014 Unified Financial Data Classification",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214127961315257",
+              "name": "\ud83c\udfd7\ufe0f Implement FILTERED Access Level \u2014 Aggregate-Only Data Access",
+              "completed": false,
+              "assignee": null
+            }
+          ]
+        },
+        {
+          "gid": "1214133185261325",
+          "name": "\ud83d\udd10 Data-at-Rest Encryption \u2014 Backup Encryption + Permission Hardening (CISO \u00a76.1)",
+          "notes": "Implemented all code-level remediations for CISO Report \u00a76.1 Data at Rest.\n\nChanges:\n\u2022 scripts/backup-db.sh \u2014 AES-256-CBC encryption via openssl when BACKUP_ENCRYPTION_KEY is set\n\u2022 scripts/restore-db.sh \u2014 Auto-detects .db.enc, decrypts transparently, shreds temp files\n\u2022 scripts/setup-cron.sh \u2014 Daily cron backup job encrypts if key is set\n\u2022 scripts/ec2-deploy.sh \u2014 DB chmod 664\u2192600, .env.local chmod 600\n\u2022 scripts/check-ebs-encryption.sh \u2014 NEW: Verifies EBS volume encryption via AWS CLI\n\u2022 .env.example \u2014 Added BACKUP_ENCRYPTION_KEY with generation instructions\n\u2022 docs/CISO_REPORT.md \u2014 \u00a76.1 updated with remediation details, Risk #4 marked mitigated\n\nRemaining: EBS volume encryption (separate task, AWS Console action)",
+          "completed": true,
+          "completed_at": "2026-04-19T01:25:36.794Z",
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udd10 Auth & Security"
+        },
+        {
           "gid": "1214125691561107",
           "name": "Zod validation on all API routes (M-3)",
           "notes": "Created shared validation module at src/lib/api/validation.ts with Zod schemas for all POST/PUT endpoints:\n- createDashboardSchema, updateDashboardSchema, shareDashboardSchema, saveVersionSchema\n- createGlossaryTermSchema, updateGlossaryTermSchema\n- dataQuerySchema\n- chatRequestSchema (already in chat route)\n\nAll 8 API routes with request bodies now validate input with Zod. Addresses security audit finding M-3.",
@@ -1244,8 +1326,8 @@
           "gid": "1214125662501105",
           "name": "\ud83d\udd10 Role-Based Access Control & Granular Data Permissions",
           "notes": "\ud83d\udd34 HIGH PRIORITY \u2014 SECURITY\n\n# Role-Based Access Control & Granular Data Permissions\n\n## Overview\nBuild a comprehensive permission system that:\n1. Controls WHO can do WHAT (feature-level permissions)\n2. Controls WHO can see WHICH DATA (data-level access control)\n3. Uses permission groups (role templates) like QuickBooks \u2014 predefined bundles of permissions that admins can customize\n4. Integrates deeply with the AI chat system so Claude tells users exactly what they CAN'T access when they hit a boundary\n5. Allows admins to grant/deny individual permissions within groups\n\n## Current State (Basic)\n- 4 hardcoded roles: VIEWER, CREATOR, POWER_USER, ADMIN\n- Roles checked in session.ts helper functions (canCreateDashboard, canEditGlossary, canAccessSensitiveData)\n- No granular data-source-level access control\n- AI system prompt has no concept of user permissions \u2014 it can suggest any metric to anyone\n\n## Target State (Granular)\n\n### Permission Groups (Role Templates)\nPredefined bundles like QuickBooks. Admins can create custom groups or override individual permissions within a group.\n\n| Group Template       | Feature Access                         | Data Categories Allowed                    |\n|---------------------|----------------------------------------|--------------------------------------------|\n| **Viewer**          | View shared dashboards only            | None (only sees pre-built dashboards)      |\n| **Dept. Analyst**   | Create dashboards, use widget library  | Own department category only               |\n| **Cross-Func Analyst** | Create, publish widgets, share     | Multiple categories (admin-assigned)       |\n| **Power User**      | Full creation, templates, publishing   | All data sources                           |\n| **Admin**           | Everything + user mgmt, glossary, permissions | Everything                          |\n\n### Data Categories (mapped from glossary + data sources)\n- **Revenue**: MRR, ARR, NRR, LTV, ARPU, CAC, Gross Margin, Expansion/Contraction Revenue, CAC Payback\n- **Retention**: Churn Rate, Retention Rate, GRR\n- **Support**: FRT, Resolution Time, CSAT, NPS, Ticket Backlog\n- **Sales**: Win Rate, Pipeline Value, Avg Deal Size, Sales Cycle, Lead Conversion, Quota Attainment\n- **Product**: Daily Active Usage, Feature Adoption, TTV, Onboarding Completion\n- **Operations**: Headcount, Revenue Per Employee, Burn Rate, Runway\n- **Customer PII**: Individual customer names, emails, companies (separate toggle)\n### Data Source Mapping\n\nEach data source table maps to one or more categories:\n- sample_customers \u2192 Customer PII + general\n- sample_subscriptions \u2192 Revenue + Retention\n- sample_tickets \u2192 Support\n- sample_revenue \u2192 Revenue + Operations\n- sample_usage \u2192 Product\n- sample_deals \u2192 Sales\n\n### AI Chat Integration (Critical)\nWhen a user asks the AI for something they can't access:\n- AI must know the user's allowed/denied data categories BEFORE generating patches\n- System prompt includes a \"RESTRICTED DATA\" section listing what the user CANNOT access\n- AI responds with a friendly denial: \"You don't have access to [Revenue data / ARR / etc.]. Please contact your administrator to request access.\"\n- AI suggests ALTERNATIVE metrics the user CAN see\n- Widget library panel only shows widgets the user's permissions allow\n\n### Permission Check Flow\n1. User sends chat message \u2192 API resolves effective permissions\n2. Permissions injected into buildSystemPrompt() as allowed/denied lists\n3. AI generates schema patches \u2192 schema patcher validates data source access\n4. queryData() checks permissions before returning data\n5. Widget renderers show \"Access Denied\" placeholder for unauthorized widgets\n\n### Admin UI\n- Permission Groups page: list, create, edit, delete groups\n- Each group: checkboxes for feature permissions + data category toggles\n- User Management page: assign group to user, override individual permissions\n- Audit log: track permission changes\n\n## Database Schema Changes\n- PermissionGroup: id, name, description, isSystem, featurePermissions (JSON), dataPermissions (JSON)\n- UserPermissionAssignment: userId, permissionGroupId, customOverrides (JSON), assignedBy, assignedAt\n- DataAccessRule: permissionGroupId, dataCategory, accessLevel (FULL/NONE/FILTERED)\n- AuditLog entries for all permission changes\n\n## Key Files to Modify\n- prisma/schema.prisma \u2014 new models\n- src/lib/auth/session.ts \u2014 expand with permission resolution\n- src/lib/auth/permissions.ts \u2014 NEW: permission checking engine\n- src/lib/ai/prompts.ts \u2014 inject user permissions into system prompt\n- src/lib/data/sample-data.ts \u2014 permission-gated queryData()\n- src/app/api/chat/route.ts \u2014 resolve permissions before calling Claude\n- src/components/dashboard/DashboardCanvas.tsx \u2014 permission-aware widget rendering\n- src/components/widgets/WidgetLibraryPanel.tsx \u2014 filter by accessible data\n- src/app/admin/permissions/ \u2014 NEW: admin UI pages\n\n## Security Principles\n- Deny by default \u2014 if no explicit permission, access is denied\n- Server-side enforcement \u2014 never trust client-side permission checks alone\n- Principle of least privilege \u2014 new users get Viewer permissions\n- Audit everything \u2014 every permission grant/revoke is logged\n- AI is permission-aware \u2014 the LLM never suggests metrics the user can't see",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T00:11:11.262Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -1258,97 +1340,97 @@
             {
               "gid": "1214122605509343",
               "name": "\ud83d\udcdd Audit: Log all permission changes",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124634816929",
               "name": "\ud83e\uddea Testing: Permission enforcement test suite",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125670601714",
               "name": "\ud83d\udcca Seed: Default permission groups with sensible data category mappings",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124634801991",
               "name": "\ud83d\udd14 UX: \"Access Denied\" messaging in dashboard builder",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122605510595",
               "name": "\ud83d\udc64 Admin UI: User permission assignment in User Management page",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214140442109384",
               "name": "\ud83c\udfa8 Admin UI: Permission Groups management page",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125670584453",
               "name": "\ud83d\udee1\ufe0f Server-side: Gate queryData() and API routes with permission checks",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214140442267667",
               "name": "\ud83e\udd16 AI Integration: Inject user permissions into Claude system prompt",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124634815578",
               "name": "\ud83d\udd27 Engine: Build permission resolution engine (src/lib/auth/permissions.ts)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124634798961",
               "name": "\ud83d\uddc4\ufe0f Database: Add PermissionGroup, UserPermissionAssignment, DataAccessRule models",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122605507871",
               "name": "\ud83d\udccb Design: Permission Group schema & data category taxonomy",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917312359",
               "name": "Creator+ check for dashboard creation",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141677939",
               "name": "Admin-only routes protection (/admin/*)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122597311552",
               "name": "UI conditional rendering based on user role",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917208744",
               "name": "API middleware to check role before processing requests",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141676611",
               "name": "Permission helper functions (src/lib/utils/permissions.ts)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -2506,8 +2588,8 @@
           "gid": "1214125671525623",
           "name": "\ud83d\udda5\ufe0f Desktop Polish \u2014 Mac & Windows Browser Consistency",
           "notes": "PRIORITY 1 \u2014 The desktop experience must be flawlessly elegant on both Mac and Windows.\n\n## Cross-Browser Matrix\nTest and fix across:\n| Browser | Mac | Windows |\n|---------|-----|---------|\n| Chrome  | \u2705 Primary | \u2705 Primary |\n| Safari  | \u2705 Important | N/A |\n| Firefox | \u2705 Test | \u2705 Test |\n| Edge    | N/A | \u2705 Test |\n\n## Known Platform Differences to Address\n\n### Scrollbar Behavior\n- **Mac**: Scrollbars auto-hide, only appear on scroll (overlay style)\n- **Windows**: Scrollbars always visible, take up layout space (16px wide by default)\n- Current: WebKit-only custom scrollbar in globals.css, Firefox gets nothing\n- Fix: Add Firefox scrollbar styling (`scrollbar-width: thin; scrollbar-color`), test that layouts don't shift when scrollbar appears on Windows\n\n### Font Rendering\n- **Mac**: Subpixel antialiasing, fonts appear slightly heavier\n- **Windows**: ClearType rendering, can look thinner\n- Test: Ensure glassmorphism text remains readable on both platforms at all font weights\n- Consider: `-webkit-font-smoothing: antialiased` (already default in Tailwind v4, verify)\n\n### Keyboard Shortcuts\n- Current: hardcoded \u2318 symbols everywhere\n- Fix: Detect platform, show \u2318 on Mac and Ctrl on Windows\n- Affected: useKeyboardShortcuts.ts, any tooltip/UI showing shortcuts\n- Create a `usePlatform()` hook that returns `{ isMac, modKey: '\u2318' | 'Ctrl' }`\n\n### Backdrop Filter (Glassmorphism)\n- Safari: Needs `-webkit-backdrop-filter` (already present in globals.css \u2705)\n- Firefox: `backdrop-filter` supported since Firefox 103, but verify older versions degrade gracefully\n- Fallback: Solid semi-transparent background for browsers without backdrop-filter support\n\n### Window Resize\n- Editor layout must handle window resize gracefully\n- ResizableDivider already exists, but the overall layout should reflow if window gets narrow\n- At ~1024px width: consider auto-collapsing chat panel to an overlay\n- At ~768px: switch to mobile layout\n\n### Focus / Active States\n- Windows: Default focus ring is very visible (blue outline)\n- Ensure all interactive elements have custom focus-visible styles that match the glassmorphism aesthetic\n- Never remove focus indicators \u2014 just style them consistently\n\n### Context Menu\n- Right-click context menu works identically across platforms \u2705\n- Verify positioning near screen edges (especially right edge on Windows with visible scrollbar)\n\n## Files to Audit\n- src/app/globals.css \u2014 scrollbar, font rendering, backdrop fallbacks\n- src/hooks/useKeyboardShortcuts.ts \u2014 platform detection for shortcut display\n- src/components/layout/ResizableDivider.tsx \u2014 window resize behavior\n- src/components/dashboard/ContextMenu.tsx \u2014 edge positioning\n- All tooltip/shortcut UI text \u2014 \u2318 vs Ctrl",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T00:22:32.358Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2520,7 +2602,7 @@
             {
               "gid": "1214125671491065",
               "name": "Cross-browser testing pass: Chrome, Safari, Firefox, Edge",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2532,13 +2614,13 @@
             {
               "gid": "1214124635721585",
               "name": "Font rendering audit: verify text legibility on Windows ClearType",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635722739",
               "name": "Window resize: auto-collapse chat panel below 1024px width",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -2571,8 +2653,8 @@
           "gid": "1214124635722818",
           "name": "\ud83d\udda5\ufe0f\ud83d\udcf1 Cross-Platform Optimization \u2014 Desktop Excellence + Mobile/Tablet Support",
           "notes": "\ud83d\udda5\ufe0f\ud83d\udcf1 Cross-Platform Optimization Epic\n\n## Priority Order\n1. **Desktop (Mac + Windows)** \u2014 MUST be flawlessly elegant. This is the primary experience.\n2. **Tablet (iPad)** \u2014 Important secondary. Dashboard viewing & light editing should feel native.\n3. **Mobile (iPhone, Android)** \u2014 Dashboard viewing, chat interaction, gallery browsing. Not full editing.\n\n## Current State\n- MobileNotice.tsx shows a \"use desktop\" banner on < 768px \u2014 that's it\n- Editor layout: fixed `h-screen flex` with 340px hardcoded chat width, zero responsive behavior\n- No touch events \u2014 drag-and-drop uses pointer events only, context menu is right-click only\n- Landing page + gallery have basic Tailwind responsive classes (sm:, lg:, xl:)\n- Navbar hides labels on mobile (hidden sm:inline) but nav items disappear entirely (hidden sm:flex)\n- No keyboard shortcut platform detection (\u2318 shown everywhere, even on Windows)\n- Scrollbar styling only WebKit \u2014 Firefox on Windows gets no custom scrollbar\n- No viewport meta considerations for zoom/scale on touch devices\n\n## Testing\n- **iOS/iPad**: User can test directly on own devices\n- **Mac browsers**: Safari, Chrome, Firefox (user can test)\n- **Windows**: Chrome, Firefox, Edge (need BrowserStack or similar, or a Windows machine)\n- **Android**: BrowserStack or Chrome DevTools device emulation for initial pass\n\n## Key Principles\n- Desktop-first, mobile-enhanced (not mobile-first)\n- The editor is a desktop tool \u2014 on mobile, provide a VIEW + CHAT experience, not full editing\n- Touch targets: minimum 44px on touch devices (Apple HIG)\n- Animations: respect prefers-reduced-motion\n- Dark mode + light mode must both look great on all platforms\n",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T00:31:59.431Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2634,8 +2716,8 @@
           "gid": "1214122606028761",
           "name": "\ud83d\udd0e Widget Data Transparency \u2014 \"Show Me the Query\" on Every Widget",
           "notes": "Every number on an InsightHub dashboard must be traceable back to its source query. Power users don't trust black-box numbers \u2014 they need to verify.\n\n## Features\n\n### \"View Query\" on Every Widget\n- Hover any widget \u2192 subtle code icon (</>) appears in the header\n- Click \u2192 slide-out panel showing:\n  - The SQL query (or visual query definition) that produced the data\n  - The raw data table (first N rows)\n  - Data source name, last refreshed timestamp\n  - Glossary terms referenced by this widget (with definitions)\n  - Execution time + row count\n\n### \"Copy Query\" Button\n- One-click copy the SQL to clipboard\n- \"Open in SQL Editor\" button \u2192 navigates to SQL Editor with query pre-loaded\n- \"Open in Playground\" \u2192 opens a new playground tab with this query\n\n### Data Freshness Indicator\n- Every widget shows a subtle timestamp: \"Data as of 2 hours ago\"\n- Color-coded: green (< 1hr), yellow (1-6hr), red (> 6hr)\n- Click \u2192 option to force refresh\n\n### Lineage Trail (Advanced)\n- For widgets using calculated fields or chained queries:\n  - Show the dependency tree: which tables \u2192 which joins \u2192 which aggregations \u2192 final value\n  - Collapsible lineage diagram\n\n### Export Widget Data\n- Download the widget's underlying data as CSV or JSON\n- Download the chart as PNG/SVG\n- Copy data to clipboard as TSV (paste into Excel/Google Sheets)\n\n## Files\n- src/components/dashboard/WidgetQueryPanel.tsx \u2014 slide-out query viewer\n- src/components/dashboard/DataFreshness.tsx \u2014 freshness indicator badge\n- src/components/data/LineageTree.tsx \u2014 dependency visualization\n\n## Depends On\n- All widgets must store their query in dataConfig.query or dataConfig.source\n- Query execution timestamps stored per widget",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T00:37:36.934Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2648,37 +2730,37 @@
             {
               "gid": "1214140474250455",
               "name": "Lineage trail: dependency tree for calculated fields (Phase 4)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926091098",
               "name": "Glossary terms referenced panel (definitions + formulas)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635338033",
               "name": "Widget data export: CSV, JSON, clipboard TSV, chart PNG/SVG",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150376844",
               "name": "Data freshness indicator (timestamp + color coding)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671174279",
               "name": "\"Copy Query\" and \"Open in SQL Editor\" buttons",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214140474262304",
               "name": "Widget header code icon \u2192 slide-out panel with SQL + raw data",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -2971,8 +3053,8 @@
           "gid": "1214139826485836",
           "name": "Onboarding flow (first-login walkthrough)",
           "notes": "Welcome modal with 3-4 animated slides. Guided first dashboard.\nRef: spec Section 4.1",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T00:46:50.939Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -2985,37 +3067,37 @@
             {
               "gid": "1214122597240556",
               "name": "Auto-redirect first-time users to onboarding",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917390839",
               "name": "Store onboarding_completed flag in User record",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662632615",
               "name": "Template gallery prompt with 4-6 pre-built examples",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122597394944",
               "name": "Guided first dashboard prompt in chat",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662482471",
               "name": "Welcome modal with animated walkthrough slides",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141673271",
               "name": "Create /onboarding page",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3077,8 +3159,8 @@
           "gid": "1214125662518751",
           "name": "Responsive preview mode",
           "notes": "Toggle between desktop/tablet/mobile preview.\nRef: spec Section 4.3",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T00:52:59.716Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3091,19 +3173,19 @@
             {
               "gid": "1214125662514120",
               "name": "Widget stacking on smaller viewports",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141792693",
               "name": "Responsive grid layout adaptation",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662617015",
               "name": "Preview toggle buttons in toolbar (desktop/tablet/mobile)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3133,8 +3215,8 @@
           "gid": "1214125662459347",
           "name": "Dashboard thumbnails (auto-generated previews)",
           "notes": "Capture dashboard screenshots for gallery cards.\nRef: spec Phase 2",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T01:04:19.214Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3147,25 +3229,25 @@
             {
               "gid": "1214125662601749",
               "name": "Fallback placeholder for dashboards without thumbnails",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917390787",
               "name": "Store in public/ or S3",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662683859",
               "name": "Generate thumbnail on save",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124626654898",
               "name": "Server-side screenshot generation (Puppeteer or html2canvas)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3174,8 +3256,8 @@
           "gid": "1214125662600431",
           "name": "Template system \u2014 promote to templates",
           "notes": "Admin can promote dashboards to template gallery.\nTemplates appear in onboarding and /templates page.\nRef: spec Section 4.7",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T01:13:15.175Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3188,25 +3270,25 @@
             {
               "gid": "1214127917461554",
               "name": "Template categories/tags",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214139826473448",
               "name": "\"Use this template\" creates a clone for the user",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917315299",
               "name": "/templates page showing all template dashboards",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124626716962",
               "name": "Admin action to mark dashboard as template",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3250,8 +3332,8 @@
           "gid": "1214124626721004",
           "name": "Folder system",
           "notes": "Create, nest, and organize dashboards in folders.\nRef: spec Section 4.7",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T01:28:06.343Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3264,31 +3346,31 @@
             {
               "gid": "1214124626823438",
               "name": "Breadcrumb navigation",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141719233",
               "name": "Folder visibility (private/team/public)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917287987",
               "name": "Drag dashboards between folders",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917356580",
               "name": "Create/rename/delete folders",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133141843551",
               "name": "FolderTree component with nested navigation",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3297,15 +3379,20 @@
           "gid": "1214122597285598",
           "name": "Dashboard sharing system",
           "notes": "Share with specific users at VIEW/COMMENT/EDIT permission levels.\nRef: spec Section 4.6",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T01:41:41.151Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
           "assignee": null,
           "num_subtasks": 7,
           "custom_fields": {},
-          "dependencies": [],
+          "dependencies": [
+            {
+              "gid": "1214127962108988",
+              "name": "?"
+            }
+          ],
           "section": "\ud83d\udcc1 Gallery & Sharing",
           "subtasks": [
             {
@@ -3317,19 +3404,19 @@
             {
               "gid": "1214133141746318",
               "name": "Email notification on share (optional)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662650793",
               "name": "Publish to gallery (make public to all authenticated users)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662663819",
               "name": "\"Shared with Me\" gallery section",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -3347,7 +3434,7 @@
             {
               "gid": "1214133141674911",
               "name": "Share modal \u2014 search and select users",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -4154,7 +4241,12 @@
           "assignee": null,
           "num_subtasks": 6,
           "custom_fields": {},
-          "dependencies": [],
+          "dependencies": [
+            {
+              "gid": "1214122642087362",
+              "name": "?"
+            }
+          ],
           "section": "\ud83e\uddea Testing & QA",
           "subtasks": [
             {
@@ -4414,6 +4506,41 @@
       "name": "\ud83d\ude80 Deployment & DevOps",
       "tasks": [
         {
+          "gid": "1214127961828743",
+          "name": "ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)",
+          "notes": "## Summary\n\nThe CISO report (\u00a76.1) requires EBS volume encryption at rest for the InsightHub EC2 instance. We have built the full automation script but are blocked on IAM permissions. The current IAM user (jeffreycoy-lambda-cli) only has Lambda permissions and cannot perform EC2 operations.\n\n## What We've Done\n- Installed AWS CLI v2 on the EC2 instance (i-07f1bf55da9c6c7a3, us-east-2)\n- Created automation script: scripts/enable-ebs-encryption.sh\n  - Enables default EBS encryption for the region\n  - Snapshots each unencrypted volume\n  - Creates encrypted copies via snapshot-copy method\n  - Swaps volumes (requires brief ~5-10 min instance stop)\n  - Verifies all volumes are encrypted post-migration\n  - Tags old volumes for cleanup\n- Created the IAM policy document: scripts/iam-ebs-encryption-policy.json\n- Existing EBS volume (nvme0n1, 8GB gp3) is currently NOT encrypted\n\n## What the Sysadmin Needs to Do\n\nOption A - Add inline policy to existing user (quickest):\n1. AWS Console -> IAM -> Users -> jeffreycoy-lambda-cli\n2. \"Add permissions\" -> \"Attach policies directly\"\n3. \"Create policy\" -> JSON tab\n4. Paste contents of scripts/iam-ebs-encryption-policy.json (also in Sysadmin Report section 13)\n5. Name it \"InsightHubEBSEncryption\" -> Create policy\n6. Back on the user page, search for \"InsightHubEBSEncryption\" and attach it\n\nOption B - Create an EC2 instance profile (preferred long-term):\n1. Create IAM role \"InsightHubEC2Role\" with EC2 trust policy\n2. Attach the EBS encryption policy (same JSON) to the role\n3. Create instance profile, add role to it\n4. Attach instance profile to instance i-07f1bf55da9c6c7a3\n\nOnce permissions are granted, run:\n  ssh jeffreycoy@autoqa \"sudo bash /opt/insighthub/scripts/enable-ebs-encryption.sh\"\n\n## Instance Details\n- Instance ID: i-07f1bf55da9c6c7a3\n- Region: us-east-2\n- AZ: us-east-2b\n- Volume: 8GB gp3, ext4, currently NOT encrypted\n- IAM User: arn:aws:iam::734910107398:user/jeffreycoy-lambda-cli\n\n## References\n- CISO Report: docs/CISO_REPORT.md section 6.1 (Data at Rest)\n- Sysadmin Report: docs/SYSADMIN_REPORT.md section 13 (EBS Encryption)\n- Automation script: scripts/enable-ebs-encryption.sh\n- IAM policy: scripts/iam-ebs-encryption-policy.json\n- AWS docs: https://docs.aws.amazon.com/ebs/latest/userguide/EBSEncryption.html",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\ude80 Deployment & DevOps"
+        },
+        {
+          "gid": "1214133185226751",
+          "name": "\ud83d\udd12 Verify & Enable EBS Volume Encryption on EC2 (CISO \u00a76.1)",
+          "notes": "CISO Report \u00a76.1 \u2014 Data at Rest\n\nAll backup encryption and file permission hardening has been implemented in code.\nThis is the one remaining manual step that must be done in the AWS Console.\n\nAction required:\n1. Run: ./scripts/check-ebs-encryption.sh (verifies current status)\n2. If unencrypted, enable default EBS encryption for the region:\n   aws ec2 enable-ebs-encryption-by-default --region us-east-2\n3. For existing volumes: create encrypted snapshot \u2192 replace volume\n   (script provides detailed steps)\n\nContext: Backups are now AES-256-CBC encrypted, DB is chmod 600,\n.env.local is chmod 600. This EBS step closes the last gap.\n\nRef: docs/CISO_REPORT.md \u00a76.1, Risk #4",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": "2026-04-19",
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [
+            {
+              "gid": "1214133186321579",
+              "name": "?"
+            }
+          ],
+          "section": "\ud83d\ude80 Deployment & DevOps"
+        },
+        {
           "gid": "1214133170067156",
           "name": "CI/CD: Split GitHub Actions CI and Local Tailscale SSH Deploy",
           "notes": "Separated CI (GitHub Actions: typecheck + build) from deploy (local Tailscale SSH to EC2).\n- GitHub Actions runs lint/typecheck/build on push to main\n- Deploy remains manual via scripts/ec2-deploy.sh over Tailscale\n- Multiple CI workflow iterations to debug GitHub Actions registration\n\nFile: .github/workflows/ci.yml\nCommits: 0b85836, 12dfe49, ffb59f6, ebbb404, 027a2da, 48e4fa8",
@@ -4610,7 +4737,12 @@
           "assignee": null,
           "num_subtasks": 4,
           "custom_fields": {},
-          "dependencies": [],
+          "dependencies": [
+            {
+              "gid": "1214124671467094",
+              "name": "?"
+            }
+          ],
           "section": "\ud83d\ude80 Deployment & DevOps",
           "subtasks": [
             {
@@ -4651,7 +4783,12 @@
           "assignee": null,
           "num_subtasks": 3,
           "custom_fields": {},
-          "dependencies": [],
+          "dependencies": [
+            {
+              "gid": "1214127962125142",
+              "name": "?"
+            }
+          ],
           "section": "\ud83d\ude80 Deployment & DevOps",
           "subtasks": [
             {
@@ -4686,7 +4823,12 @@
           "assignee": null,
           "num_subtasks": 6,
           "custom_fields": {},
-          "dependencies": [],
+          "dependencies": [
+            {
+              "gid": "1214124671514378",
+              "name": "?"
+            }
+          ],
           "section": "\ud83d\ude80 Deployment & DevOps",
           "subtasks": [
             {
@@ -5598,8 +5740,154 @@
           "assignee": null,
           "num_subtasks": 0,
           "custom_fields": {},
-          "dependencies": [],
+          "dependencies": [
+            {
+              "gid": "1214125707178506",
+              "name": "?"
+            }
+          ],
           "section": "TO SORT"
+        }
+      ]
+    },
+    {
+      "gid": "1214125707181627",
+      "name": "\ud83c\udfaf Jeff \u2014 Action Needed",
+      "tasks": [
+        {
+          "gid": "1214122642087362",
+          "name": "\ud83d\udcf1 ACTION: Real Device Testing (iPhone & iPad)",
+          "notes": "The Cross-Platform Testing Matrix includes:\n  - iPhone real-device test pass (Safari)\n  - iPad real-device test pass (Safari, portrait + landscape)\n\nACTION NEEDED:\n\u2022 Run through the manual test script on your iPhone (Safari)\n\u2022 Run through on iPad if available (portrait + landscape)\n\u2022 Report any issues found \u2014 I'll fix them\n\nI'll prepare a manual test checklist (docs/TESTING_MATRIX.md) for you.\n\nBLOCKS: \ud83e\uddea Cross-Platform Testing Matrix \u2192 iPhone & iPad subtasks",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214127962125142",
+          "name": "\ud83d\uddc4\ufe0f DECIDE: Backup & Disaster Recovery Strategy",
+          "notes": "Need infrastructure decisions before implementing automated backups.\n\nDECISIONS NEEDED:\n\u2022 Where should backups go? S3 bucket (name/region)? Local? Both?\n\u2022 Retention policy: keep 7 days? 30 days? 90 days?\n\u2022 Frequency: daily? every 6 hours?\n\u2022 For SQLite: just file copy + encrypt, or also WAL checkpoint?\n\u2022 Do you have/want an S3 bucket, or should I create one via script?\n\nBLOCKS: Backup & disaster recovery (all subtasks)",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214125707178506",
+          "name": "\ud83d\udcc8 INPUT: Provide Ballpark Business Numbers for Seed Data",
+          "notes": "Current seed data uses random numbers. You asked for more realistic data\nthat trends in the right direction.\n\nINPUT NEEDED (ballpark ranges, not exact \u2014 just directionally correct):\n\u2022 Approximate customer count (hundreds? thousands? tens of thousands?)\n\u2022 Rough ARR range or average deal size\n\u2022 Typical monthly churn rate (1%? 3%? 5%?)\n\u2022 Support ticket volume per month\n\u2022 Sales pipeline: average deal count, win rate\n\u2022 Any seasonal patterns worth modeling?\n\u2022 Any metrics you definitely DON'T want shown even in demo data?\n\nBLOCKS: TO SORT \u2192 Business data calibration task",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214124671515358",
+          "name": "\ud83c\udff7\ufe0f DECIDE: Which Metrics Are Financially Sensitive?",
+          "notes": "The Metric-Level RBAC system needs business rules to implement.\nI can build the generic framework, but need your policy decisions.\n\nDECISIONS NEEDED:\n\u2022 Which specific metrics should be restricted beyond the category level?\n  - e.g., individual deal amounts? Revenue by customer? Margin %?\n\u2022 What does FILTERED access mean for your org?\n  - Aggregates only (totals, averages) but no row-level data?\n  - Redacted columns (show trends but hide dollar amounts)?\n\u2022 Which roles should get FILTERED vs FULL vs NONE for financial data?\n\nBLOCKS: \ud83d\udd10 Metric-Level RBAC \u2014 all 5 subtasks",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214124671467094",
+          "name": "\ud83c\udf10 DECIDE: Final Production Domain",
+          "notes": "Currently deployed at dashboards.jeffcoy.net.\nSeveral config items depend on knowing the final domain:\n  - NEXTAUTH_URL needs to match\n  - CORS/CSP headers\n  - SSL certificate\n  - Google OAuth redirect URIs\n\nDECISION NEEDED:\n\u2022 Keep dashboards.jeffcoy.net permanently?\n\u2022 Move to insighthub.uszoom.com (or similar company domain)?\n\u2022 Both (jeffcoy.net for dev, uszoom.com for prod)?\n\nBLOCKS: Domain & DNS setup (remaining subtasks: NEXTAUTH_URL, SSL, DNS records)",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214124671514378",
+          "name": "\ud83d\udcca ACTION: Provide Datadog API Key & DD_SITE",
+          "notes": "DECIDED: Use Datadog for monitoring & alerting.\n\nACTION NEEDED:\n\u2022 Get your Datadog API key from https://app.datadoghq.com/organization-settings/api-keys\n\u2022 Note your DD_SITE value (e.g., datadoghq.com, us5.datadoghq.com, etc.)\n\u2022 Provide both to Cascade so we can integrate:\n  - Datadog APM (Next.js server tracing)\n  - Datadog RUM (client-side performance)\n  - Datadog Logs (error tracking)\n  - Infrastructure agent on EC2 (disk/memory/CPU alerts)\n  - Synthetic Monitoring (uptime checks)\n\nBLOCKS: Production monitoring & alerting (all 5 subtasks)",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214127962108988",
+          "name": "\ud83d\udce7 DECIDE: Email Provider for Notifications",
+          "notes": "The 'Dashboard sharing system' has an incomplete subtask:\n  'Email notification on share (optional)'\n\nDECISION NEEDED:\n\u2022 Which email service? Options:\n  - Resend (simple, developer-friendly, free tier: 100 emails/day)\n  - AWS SES (cheapest at scale, already on AWS)\n  - SendGrid (most popular, free tier: 100 emails/day)\n  - Skip for MVP \u2014 just use in-app notifications\n\n\u2022 What 'from' address? e.g., noreply@insighthub.uszoom.com\n\nBLOCKS: Dashboard sharing system \u2192 Email notification on share",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214125707137986",
+          "name": "\ud83d\udd11 ACTION: Deploy OPENAI_API_KEY to EC2 Production",
+          "notes": "Voice input (Whisper) works locally but the API key is not in production.\n\nACTION NEEDED:\n\u2022 SSH into EC2: ssh ec2-user@dashboards.jeffcoy.net\n\u2022 Add OPENAI_API_KEY=sk-... to /home/ec2-user/InsightHub/.env.local\n\u2022 Restart the service: sudo systemctl restart insighthub\n\nBLOCKS: \ud83c\udf99\ufe0f Voice Input \u2014 Whisper API on production",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
+        },
+        {
+          "gid": "1214133186321579",
+          "name": "\ud83d\udd12 URGENT: Verify & Enable EBS Volume Encryption",
+          "notes": "CISO Report \u00a76.1 requires encryption at rest for the EC2 volume.\nDue date: April 19, 2026 (tomorrow).\n\nACTION NEEDED:\n\u2022 SSH into the EC2 instance or use AWS Console\n\u2022 Run: scripts/check-ebs-encryption.sh to check current state\n\u2022 If not encrypted: create encrypted snapshot \u2192 new encrypted volume \u2192 swap\n\u2022 OR enable default EBS encryption in the AWS region and re-create the volume\n\nBLOCKS: \ud83d\udd12 Verify & Enable EBS Volume Encryption on EC2 (CISO \u00a76.1)",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": "2026-04-19",
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
         }
       ]
     }

@@ -45,10 +45,23 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: npm audit (high + critical)
+        run: npm audit --audit-level=high
+
   # ── Build ─────────────────────────────────────────────────
   build:
     name: Build
-    needs: [typecheck, lint]
+    needs: [typecheck, lint, audit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

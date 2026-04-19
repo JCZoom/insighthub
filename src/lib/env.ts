@@ -169,6 +169,18 @@ export function assertEnv(): void {
     console.warn(`⚠️  ENV: ${w}`);
   }
 
+  // Hard fail: dev mode must never be enabled in production
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.NEXT_PUBLIC_DEV_MODE === 'true'
+  ) {
+    throw new Error(
+      'FATAL: NEXT_PUBLIC_DEV_MODE=true is set in a production environment. ' +
+        'This bypasses authentication and must be disabled. ' +
+        'Remove NEXT_PUBLIC_DEV_MODE or set it to "false" before deploying.',
+    );
+  }
+
   if (result.invalid.length > 0) {
     console.error(`❌ ENV: Invalid environment variables: ${result.invalid.join(', ')}`);
   }

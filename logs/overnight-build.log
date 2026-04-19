@@ -921,3 +921,15 @@
 [2026-04-18 21:41:41]    Total tokens: 5,491 in + 309,569 out
 [2026-04-18 21:41:41] ============================================================
 [2026-04-18 21:41:41] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18-5.md
+[2026-04-18 22:28:40] ============================================================
+[2026-04-18 22:28:40] 🌙 Overnight Builder starting
+[2026-04-18 22:28:40]    Project: /Users/Jeffrey.Coy/CascadeProjects/InsightHub
+[2026-04-18 22:28:40]    Model: claude-sonnet-4-20250514
+[2026-04-18 22:28:40]    Max tasks: 10
+[2026-04-18 22:28:40]    Max consecutive failures: 3
+[2026-04-18 22:28:40]    Dry run: False
+[2026-04-18 22:28:40]    Budget cap: $25.00
+[2026-04-18 22:28:40]    AI triage: False
+[2026-04-18 22:28:40]    Operator notes: PRIORITY 1 — Fix remaining critical sprint review issues: C2 unconditional useRe...
+[2026-04-18 22:28:40] ============================================================
+[2026-04-18 22:28:41] ⚠️  Uncommitted changes detected. Committing before starting...

@@ -58,7 +58,7 @@ When `NEXT_PUBLIC_DEV_MODE=true`, all authentication is bypassed. The middleware
 - `assertEnv()` runs at server startup via `src/instrumentation.ts`
 - Deploy script (`scripts/ec2-deploy.sh:69–71`) sets `NODE_ENV=production`
 
-**Recommendation:** Add a hard fail (not just a warning) that prevents the server from starting in production when `NEXT_PUBLIC_DEV_MODE=true`. Currently, `assertEnv()` only throws on _missing required_ vars; the dev-mode-in-prod check is a warning only.
+**✅ Resolved:** `assertEnv()` now throws a fatal error and prevents server startup when `NEXT_PUBLIC_DEV_MODE=true` in production (`src/lib/env.ts:172–182`). Previously this was a warning only.
 
 ### 1.3 Role-Based Access Control (RBAC)
 
@@ -113,7 +113,7 @@ and must NOT generate queries or widgets using them
 
 **CustomerPII** category covers: `sample_customers`, `customers`, `customer_growth`, `customers_by_plan`, `customers_by_region` — see `src/lib/auth/permissions.ts:12`.
 
-**Recommendation:** Only ADMIN has PII access. However, the AI enforcement is a soft control (prompt-based). Consider adding server-side validation that strips PII fields from any response returned from the data query API, regardless of what the AI generates.
+**✅ Resolved:** Server-side PII field stripping is now enforced in `src/app/api/data/query/route.ts:16–33`. All responses from the data query API have PII fields (`name`, `email`, `company`, `account_manager`, `contact`, `owner`) replaced with `[REDACTED]` for any user without `FULL` access to the `CustomerPII` category. This is a hard control that operates regardless of what the AI generates, complementing the existing prompt-based soft control.
 
 ---
 
@@ -151,7 +151,7 @@ TMPENV=$(mktemp)
 cat "$PROJECT_DIR/.env.local" > "$TMPENV"
 ```
 
-**Recommendation:** Use a proper secrets manager (AWS SSM Parameter Store, AWS Secrets Manager, or HashiCorp Vault) rather than file-based env syncing. At minimum, ensure EC2 `.env.local` has restrictive file permissions (`chmod 600`).
+**Recommendation:** Use a proper secrets manager (AWS SSM Parameter Store, AWS Secrets Manager, or HashiCorp Vault) rather than file-based env syncing. At minimum, ensure EC2 `.env.local` has restrictive file permissions (`chmod 600`). *(Infrastructure change — not code-implementable.)*
 
 ### 2.3 Error Message Leakage
 
@@ -197,13 +197,13 @@ frame-ancestors 'none';
 upgrade-insecure-requests;
 ```
 
-**Concerns:**
-- `'unsafe-eval'` in `script-src` — required by Next.js dev mode but should be removed in production builds. Consider nonce-based CSP.
-- `'unsafe-inline'` in `script-src` and `style-src` — common for React/Tailwind apps but weakens XSS protection.
-- `img-src https:` is very permissive — allows loading images from any HTTPS source.
-- `https://vercel.live` in `script-src` and `connect-src` — appears vestigial if not using Vercel. Remove if not needed.
+**✅ Resolved (partial):**
+- `'unsafe-eval'` removed from `script-src` in production — now only present in dev mode for Next.js hot reload: `middleware.ts:27–30`
+- `https://vercel.live` removed from `script-src` and `connect-src` (vestigial, not using Vercel)
+- `img-src` tightened from `https:` (any HTTPS) to `blob:` only (self + data + blob)
 
-**Recommendation:** Implement nonce-based CSP for production to eliminate `'unsafe-inline'` and `'unsafe-eval'`.
+**Remaining:**
+- `'unsafe-inline'` in `script-src` and `style-src` — still required for Next.js inline scripts and Tailwind. Full nonce-based CSP requires Next.js rendering pipeline changes (future enhancement).
 
 ### 3.2 Production Health Check — Security Headers Verified
 
@@ -246,7 +246,7 @@ Zod schema validation is applied on critical endpoints:
 | `POST /api/admin/users` | CUID format for user/group IDs | `src/app/api/admin/users/route.ts:8–17` |
 | `POST /api/admin/permission-groups` | Name length, permission structure | `src/app/api/admin/permission-groups/route.ts:52–57` |
 
-**Concern:** The `POST /api/dashboards` route does not validate the `schema` body field with Zod — it accepts `unknown`: `src/app/api/dashboards/route.ts:71–77`. Consider adding schema validation.
+**✅ Resolved:** The `POST /api/dashboards` route now validates the entire request body with Zod, including the `schema` field (`DashboardSchemaValidator`). Validates layout constraints, widget structure (position bounds, data config, etc.), title/description length, tag limits, and max 100 widgets per dashboard: `src/app/api/dashboards/route.ts:9–51`.
 
 ### 4.3 CSRF Protection
 
@@ -304,7 +304,7 @@ Audit logging failures are caught and logged but never block the primary operati
 }
 ```
 
-**Recommendation:** Consider shipping audit logs to an external, immutable store (e.g., CloudWatch, S3 with object lock) for SOC 2 compliance. Currently, audit logs live in the same SQLite database as application data and could be tampered with by anyone with DB access.
+**Recommendation:** Consider shipping audit logs to an external, immutable store (e.g., CloudWatch, S3 with object lock) for SOC 2 compliance. Currently, audit logs live in the same SQLite database as application data and could be tampered with by anyone with DB access. *(Infrastructure change — not code-implementable.)*
 
 ---
 
@@ -353,7 +353,7 @@ The seed script uses `@faker-js/faker` to generate all sample customer data: `pr
 
 All AI conversations are persisted to the database (`ChatMessage` table). Messages include the user's natural language input and the AI's response including any schema patches.
 
-**Recommendation:** Consider implementing a retention policy for chat messages. Add a mechanism to purge or anonymize old conversations. If users discuss sensitive business data in chat, those messages persist indefinitely.
+**✅ Resolved:** A 90-day retention policy is now implemented via `src/lib/data/retention.ts`. The `purgeChatMessages()` function deletes messages older than the retention period and cleans up orphaned sessions. An admin-only API endpoint `POST /api/admin/retention` (`src/app/api/admin/retention/route.ts`) can be invoked by a cron job or manually. Accepts an optional `retentionDays` parameter (default 90).
 
 ---
 
@@ -404,7 +404,7 @@ CPUQuota=80%
 
 The codebase uses Prisma (parameterized queries) for all database access, preventing SQL injection. No raw SQL is executed except in the health check (`SELECT 1`): `src/app/api/health/route.ts:22`.
 
-**Recommendation:** Run `npm audit` regularly and integrate it into CI. Consider adding Dependabot or Snyk.
+**✅ Resolved:** `npm audit --audit-level=high` is now a required CI quality gate (`.github/workflows/ci.yml:48–59`). The `audit` job runs in parallel with typecheck and lint; the build will not proceed if high or critical vulnerabilities are found.
 
 ---
 
@@ -427,10 +427,10 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | Requirement | Status |
 |-------------|--------|
 | Data minimization | ✅ Only email/name stored for users |
-| Right to access | ⚠️ No self-service data export endpoint |
-| Right to deletion | ⚠️ No self-service account deletion |
+| Right to access | ✅ `GET /api/user/export` — full JSON data export |
+| Right to deletion | ✅ `POST /api/user/delete` — anonymizes user, deletes personal data |
 | Consent | ✅ Google OAuth implies consent; domain-restricted |
-| Data retention | ⚠️ No automated purge of old data |
+| Data retention | ✅ 90-day chat retention via `POST /api/admin/retention` |
 
 ---
 
@@ -440,28 +440,28 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 
 | # | Risk | Mitigation |
 |---|------|-----------|
-| 1 | Dev mode bypass could run in production (warning-only check) | Make `assertEnv()` throw — not warn — when `NEXT_PUBLIC_DEV_MODE=true` in production |
-| 2 | `.env.local` synced via SCP without encryption | Migrate to AWS Secrets Manager or SSM Parameter Store |
+| 1 | ~~Dev mode bypass could run in production (warning-only check)~~ | ✅ `assertEnv()` now throws a fatal error preventing startup: `src/lib/env.ts:172–182` |
+| 2 | `.env.local` synced via SCP without encryption | Migrate to AWS Secrets Manager or SSM Parameter Store *(infrastructure — not code-implementable)* |
 
 ### High
 
 | # | Risk | Mitigation |
 |---|------|-----------|
-| 3 | Audit logs stored in same DB as app data (tamperable) | Ship audit logs to immutable external store (CloudWatch, S3 Object Lock) |
+| 3 | Audit logs stored in same DB as app data (tamperable) | Ship audit logs to immutable external store (CloudWatch, S3 Object Lock) *(infrastructure — not code-implementable)* |
 | 4 | SQLite database not encrypted at rest | ✅ Backups now AES-256-CBC encrypted; DB file hardened to `chmod 600`; EBS encryption verification script added. Evaluate SQLCipher for Phase 3 |
-| 5 | CSP allows `'unsafe-eval'` and `'unsafe-inline'` | Implement nonce-based CSP for production |
-| 6 | No `npm audit` in CI pipeline | Add `npm audit --audit-level=high` step to CI |
+| 5 | ~~CSP allows `'unsafe-eval'` and `'unsafe-inline'`~~ | ✅ `'unsafe-eval'` removed in production, `https://vercel.live` removed, `img-src` tightened. `'unsafe-inline'` remains (Next.js requirement). `middleware.ts:23–44` |
+| 6 | ~~No `npm audit` in CI pipeline~~ | ✅ Added as parallel CI quality gate: `.github/workflows/ci.yml:48–59` |
 
 ### Medium
 
 | # | Risk | Mitigation |
 |---|------|-----------|
-| 7 | Chat messages persist indefinitely (may contain sensitive data) | Implement 90-day retention policy with auto-purge |
-| 8 | Dashboard schema body not validated with Zod | Add Zod validation to `POST /api/dashboards` |
-| 9 | AI PII enforcement is prompt-based only (soft control) | Add server-side PII field stripping on data query responses |
-| 10 | No GDPR self-service (data export / account deletion) | Build `/api/user/export` and `/api/user/delete` endpoints |
+| 7 | ~~Chat messages persist indefinitely (may contain sensitive data)~~ | ✅ 90-day retention with `POST /api/admin/retention`: `src/lib/data/retention.ts`, `src/app/api/admin/retention/route.ts` |
+| 8 | ~~Dashboard schema body not validated with Zod~~ | ✅ Full Zod validation added: `src/app/api/dashboards/route.ts:9–51` |
+| 9 | ~~AI PII enforcement is prompt-based only (soft control)~~ | ✅ Server-side PII field stripping added: `src/app/api/data/query/route.ts:7–33` |
+| 10 | ~~No GDPR self-service (data export / account deletion)~~ | ✅ `GET /api/user/export` and `POST /api/user/delete` implemented: `src/app/api/user/export/route.ts`, `src/app/api/user/delete/route.ts` |
 | 11 | In-memory rate limiting won't survive restarts or scale horizontally | Acceptable for single-instance; plan Redis if scaling |
-| 12 | Vestigial `https://vercel.live` in CSP | Remove from `script-src` and `connect-src` |
+| 12 | ~~Vestigial `https://vercel.live` in CSP~~ | ✅ Removed from both `script-src` and `connect-src`: `middleware.ts:31–37` |
 
 ---
 
@@ -488,4 +488,10 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | Health check | `src/app/api/health/route.ts` | 6–53 (no auth required — public) |
 | Security header tests | `e2e/production-health.spec.ts` | 46–54 (header assertions) |
 | Secrets handling | `scripts/ec2-deploy.sh` | 60–87 (env sync, secret generation) |
+| PII field stripping | `src/app/api/data/query/route.ts` | 7–33 (server-side PII redaction) |
+| Chat retention | `src/lib/data/retention.ts` | 1–36 (90-day purge utility) |
+| Retention API | `src/app/api/admin/retention/route.ts` | 1–37 (admin-only purge endpoint) |
+| GDPR data export | `src/app/api/user/export/route.ts` | 1–112 (right-to-access) |
+| GDPR account delete | `src/app/api/user/delete/route.ts` | 1–100 (right-to-deletion) |
+| Dashboard validation | `src/app/api/dashboards/route.ts` | 9–51 (Zod schema validation) |
 | Gitignore (secrets) | `.gitignore` | 37–43 (env files, DB, keys) |

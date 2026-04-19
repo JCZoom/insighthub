@@ -21,13 +21,20 @@ export default withAuth(
     }
 
     // Content Security Policy
+    // - 'unsafe-eval' only in dev (Next.js hot reload); removed in production
+    // - 'unsafe-inline' required for Next.js inline scripts and Tailwind styles
+    // - https://vercel.live removed (not using Vercel)
+    const isDev = process.env.NODE_ENV !== 'production';
+    const scriptSrc = isDev
+      ? `'self' 'unsafe-eval' 'unsafe-inline'`
+      : `'self' 'unsafe-inline'`;
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live;
+      script-src ${scriptSrc};
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: https: blob:;
-      connect-src 'self' https://api.anthropic.com https://vercel.live;
+      img-src 'self' data: blob:;
+      connect-src 'self' https://api.anthropic.com;
       frame-src 'self';
       object-src 'none';
       base-uri 'self';

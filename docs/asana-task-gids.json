@@ -15,9 +15,11 @@
     "deploymentanddevops": "1214124626808056",
     "advancedfeaturesphas": "1214127917478801",
     "documentation": "1214124626970649",
-    "tosort": "1214122597538766"
+    "tosort": "1214122597538766",
+    "\ud83c\udfafjeff\u2014actionneeded": "1214125707181627"
   },
   "tasks": {
+    "[review_fix]_sprint_5_\u2014_gallery_folder_f": "1214127961565881",
     "[review_fix]_auto-save_captures_stale_sc": "1214133177816175",
     "[review_fix]_unused_import_in_about_page": "1214124663051443",
     "[review_fix]_tabindex={-1}_on_all_intera": "1214127953437826",
@@ -149,6 +151,7 @@
     "e2e_tests_\u2014_critical_user_flows": "1214125662713839",
     "integration_tests_\u2014_api_routes": "1214125662514157",
     "unit_tests_\u2014_core_logic": "1214122597431622",
+    "action_needed:_grant_iam_permissions_for": "1214127961828743",
     "\ud83d\udd12_verify_&_enable_ebs_volume_encryption_": "1214133185226751",
     "ci/cd:_split_github_actions_ci_and_local": "1214133170067156",
     "production_redeploy_\u2014_l5_model_fix_+_pos": "1214133150426306",
@@ -179,6 +182,15 @@
     "readme_and_project_setup": "1214124626817722",
     "developer_documentation": "1214122597548220",
     "user_documentation_/_help_center": "1214127917553411",
-    "work_together_with_cascade_so_that_it_as": "1214125691559387"
+    "work_together_with_cascade_so_that_it_as": "1214125691559387",
+    "\ud83d\udcf1_action:_real_device_testing_(iphone_&_": "1214122642087362",
+    "\ud83d\uddc4\ufe0f_decide:_backup_&_disaster_recovery_st": "1214127962125142",
+    "\ud83d\udcc8_input:_provide_ballpark_business_numbe": "1214125707178506",
+    "\ud83c\udff7\ufe0f_decide:_which_metrics_are_financially": "1214124671515358",
+    "\ud83c\udf10_decide:_final_production_domain": "1214124671467094",
+    "\ud83d\udcca_decide:_monitoring_&_alerting_tool_sta": "1214124671514378",
+    "\ud83d\udce7_decide:_email_provider_for_notificatio": "1214127962108988",
+    "\ud83d\udd11_action:_deploy_openai_api_key_to_ec2_p": "1214125707137986",
+    "\ud83d\udd12_urgent:_verify_&_enable_ebs_volume_enc": "1214133186321579"
   }
 }

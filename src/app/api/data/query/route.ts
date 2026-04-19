@@ -1,7 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryData, getAvailableSources } from '@/lib/data/sample-data';
 import { getCurrentUser } from '@/lib/auth/session';
-import { canAccessDataSource, getDataCategoryForSource } from '@/lib/auth/permissions';
+import { canAccessDataSource, getDataCategoryForSource, resolveUserPermissions } from '@/lib/auth/permissions';
+import type { SessionUser } from '@/lib/auth/session';
+
+// PII fields that must be stripped from responses for users without FULL CustomerPII access
+const PII_FIELDS = ['name', 'email', 'company', 'account_manager', 'contact', 'owner'];
+
+/**
+ * Server-side PII field stripping.
+ * Removes PII-containing fields from query results when the user does not
+ * have FULL access to the CustomerPII data category. This is a hard control
+ * that operates regardless of what the AI generates.
+ */
+async function stripPiiFields(
+  data: Record<string, unknown>[],
+  user: SessionUser
+): Promise<Record<string, unknown>[]> {
+  const permissions = await resolveUserPermissions(user);
+  if (permissions.data.CustomerPII === 'FULL') {
+    return data; // Admin — no stripping
+  }
+
+  return data.map(row => {
+    const cleaned = { ...row };
+    for (const field of PII_FIELDS) {
+      if (field in cleaned) {
+        cleaned[field] = '[REDACTED]';
+      }
+    }
+    return cleaned;
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +61,10 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await queryData(source, groupBy);
+
+    // Server-side PII stripping — hard control regardless of AI-generated queries
+    result.data = await stripPiiFields(result.data, user);
+
     return NextResponse.json(result);
   } catch (error) {
     // Handle authentication errors
