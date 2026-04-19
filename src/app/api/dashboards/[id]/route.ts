@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
+import { hasFeaturePermission } from '@/lib/auth/permissions';
 import { logDashboardAction, AuditAction } from '@/lib/audit';
 import { withRateLimit, dashboardRateLimiter } from '@/lib/rate-limiter';
 
@@ -71,6 +72,18 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         isTemplate?: boolean;
       };
       const tagsStr = tags !== undefined ? (Array.isArray(tags) ? tags.join(',') : tags) : undefined;
+
+      // Check if user has permission to manage templates when isTemplate is being modified
+      if (isTemplate !== undefined) {
+        const canManageUsers = await hasFeaturePermission(user, 'canManageUsers');
+        const canManagePermissions = await hasFeaturePermission(user, 'canManagePermissions');
+
+        if (!canManageUsers && !canManagePermissions) {
+          return NextResponse.json({
+            error: 'Insufficient permissions to manage templates'
+          }, { status: 403 });
+        }
+      }
 
       // Check ownership or edit permission
       const existing = await prisma.dashboard.findFirst({
