@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Send, BarChart3, TrendingUp, HeadphonesIcon, PieChart, Sparkles, Mic, Settings, LogOut, User, ArrowRight, LayoutGrid, Keyboard, Loader2 } from 'lucide-react';
 import { GlobalShortcutOverlay } from '@/components/layout/GlobalShortcutOverlay';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
@@ -50,11 +51,23 @@ function getGreeting(): string {
 
 export default function Home() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [input, setInput] = useState('');
   const [greeting, setGreeting] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Redirect first-time users to onboarding
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const user = session.user as any;
+      // Only redirect if the user hasn't completed onboarding
+      if (user.hasOnboarded === false) {
+        router.push('/onboarding');
+      }
+    }
+  }, [session, status, router]);
 
   // Auto-resize textarea to fit content
   useEffect(() => {
@@ -117,6 +130,18 @@ export default function Home() {
       handleSubmit(input);
     }
   };
+
+  // Show loading while checking session
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 size={20} className="animate-spin text-accent-blue" />
+          <p className="text-sm text-[var(--text-secondary)]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

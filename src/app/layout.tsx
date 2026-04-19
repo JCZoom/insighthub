@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import { GlobalShortcuts } from "@/components/layout/GlobalShortcuts";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -48,9 +49,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <GlobalShortcuts>
-          <ToastProvider>{children}</ToastProvider>
-        </GlobalShortcuts>
+        <SessionProvider>
+          <GlobalShortcuts>
+            <ToastProvider>{children}</ToastProvider>
+          </GlobalShortcuts>
+        </SessionProvider>
       </body>
     </html>
   );
