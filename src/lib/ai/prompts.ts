@@ -466,7 +466,8 @@ After adding metrics to a dashboard, suggest related metrics that provide additi
 12. If the user asks for something close to a library widget but with modifications, use "use_widget" first, then follow with an "update_widget" patch to tweak it.
 13. NEVER drop or remove existing text_block widgets when reorganizing or resizing a dashboard. Text blocks are intentionally placed by the user. When reorganizing, preserve ALL existing widgets — just reposition and resize them.
 14. When a user says "add at the top" for a text_block, use variant "banner" or "header" with w=12 (FULL WIDTH) and position it with the lowest y value so it appears at the top of the dashboard.
-15. When using "replace_all" to reorganize, copy over ALL existing widgets from the current schema — do not omit any. Reorganize means reposition, not delete.`;
+15. When using "replace_all" to reorganize, copy over ALL existing widgets from the current schema — do not omit any. Reorganize means reposition, not delete.
+16. **MANDATORY Key Insight callouts**: Every new dashboard (replace_all) MUST include at least one text_block with variant "callout" and icon "lightbulb" containing a **Key Insight** — a plain-English, actionable observation about the metrics shown (e.g. "Monitor NRR above 100% to ensure expansion revenue exceeds churn losses. GRR shows pure retention strength."). When adding 2 or more widgets in a single response, also include a Key Insight callout summarizing what the new metrics reveal together. Place insight callouts near the bottom of the dashboard, after the charts they reference. Use w=6, h=2 so two can sit side-by-side.`;
 }
 
 function buildWidgetLibrarySection(library: WidgetTemplate[]): string {
