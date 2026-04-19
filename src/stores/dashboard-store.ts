@@ -118,7 +118,27 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   addWidget: (widget) => {
     const { schema, history, historyIndex } = get();
-    const newSchema = { ...schema, widgets: [...schema.widgets, widget] };
+
+    // Title-banner widgets always pin to the very top of the dashboard,
+    // pushing all existing widgets down to accommodate.
+    const isBanner =
+      widget.type === 'text_block' &&
+      widget.visualConfig?.customStyles?.variant === 'banner';
+
+    let newWidgets: typeof schema.widgets;
+    if (isBanner) {
+      const bannerH = widget.position?.h || 2;
+      const pinnedBanner = { ...widget, position: { ...widget.position, x: 0, y: 0, w: 12, h: bannerH } };
+      const shifted = schema.widgets.map(w => ({
+        ...w,
+        position: { ...w.position, y: w.position.y + bannerH },
+      }));
+      newWidgets = [pinnedBanner, ...shifted];
+    } else {
+      newWidgets = [...schema.widgets, widget];
+    }
+
+    const newSchema = { ...schema, widgets: newWidgets };
     const next = pushHistory(history, historyIndex, { schema: newSchema, note: `Added ${widget.title}`, timestamp: new Date() });
 
     set({

@@ -55,27 +55,27 @@ function generateMrrByMonth(): Record<string, unknown>[] {
 function generateChurnByRegion(): Record<string, unknown>[] {
   return REGIONS.map(region => ({
     region,
-    churn_rate: +(randBetween(1.2, 2.2)).toFixed(1),
-    churned_customers: randInt(1000, 2500),
-    total_customers: randInt(65000, 95000),
+    churn_rate: +(randBetween(4, 6)).toFixed(1),
+    churned_customers: randInt(3500, 5500),
+    total_customers: randInt(80000, 110000),
   }));
 }
 
 function generateChurnByMonth(): Record<string, unknown>[] {
   return MONTHS.map(month => ({
     month,
-    churn_rate: +(randBetween(1.4, 2.0)).toFixed(1),
-    churned: randInt(4500, 6500),
-    active_start: randInt(310000, 330000),
+    churn_rate: +(randBetween(4.5, 5.5)).toFixed(1),
+    churned: randInt(18000, 22000),
+    active_start: randInt(395000, 405000),
   }));
 }
 
 function generateChurnByPlan(): Record<string, unknown>[] {
   return PLANS.map(plan => ({
     plan,
-    churn_rate: plan === 'enterprise' ? +(randBetween(0.5, 1.0)).toFixed(1)
-      : plan === 'professional' ? +(randBetween(1.2, 1.8)).toFixed(1)
-      : +(randBetween(2.0, 2.8)).toFixed(1),
+    churn_rate: plan === 'enterprise' ? +(randBetween(2, 4)).toFixed(1)
+      : plan === 'professional' ? +(randBetween(4, 6)).toFixed(1)
+      : +(randBetween(6, 8)).toFixed(1),
     customers: plan === 'enterprise' ? randInt(35000, 45000)
       : plan === 'professional' ? randInt(90000, 110000)
       : randInt(250000, 270000),
@@ -188,17 +188,17 @@ function generateCustomersByRegion(): Record<string, unknown>[] {
     region,
     count: randInt(65000, 95000),
     mrr: randInt(800000, 1200000),
-    churn_rate: +(randBetween(1.2, 2.2)).toFixed(1),
+    churn_rate: +(randBetween(4, 6)).toFixed(1),
   }));
 }
 
 function generateKpiSummary(): Record<string, unknown>[] {
   return [{
     total_customers: randInt(395000, 405000),
-    active_customers: randInt(315000, 325000),
+    active_customers: randInt(395000, 405000),
     mrr: randInt(4800000, 5200000),
     arr: randInt(58000000, 62000000),
-    churn_rate: +(randBetween(1.5, 2.0)).toFixed(1),
+    churn_rate: +(randBetween(4.5, 5.5)).toFixed(1),
     nrr: +(randBetween(94, 100)).toFixed(1),
     avg_csat: +(randBetween(4.1, 4.6)).toFixed(1),
     open_tickets: randInt(3000, 5000),

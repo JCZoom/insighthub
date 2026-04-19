@@ -226,11 +226,15 @@ select:focus-visible,
 .stagger-5 { animation-delay: 320ms; }
 
 .hero-glow,
-.hero-glow:focus-within {
+.hero-glow:focus-within,
+.no-focus-ring,
+.no-focus-ring:focus-within {
   outline: none !important;
 }
 .hero-glow *:focus,
-.hero-glow *:focus-visible {
+.hero-glow *:focus-visible,
+.no-focus-ring *:focus,
+.no-focus-ring *:focus-visible {
   outline: none !important;
   box-shadow: none !important;
   appearance: none;

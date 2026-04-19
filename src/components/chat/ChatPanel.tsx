@@ -616,7 +616,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           paddingBottom: isMobile && keyboardHeight > 0 ? '20px' : '12px',
         }}
       >
-        <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2 focus-within:border-[var(--border-color)] focus-within:ring-0 focus-within:outline-none">
+        <div className="no-focus-ring flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2 focus-within:border-[var(--border-color)]">
           <textarea
             ref={inputRef}
             value={input}
