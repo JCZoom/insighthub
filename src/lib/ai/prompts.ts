@@ -7,6 +7,7 @@ import {
   getRestrictedDataSources,
   type ResolvedPermissions
 } from '@/lib/auth/permissions';
+import { getPromptOverrides } from '@/lib/ai/prompt-overrides';
 
 interface GlossaryEntry {
   term: string;
@@ -159,7 +160,7 @@ export async function buildSystemPrompt(
   const availableDataSources = await getAvailableDataSources(user, userPermissions);
   const smartSuggestions = generateSchemaBasedSuggestions(currentSchema);
 
-  return `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
+  let basePrompt = `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
 
 CRITICAL: You must use the company's official terminology definitions when interpreting user requests. The glossary below contains agreed-upon definitions for all business metrics. NEVER invent your own definitions.
 
@@ -491,7 +492,15 @@ After adding metrics to a dashboard, suggest related metrics that provide additi
 14. When a user says "add at the top" for a text_block, use variant "banner" or "header" with w=12 (FULL WIDTH) and position it with the lowest y value so it appears at the top of the dashboard.
 15. When using "replace_all" to reorganize, copy over ALL existing widgets from the current schema — do not omit any. Reorganize means reposition, not delete.
 16. **MANDATORY Key Insight callouts**: Every new dashboard (replace_all) MUST include at least one text_block with variant "callout", icon "lightbulb", w=12, h=1 containing a **Key Insight** — a concise, actionable observation about the metrics shown (e.g. title: "Key Insight", subtitle: "Monitor NRR above 100% to ensure expansion revenue exceeds churn losses. GRR shows pure retention strength."). When adding 2 or more widgets in a single response, also include a Key Insight callout. Place insight callouts at the very bottom of the dashboard.
-17. **ZERO DEAD SPACE**: Every row of widgets must sum to exactly w=12. Never leave a partial row with empty space. If your layout creates a gap, add another relevant widget to fill it. Dashboards must look fully fleshed out and beautiful — banner at top, dense metrics in the middle, Key Insight at the bottom.`;
+17. **ZERO DEAD SPACE**: Every row of widgets must sum to exactly w=12. Never leave a partial row with empty space. If your layout creates a gap, add another relevant widget to fill it. Dashboards must look fully fleshed out and beautiful — banner at top, dense metrics in the middle, Key Insight at the bottom.`;  // end of basePrompt
+
+  // Append admin-configured custom instructions if any
+  const overrides = await getPromptOverrides();
+  if (overrides.customInstructions.trim()) {
+    basePrompt += `\n\n## Custom Instructions (Admin-Configured)\n${overrides.customInstructions}`;
+  }
+
+  return basePrompt;
 }
 
 function buildWidgetLibrarySection(library: WidgetTemplate[]): string {

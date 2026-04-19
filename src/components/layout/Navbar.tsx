@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Database, Search, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info, Menu, X, Zap } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Database, Search, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info, Menu, X, Zap, Shield } from 'lucide-react';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
 import { useViewport } from '@/hooks/useViewport';
@@ -194,6 +194,14 @@ export function Navbar() {
                   >
                     <Settings size={14} />
                     Settings
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-accent-purple hover:bg-accent-purple/10 transition-colors"
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    <Shield size={14} />
+                    Admin Panel
                   </Link>
                   <div className="border-t border-[var(--border-color)] mt-1 pt-1">
                     <button

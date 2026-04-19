@@ -241,7 +241,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
     setStreamingState({
       isStreaming: true,
       progress: 0,
-      message: 'Starting...',
+      message: 'Thinking...',
       currentPatches: [],
       currentQuickActions: [],
       explanation: ''
