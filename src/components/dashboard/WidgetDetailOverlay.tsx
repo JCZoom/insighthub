@@ -30,8 +30,8 @@ interface DetailSection {
 function formatCell(key: string, value: unknown): string {
   if (value == null) return '—';
   if (typeof value !== 'number') return String(value);
-  const isPercent = key.includes('rate') || key.includes('percent') || key.includes('csat') || key.includes('adoption') || key.includes('win_rate');
-  const isCurrency = key.includes('mrr') || key.includes('arr') || key.includes('revenue') || key.includes('amount') || key.includes('value') || key.includes('deal_size');
+  const isPercent = key.includes('rate') || key.includes('percent') || key.includes('nrr') || key.includes('grr') || key.includes('retention') || key.includes('csat') || key.includes('win_rate') || key.includes('adoption');
+  const isCurrency = key.includes('mrr') || key.includes('arr') || key.includes('revenue') || key.includes('amount') || key.includes('pipeline') || key.includes('deal_size');
   if (isPercent) return formatPercent(value);
   if (isCurrency) return formatCurrency(value, { compact: true });
   return formatNumber(value, { decimals: value % 1 !== 0 ? 1 : 0 });

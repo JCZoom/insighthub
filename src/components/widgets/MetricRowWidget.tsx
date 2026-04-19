@@ -1,6 +1,7 @@
 'use client';
 
 import type { WidgetConfig } from '@/types';
+import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 
 interface MetricRowWidgetProps {
   config: WidgetConfig;
@@ -33,13 +34,13 @@ export function MetricRowWidget({ config, data }: MetricRowWidgetProps) {
           const accent = ACCENTS[i % ACCENTS.length];
           const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
           const numValue = Number(value);
-          const formatted = numValue >= 1_000_000
-            ? `${(numValue / 1_000_000).toFixed(1)}M`
-            : numValue >= 1_000
-              ? `${(numValue / 1_000).toFixed(1)}K`
-              : numValue % 1 !== 0
-                ? numValue.toFixed(1)
-                : numValue.toLocaleString();
+          const isPct = key.includes('rate') || key.includes('percent') || key.includes('nrr') || key.includes('grr') || key.includes('retention') || key.includes('csat') || key.includes('win_rate') || key.includes('adoption');
+          const isCur = key.includes('mrr') || key.includes('arr') || key.includes('revenue') || key.includes('amount') || key.includes('pipeline') || key.includes('deal_size');
+          const formatted = isPct
+            ? formatPercent(numValue)
+            : isCur
+            ? formatCurrency(numValue, { compact: true })
+            : formatNumber(numValue, { compact: true });
 
           return (
             <div

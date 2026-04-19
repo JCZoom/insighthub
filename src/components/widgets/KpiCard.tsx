@@ -86,7 +86,7 @@ export function KpiCard({ config, data }: KpiCardProps) {
   const accentClass = ACCENT_CLASSES[accent] || ACCENT_CLASSES.blue;
 
   // Detect if it's a percentage, currency, or plain number
-  const isPercent = field.includes('rate') || field.includes('percent') || field.includes('nrr') || field.includes('csat') || field.includes('win_rate') || field.includes('adoption');
+  const isPercent = field.includes('rate') || field.includes('percent') || field.includes('nrr') || field.includes('grr') || field.includes('retention') || field.includes('csat') || field.includes('win_rate') || field.includes('adoption');
   const isCurrency = field.includes('mrr') || field.includes('arr') || field.includes('revenue') || field.includes('amount') || field.includes('pipeline') || field.includes('deal_size');
 
   const formatted = isPercent

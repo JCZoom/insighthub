@@ -190,7 +190,7 @@ function getMockGlossaryTerms(): Record<string, { id: string; term: string; defi
     'csat': {
       id: 'term_csat_001',
       term: 'Customer Satisfaction Score (CSAT)',
-      definition: 'A metric that measures how satisfied customers are with a service, typically measured on a scale of 1-5.'
+      definition: 'The percentage of support interactions rated 4 or 5 on a 1-5 scale. Higher values indicate better customer satisfaction.'
     },
     'nrr': {
       id: 'term_nrr_001',
@@ -236,7 +236,7 @@ function generateSampleValues(columnName: string, dataType: string): unknown[] {
 
   if (dataType === 'number') {
     if (name.includes('rate') || name.includes('percentage')) return [3.2, 5.8, 2.1];
-    if (name.includes('csat')) return [4.2, 4.6, 3.9];
+    if (name.includes('csat')) return [82.5, 91.3, 76.8];
     if (name.includes('growth')) return [2.3, -1.2, 4.7];
     return [1.5, 3.2, 2.8];
   }

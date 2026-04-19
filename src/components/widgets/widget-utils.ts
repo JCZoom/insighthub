@@ -113,12 +113,14 @@ function formatTooltipValue(value: any, name: string | number | undefined): [str
   // Format based on field name patterns
   const lowerName = displayName.toLowerCase();
   const isPercent = lowerName.includes('rate') || lowerName.includes('percent') ||
-                   lowerName.includes('csat') || lowerName.includes('adoption') ||
-                   lowerName.includes('win_rate') || lowerName.endsWith('%');
+                   lowerName.includes('nrr') || lowerName.includes('grr') ||
+                   lowerName.includes('retention') || lowerName.includes('csat') ||
+                   lowerName.includes('adoption') || lowerName.includes('win_rate') ||
+                   lowerName.endsWith('%');
   const isCurrency = lowerName.includes('mrr') || lowerName.includes('arr') ||
                     lowerName.includes('revenue') || lowerName.includes('amount') ||
-                    lowerName.includes('value') || lowerName.includes('deal_size') ||
-                    lowerName.startsWith('$');
+                    lowerName.includes('pipeline') || lowerName.includes('value') ||
+                    lowerName.includes('deal_size') || lowerName.startsWith('$');
 
   let formattedValue: string;
   if (isPercent) {
