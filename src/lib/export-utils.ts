@@ -44,31 +44,50 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
     const bgRaw = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
     const bgColor = bgRaw || '#0a0e14';
 
-    const dataUrl = await toPng(element, {
-      pixelRatio: 2,
-      backgroundColor: bgColor,
-      cacheBust: true,
-      // Skip external font fetching — Next.js optimized fonts use obfuscated
-      // names that cause CORS failures on production HTTPS
-      skipFonts: true,
-      // Skip elements that shouldn't be in the export
-      filter: (node: HTMLElement) => {
-        // Skip hidden elements and export buttons themselves
-        if (node.dataset?.exportIgnore === 'true') return false;
-        return true;
-      },
-    });
+    // Inject a system font fallback into the element BEFORE cloning.
+    // html-to-image may fail to embed Next.js optimized font files on production
+    // (CORS / opaque responses). This ensures sans-serif fallback instead of serif.
+    const fontFixStyle = document.createElement('style');
+    fontFixStyle.setAttribute('data-export-font-fix', '1');
+    fontFixStyle.textContent = `
+      * {
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                     "Helvetica Neue", Arial, sans-serif !important;
+      }
+    `;
+    element.prepend(fontFixStyle);
 
-    // Convert data URL to blob without fetch() (avoids CORS/mixed-content issues)
-    const byteString = atob(dataUrl.split(',')[1]);
-    const mimeType = dataUrl.split(',')[0].match(/:(.*?);/)?.[1] || 'image/png';
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
+    try {
+      const dataUrl = await toPng(element, {
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+        cacheBust: true,
+        // Let html-to-image TRY to embed fonts — if it succeeds, great.
+        // If it fails, our injected fallback style ensures sans-serif.
+        fetchRequestInit: {
+          cache: 'force-cache',
+        },
+        // Skip elements that shouldn't be in the export
+        filter: (node: HTMLElement) => {
+          if (node.dataset?.exportIgnore === 'true') return false;
+          return true;
+        },
+      });
+
+      // Convert data URL to blob without fetch() (avoids CORS/mixed-content issues)
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeType = dataUrl.split(',')[0].match(/:(.*?);/)?.[1] || 'image/png';
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeType });
+      triggerDownload(blob, `${filename}.png`);
+    } finally {
+      // Always clean up the injected style so the page isn't affected
+      fontFixStyle.remove();
     }
-    const blob = new Blob([ab], { type: mimeType });
-    triggerDownload(blob, `${filename}.png`);
 
   } catch (error) {
     console.error('PNG export failed:', error);
