@@ -41,6 +41,7 @@ function getShortcutGroups(mac: boolean) {
       shortcuts: [
         { keys: [mac ? 'Delete' : 'Del'], description: 'Delete selected widget' },
         { keys: [mod(mac), 'D'], description: 'Duplicate selected widget' },
+        { keys: [mac ? '⌥' : 'Alt', 'Drag'], description: 'Option-drag to duplicate widget' },
         { keys: ['↑ ↓ ← →'], description: 'Nudge widget by 1 grid unit' },
       ],
     },

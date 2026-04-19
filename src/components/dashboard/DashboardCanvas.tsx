@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2 } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2, FolderInput } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { createTouchDragHandler } from '@/hooks/useTouchDrag';
@@ -26,6 +26,7 @@ import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG } from '@/lib/export-utils';
 import { WidgetQueryPanel } from './WidgetQueryPanel';
 import { DataFreshness } from './DataFreshness';
+import { AddToDashboardModal } from './AddToDashboardModal';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -59,6 +60,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     origY: number;
     ghostX: number;
     ghostY: number;
+    isOptionDrag?: boolean;
   } | null>(null);
   const [resizeState, setResizeState] = useState<{
     widgetId: string;
@@ -78,6 +80,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [previewMode, setPreviewMode] = useState<'responsive' | 'desktop' | 'tablet' | 'mobile'>('responsive');
   const [queryPanelWidget, setQueryPanelWidget] = useState<WidgetConfig | null>(null);
+  const [addToDashboardWidget, setAddToDashboardWidget] = useState<WidgetConfig | null>(null);
   const [marqueeState, setMarqueeState] = useState<{
     startX: number; startY: number;
     currentX: number; currentY: number;
@@ -276,6 +279,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       actions: getWidgetActions({
         editConfig: () => { selectWidget(widget.id); setConfigWidgetId(widget.id); },
         duplicate: () => duplicateWidget(widget.id),
+        copyToDashboard: () => setAddToDashboardWidget(widget),
         delete: () => removeWidget(widget.id),
         widen: () => {
           const newW = Math.min(widget.position.w + 3, effectiveGridColumns - widget.position.x);
@@ -404,6 +408,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       },
       onDragStart: (e: PointerEvent) => {
         setDragHoldState(null);
+        const optionHeld = e.altKey;
         setDragState({
           widgetId: widget.id,
           startX: e.clientX,
@@ -412,7 +417,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           origY: widget.position.y,
           ghostX: widget.position.x,
           ghostY: widget.position.y,
+          isOptionDrag: optionHeld,
         });
+        if (optionHeld) {
+          document.body.style.cursor = 'copy';
+        }
       },
       onDragMove: (me: PointerEvent) => {
         if (!gridRef.current || !dragState) return;
@@ -426,6 +435,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
       },
       onDragEnd: (ue: PointerEvent) => {
+        document.body.style.cursor = '';
         if (!gridRef.current || !dragState) {
           setDragState(null);
           return;
@@ -438,7 +448,19 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         const deltaCol = Math.round(dx / cellW);
         const deltaRow = Math.round(dy / cellH);
 
-        if (deltaCol !== 0 || deltaRow !== 0) {
+        if (dragState.isOptionDrag) {
+          // Option+drag: duplicate widget at the new position
+          const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, widget.position.x + deltaCol));
+          const newY = Math.max(0, widget.position.y + deltaRow);
+          const clone: WidgetConfig = {
+            ...structuredClone(widget),
+            id: `widget-${widget.type}-${Math.random().toString(36).slice(2, 8)}`,
+            title: `${widget.title} (copy)`,
+            position: { ...widget.position, x: newX, y: newY },
+          };
+          addWidget(clone);
+          toast({ type: 'success', title: 'Widget duplicated', description: `"${clone.title}" created at new position.` });
+        } else if (deltaCol !== 0 || deltaRow !== 0) {
           if (isMultiDrag) {
             // Move all selected widgets by the same delta
             const store = useDashboardStore.getState();
@@ -758,7 +780,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             <button
               onClick={handleSave}
               disabled={saveStatus === 'saving'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
               title={`Save dashboard ${formatShortcut(['mod', 's'])}`}
             >
               {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
@@ -766,7 +788,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             </button>
             <button
               onClick={() => setShowSaveMenu(prev => !prev)}
-              className="flex items-center justify-center px-3 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
+              className="flex items-center justify-center w-8 h-8 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
               title="Save options"
             >
               <ChevronDown size={12} />
@@ -879,8 +901,19 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     gridColumn: `${dragState.ghostX + 1} / span ${draggedWidget.position.w}`,
                     gridRow: `${dragState.ghostY + 1} / span ${draggedWidget.position.h}`,
                   }}
-                  className="rounded-xl border-2 border-dashed border-accent-blue/50 bg-accent-blue/5 pointer-events-none transition-all duration-100"
-                />
+                  className={cn(
+                    "rounded-xl border-2 border-dashed pointer-events-none transition-all duration-100",
+                    dragState.isOptionDrag
+                      ? "border-accent-green/60 bg-accent-green/10"
+                      : "border-accent-blue/50 bg-accent-blue/5"
+                  )}
+                >
+                  {dragState.isOptionDrag && (
+                    <div className="flex items-center justify-center h-full text-accent-green/70 text-xs font-medium">
+                      <Copy size={14} className="mr-1" /> Duplicate here
+                    </div>
+                  )}
+                </div>
               );
             })()}
 
@@ -1014,6 +1047,18 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     </button>
                   </>
                 )}
+                {/* "Add to my dashboard" button — shown only in view-only mode */}
+                {isEffectivelyViewOnly && widget.type !== 'text_block' && widget.type !== 'divider' && (
+                  <button
+                    data-export-ignore="true"
+                    onClick={(e) => { e.stopPropagation(); setAddToDashboardWidget(widget); }}
+                    className="absolute top-1 right-1 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-blue/10 hover:border-accent-blue/40 transition-all"
+                    title="Add this widget to one of your dashboards"
+                  >
+                    <FolderInput size={12} className="text-[var(--text-muted)] group-hover:text-accent-blue transition-colors" />
+                    <span className="text-[10px] font-medium text-[var(--text-muted)] group-hover:text-accent-blue transition-colors">Add to Dashboard</span>
+                  </button>
+                )}
                 {/* Enhanced resize handles (all edges and corners) - hidden in view-only mode */}
                 {!isEffectivelyViewOnly && (
                   <ResizeHandles
@@ -1120,6 +1165,19 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         <WidgetQueryPanel
           widget={queryPanelWidget}
           onClose={() => setQueryPanelWidget(null)}
+        />
+      )}
+      {addToDashboardWidget && (
+        <AddToDashboardModal
+          widget={addToDashboardWidget}
+          onClose={() => setAddToDashboardWidget(null)}
+          onSuccess={(targetId, targetTitle) => {
+            toast({
+              type: 'success',
+              title: 'Widget added!',
+              description: `"${addToDashboardWidget.title}" was copied to "${targetTitle}".`,
+            });
+          }}
         />
       )}
       </div>

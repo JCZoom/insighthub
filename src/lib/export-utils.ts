@@ -47,6 +47,10 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
     const dataUrl = await toPng(element, {
       pixelRatio: 2,
       backgroundColor: bgColor,
+      cacheBust: true,
+      // Skip external font fetching — Next.js optimized fonts use obfuscated
+      // names that cause CORS failures on production HTTPS
+      skipFonts: true,
       // Skip elements that shouldn't be in the export
       filter: (node: HTMLElement) => {
         // Skip hidden elements and export buttons themselves
@@ -55,9 +59,15 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       },
     });
 
-    // Convert data URL to blob and trigger download
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
+    // Convert data URL to blob without fetch() (avoids CORS/mixed-content issues)
+    const byteString = atob(dataUrl.split(',')[1]);
+    const mimeType = dataUrl.split(',')[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    const blob = new Blob([ab], { type: mimeType });
     triggerDownload(blob, `${filename}.png`);
 
   } catch (error) {

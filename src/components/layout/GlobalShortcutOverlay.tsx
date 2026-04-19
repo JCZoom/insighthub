@@ -27,6 +27,7 @@ const NAV_SHORTCUTS: ShortcutGroup = {
     { keys: ['Mod', '4'], description: 'Go to About' },
     { keys: ['Mod', '5'], description: 'New Dashboard' },
     { keys: ['Mod', 'K'], description: 'Open command palette' },
+    { keys: ['Mod', 'Shift', 'D'], description: 'Toggle dark/light mode' },
     { keys: ['Mod', 'F'], description: 'Focus search (on pages with search)' },
     { keys: ['?'], description: 'Toggle this reference sheet' },
     { keys: ['g', 'h'], description: 'Go To → Home' },

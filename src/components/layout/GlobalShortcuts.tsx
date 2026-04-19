@@ -91,6 +91,23 @@ export function GlobalShortcuts({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // ⌘+Shift+D — toggle dark/light mode
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.code === 'KeyD') {
+      e.preventDefault();
+      const root = document.documentElement;
+      const isDark = root.classList.contains('dark');
+      if (isDark) {
+        root.classList.remove('dark');
+        root.classList.add('light');
+        localStorage.setItem('insighthub-theme', 'light');
+      } else {
+        root.classList.remove('light');
+        root.classList.add('dark');
+        localStorage.setItem('insighthub-theme', 'dark');
+      }
+      return;
+    }
+
     // ⌘F / Ctrl+F — focus in-page search if one exists (otherwise let browser handle it)
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
       const searchEl = document.querySelector('input[placeholder*="search" i], input[placeholder*="Search" i], input[type="search"]') as HTMLElement | null;

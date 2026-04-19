@@ -5,17 +5,17 @@
 
 | Metric | Count |
 |--------|-------|
-| Total tasks | 177 |
-| Completed tasks | 142 |
-| Total subtasks | 476 |
-| Completed subtasks | 347 |
-| **Overall progress** | **489/653 (75%)** |
+| Total tasks | 181 |
+| Completed tasks | 143 |
+| Total subtasks | 480 |
+| Completed subtasks | 351 |
+| **Overall progress** | **494/661 (75%)** |
 
 ---
 
 # InsightHub — Asana Project Summary
 
-> Generated: 2026-04-19 12:53:32
+> Generated: 2026-04-19 14:46:41
 > Project GID: 1214122597260827
 > [View in Asana](https://app.asana.com/0/1214122597260827)
 
@@ -222,6 +222,7 @@
   - [x] Chart touch tooltips: show on tap instead of hover
   - [x] Chart responsive: reduce axis labels/ticks on small containers
 - [x] **"Explain this metric" tooltip**
+  - [x] Fix markdown rendering in Metric Explanation modal
   - [x] Perf: switch metric explain from Sonnet → Haiku for ~5x faster responses
   - [x] Fix: explain-metric icon now hover-only (matches edit/delete UX)
   - [x] Power user toggle to show underlying query
@@ -265,11 +266,13 @@
 
 ## 🎨 Dashboard Canvas & UX
 
+- [x] **PNG Export Overhaul — html-to-image + clean widget exports**
 - [ ] **📱 Deferred: Mobile & Tablet Support — Fix responsive views, favorites, gallery errors**
 - [x] **Home Page Hero Redesign + Modal Scroll Fix**
 - [x] **Widget Selection — Click-to-Select with Visual Highlight**
 - [x] **Dark Theme Chart Polish — Softer Color Palette + Cursor Fix**
 - [x] **Dashboard Editor UX Polish — Hover Delete, Inline Title, Resize Handle**
+  - [x] Equalize Save button and dropdown button widths
 - [x] **🔎 Widget Data Transparency — Data Lineage Tab**
 - [x] **⌨️ Keyboard Shortcuts & Power User UX**
   - [x] Widget selection state in store (selectedWidgetId)
@@ -282,6 +285,7 @@
   - [x] Delete/Backspace — remove selected widget
   - [x] Cmd+Z / Cmd+Shift+Z — undo/redo (wire useKeyboardShortcuts to canvas)
 - [x] **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette**
+  - [x] Fix Ctrl+Option+F shortcut for toggling folder panel
   - [x] Expand useKeyboardShortcuts hook to support the full registry + context scoping
   - [x] Escape key hierarchy: overlays → modals → panels → selection → input blur
   - [x] Tooltip shortcut hints — show keyboard shortcut in every toolbar/button tooltip
@@ -397,6 +401,7 @@
   - [x] Clone current version schema with new IDs
   - [x] API: POST /api/dashboards/[id]/duplicate
 - [x] **Folder system**
+  - [x] Fix subfolder display & add inline delete button
   - [x] Breadcrumb navigation
   - [x] Folder visibility (private/team/public)
   - [x] Drag dashboards between folders
@@ -443,6 +448,8 @@
 
 ## 💾 Data Layer
 
+- [ ] **🔧 Deferred: Data Explorer — needs full QA pass before shipping**
+- [ ] **🔧 Deferred: Query Playground — needs full QA pass before shipping**
 - [x] **📐 Visual Query Builder — Sigma-Style No-Code Data Exploration**
   - [x] Join builder: drag second table, auto-suggest join conditions
   - [x] Save visual query as widget with restorable drag-and-drop state
@@ -607,6 +614,7 @@
 
 ## 🔮 Advanced Features (Phase 4)
 
+- [ ] **🔧 Deferred: Visual Query Builder — needs full QA pass before shipping**
 - [ ] **🔄 Snowflake Cross-Validation Mode**
   - [ ] Scheduled validation with drift alerting (Phase 4)
   - [ ] Export validation report as PDF for audit/compliance

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Copy, Trash2, GripVertical, Maximize2, Minimize2,
-  PlusCircle, BarChart3, Table2, Gauge, Type, Library, Settings2,
+  PlusCircle, BarChart3, Table2, Gauge, Type, Library, Settings2, FolderInput,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -137,10 +137,12 @@ export function getWidgetActions(callbacks: {
   widen: () => void;
   narrow: () => void;
   editConfig?: () => void;
+  copyToDashboard?: () => void;
 }): ContextMenuAction[] {
   return [
     ...(callbacks.editConfig ? [{ label: 'Edit Config', icon: Settings2, onClick: callbacks.editConfig }] : []),
     { label: 'Duplicate Widget', icon: Copy, onClick: callbacks.duplicate, separator: !!callbacks.editConfig },
+    ...(callbacks.copyToDashboard ? [{ label: 'Copy to Dashboard\u2026', icon: FolderInput, onClick: callbacks.copyToDashboard }] : []),
     { label: 'Make Wider', icon: Maximize2, onClick: callbacks.widen, separator: true },
     { label: 'Make Narrower', icon: Minimize2, onClick: callbacks.narrow },
     { label: 'Drag to Reposition', icon: GripVertical, onClick: () => {}, separator: true },
