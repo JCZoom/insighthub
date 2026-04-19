@@ -245,6 +245,7 @@ Zod schema validation is applied on critical endpoints:
 | `POST /api/chat` | Message length (1–10,000 chars), history limit (20 entries), UUID format | `src/app/api/chat/route.ts:21–44` |
 | `POST /api/admin/users` | CUID format for user/group IDs | `src/app/api/admin/users/route.ts:8–17` |
 | `POST /api/admin/permission-groups` | Name length, permission structure | `src/app/api/admin/permission-groups/route.ts:52–57` |
+| `POST /api/thumbnails` | Dashboard ID format (alphanumeric + `-_`), image size (5MB max), base64 validation | `src/app/api/thumbnails/route.ts:23–42` |
 
 **✅ Resolved:** The `POST /api/dashboards` route now validates the entire request body with Zod, including the `schema` field (`DashboardSchemaValidator`). Validates layout constraints, widget structure (position bounds, data config, etc.), title/description length, tag limits, and max 100 widgets per dashboard: `src/app/api/dashboards/route.ts:9–51`.
 
@@ -269,6 +270,23 @@ The `GET` method was removed from the chat endpoint for security — query param
 | OpenAI API | Outbound | Voice transcription (Whisper) | Bearer token |
 
 Both API keys are server-side only. The OpenAI call is proxied through `src/app/api/voice/transcribe/route.ts` — the client never sees the key. Anthropic is called from `src/app/api/chat/route.ts:265`.
+
+### 4.6 Thumbnail Storage API
+
+The thumbnail API (`/api/thumbnails`) handles dashboard preview image storage with authentication and validation controls:
+
+| Method | Purpose | Security Controls |
+|--------|---------|-------------------|
+| `POST` | Save thumbnail image | Auth required, dashboard ID format validation, 5MB size limit, base64 validation |
+| `DELETE` | Remove thumbnail | Auth required, dashboard ID validation, file existence check |
+| `GET` | Check thumbnail existence | Auth required, dashboard ID validation |
+
+**Key security features:**
+- All endpoints require user authentication (`getCurrentUser()`)
+- Dashboard ID format restricted to alphanumeric characters plus hyphens and underscores (`/^[a-zA-Z0-9-_]+$/`)
+- File size limited to 5MB to prevent storage abuse
+- Files stored in `public/thumbnails/` directory with predictable naming (`{dashboardId}.png`)
+- No ownership validation on DELETE endpoint (identified as improvement needed)
 
 ---
 
@@ -326,8 +344,13 @@ Audit logging failures are caught and logged but never block the primary operati
 - `scripts/setup-cron.sh` — Daily cron backup job updated to encrypt.
 - `scripts/ec2-deploy.sh` — DB permissions hardened from `chmod 664` → `chmod 600`. `.env.local` permissions set to `chmod 600`.
 - `scripts/check-ebs-encryption.sh` — New script to verify EBS volume encryption status and provide remediation steps.
+- `scripts/enable-ebs-encryption.sh` — Comprehensive EBS encryption automation script that enables default encryption and migrates existing volumes.
+- `scripts/iam-ebs-encryption-policy.json` — IAM policy template with required permissions for EBS encryption operations.
 
-**Remaining recommendation:** Enable EBS volume encryption for the EC2 instance (AWS Console/CLI). For SQLite specifically, consider SQLCipher for at-rest encryption if PII enters the database in later phases.
+**Security concerns identified:**
+- **Backup key exposure in process list** — The encryption key in `backup-db.sh:82` and `restore-db.sh:87` is passed via command line (`-pass 'pass:$BACKUP_ENCRYPTION_KEY'`), making it visible in process lists (`ps aux`). This should be changed to use stdin or process substitution to prevent credential exposure.
+
+**Remaining recommendation:** Run `scripts/check-ebs-encryption.sh` to verify current EBS encryption status. If volumes are unencrypted, use `scripts/enable-ebs-encryption.sh` for automated migration. For SQLite specifically, consider SQLCipher for at-rest encryption if PII enters the database in later phases.
 
 ### 6.2 Data in Transit
 
@@ -494,4 +517,5 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | GDPR data export | `src/app/api/user/export/route.ts` | 1–112 (right-to-access) |
 | GDPR account delete | `src/app/api/user/delete/route.ts` | 1–100 (right-to-deletion) |
 | Dashboard validation | `src/app/api/dashboards/route.ts` | 9–51 (Zod schema validation) |
+| Thumbnail API | `src/app/api/thumbnails/route.ts` | 6–169 (auth required, ID validation, 5MB limit) |
 | Gitignore (secrets) | `.gitignore` | 37–43 (env files, DB, keys) |
