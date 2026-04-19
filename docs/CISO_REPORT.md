@@ -312,13 +312,22 @@ Audit logging failures are caught and logged but never block the primary operati
 
 ### 6.1 Data at Rest
 
-| Asset | Protection | Concern |
-|-------|-----------|---------|
-| SQLite database | Filesystem permissions (`chmod 664`) | Not encrypted at rest |
-| Database backups | Stored on EC2 (`/opt/insighthub/backups/`) | Not encrypted; retained 14 days |
-| Local backups | Developer machine (`backups/`) | Gitignored but unencrypted |
+| Asset | Protection | Status |
+|-------|-----------|--------|
+| SQLite database | Filesystem permissions (`chmod 600`), owner-only | ✅ Hardened (was `664`) |
+| Database backups (EC2) | AES-256-CBC encrypted (`.db.enc`), `BACKUP_ENCRYPTION_KEY` | ✅ Encrypted at rest |
+| Database backups (local) | AES-256-CBC encrypted on download, gitignored | ✅ Encrypted at rest |
+| `.env.local` on EC2 | `chmod 600`, owner-only | ✅ Hardened |
+| EBS volume | Verification script available | ⚠️ Verify via `scripts/check-ebs-encryption.sh` |
 
-**Recommendation:** Enable EBS volume encryption for the EC2 instance. For SQLite specifically, consider SQLCipher for at-rest encryption if PII enters the database in later phases.
+**Remediations applied (April 2026):**
+- `scripts/backup-db.sh` — Backups encrypted with AES-256-CBC via `openssl` when `BACKUP_ENCRYPTION_KEY` is set. Unencrypted temp files are securely shredded after encryption.
+- `scripts/restore-db.sh` — Transparently decrypts `.db.enc` backups during restore. Decrypted temp files are shredded after use.
+- `scripts/setup-cron.sh` — Daily cron backup job updated to encrypt.
+- `scripts/ec2-deploy.sh` — DB permissions hardened from `chmod 664` → `chmod 600`. `.env.local` permissions set to `chmod 600`.
+- `scripts/check-ebs-encryption.sh` — New script to verify EBS volume encryption status and provide remediation steps.
+
+**Remaining recommendation:** Enable EBS volume encryption for the EC2 instance (AWS Console/CLI). For SQLite specifically, consider SQLCipher for at-rest encryption if PII enters the database in later phases.
 
 ### 6.2 Data in Transit
 
@@ -439,7 +448,7 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | # | Risk | Mitigation |
 |---|------|-----------|
 | 3 | Audit logs stored in same DB as app data (tamperable) | Ship audit logs to immutable external store (CloudWatch, S3 Object Lock) |
-| 4 | SQLite database not encrypted at rest | Enable EBS encryption; evaluate SQLCipher for Phase 3 |
+| 4 | SQLite database not encrypted at rest | ✅ Backups now AES-256-CBC encrypted; DB file hardened to `chmod 600`; EBS encryption verification script added. Evaluate SQLCipher for Phase 3 |
 | 5 | CSP allows `'unsafe-eval'` and `'unsafe-inline'` | Implement nonce-based CSP for production |
 | 6 | No `npm audit` in CI pipeline | Add `npm audit --audit-level=high` step to CI |
 

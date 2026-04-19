@@ -18,6 +18,11 @@ DB_PATH="$APP_DIR/prisma/dev.db"
 BACKUP_DIR="$APP_DIR/backups"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
+# Encryption — load BACKUP_ENCRYPTION_KEY for decrypting .db.enc backups
+if [ -z "${BACKUP_ENCRYPTION_KEY:-}" ] && [ -f "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.env.local" ]; then
+    BACKUP_ENCRYPTION_KEY=$(grep '^BACKUP_ENCRYPTION_KEY=' "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.env.local" | cut -d= -f2- | tr -d '"' | tr -d "'")
+fi
+
 if [ $# -eq 0 ]; then
     echo "Usage:"
     echo "  ./scripts/restore-db.sh <local-backup-file>"
@@ -25,7 +30,7 @@ if [ $# -eq 0 ]; then
     echo "  ./scripts/restore-db.sh --latest"
     echo ""
     echo "Available EC2 backups:"
-    ssh "$EC2_USER@$EC2_HOST" "ls -1t $BACKUP_DIR/insighthub-*.db 2>/dev/null | head -10 | sed 's|.*/||'" || echo "  (none found)"
+    ssh "$EC2_USER@$EC2_HOST" "ls -1t $BACKUP_DIR/insighthub-*.db $BACKUP_DIR/insighthub-*.db.enc 2>/dev/null | head -10 | sed 's|.*/||'" || echo "  (none found)"
     exit 1
 fi
 
@@ -36,7 +41,7 @@ echo ""
 RESTORE_FROM=""
 if [ "$1" = "--latest" ]; then
     echo "Finding latest backup on EC2..."
-    LATEST=$(ssh "$EC2_USER@$EC2_HOST" "ls -1t $BACKUP_DIR/insighthub-*.db 2>/dev/null | head -1")
+    LATEST=$(ssh "$EC2_USER@$EC2_HOST" "ls -1t $BACKUP_DIR/insighthub-*.db $BACKUP_DIR/insighthub-*.db.enc 2>/dev/null | head -1")
     if [ -z "$LATEST" ]; then
         echo "ERROR: No backups found on EC2 in $BACKUP_DIR"
         exit 1
@@ -64,20 +69,48 @@ else
     echo "  ✓ Uploaded"
 fi
 
+# Decrypt if encrypted backup
+DECRYPTED_TMP=""
+VALIDATE_FROM="$RESTORE_FROM"
+if [[ "$RESTORE_FROM" == *.enc ]]; then
+    echo ""
+    echo "Encrypted backup detected — decrypting..."
+    if [ -z "${BACKUP_ENCRYPTION_KEY:-}" ]; then
+        echo "ERROR: BACKUP_ENCRYPTION_KEY is required to restore encrypted backups."
+        echo "       Set it in .env.local or export it before running this script."
+        exit 1
+    fi
+    DECRYPTED_TMP="$BACKUP_DIR/restore-decrypted-$TIMESTAMP.db"
+    ssh "$EC2_USER@$EC2_HOST" "openssl enc -aes-256-cbc -d -salt -pbkdf2 -iter 100000 \
+        -in '$RESTORE_FROM' \
+        -out '$DECRYPTED_TMP' \
+        -pass 'pass:$BACKUP_ENCRYPTION_KEY'"
+    VALIDATE_FROM="$DECRYPTED_TMP"
+    echo "  ✓ Decrypted"
+fi
+
 # Safety check: verify the backup is a valid SQLite database
 echo ""
 echo "Validating backup..."
-INTEGRITY=$(ssh "$EC2_USER@$EC2_HOST" "sqlite3 '$RESTORE_FROM' 'PRAGMA integrity_check' 2>&1 | head -1")
+INTEGRITY=$(ssh "$EC2_USER@$EC2_HOST" "sqlite3 '$VALIDATE_FROM' 'PRAGMA integrity_check' 2>&1 | head -1")
 if [ "$INTEGRITY" != "ok" ]; then
+    # Clean up decrypted temp file on failure
+    [ -n "$DECRYPTED_TMP" ] && ssh "$EC2_USER@$EC2_HOST" "shred -u '$DECRYPTED_TMP' 2>/dev/null || rm -f '$DECRYPTED_TMP'"
     echo "ERROR: Backup failed integrity check: $INTEGRITY"
+    echo "       (If encrypted, verify BACKUP_ENCRYPTION_KEY is correct.)"
     exit 1
 fi
 echo "  ✓ Integrity check passed"
 
 # Count records for sanity check
-USERS=$(ssh "$EC2_USER@$EC2_HOST" "sqlite3 '$RESTORE_FROM' 'SELECT COUNT(*) FROM User' 2>/dev/null || echo '?'")
-DASHBOARDS=$(ssh "$EC2_USER@$EC2_HOST" "sqlite3 '$RESTORE_FROM' 'SELECT COUNT(*) FROM Dashboard' 2>/dev/null || echo '?'")
+USERS=$(ssh "$EC2_USER@$EC2_HOST" "sqlite3 '$VALIDATE_FROM' 'SELECT COUNT(*) FROM User' 2>/dev/null || echo '?'")
+DASHBOARDS=$(ssh "$EC2_USER@$EC2_HOST" "sqlite3 '$VALIDATE_FROM' 'SELECT COUNT(*) FROM Dashboard' 2>/dev/null || echo '?'")
 echo "  ✓ Contains: $USERS users, $DASHBOARDS dashboards"
+
+# Use the decrypted file as the restore source
+if [ -n "$DECRYPTED_TMP" ]; then
+    RESTORE_FROM="$DECRYPTED_TMP"
+fi
 
 # Confirm
 echo ""
@@ -103,7 +136,9 @@ echo "  ✓ Service stopped"
 
 # Replace the database
 echo "[3/3] Restoring database..."
-ssh "$EC2_USER@$EC2_HOST" "cp '$RESTORE_FROM' '$DB_PATH' && chmod 664 '$DB_PATH'"
+ssh "$EC2_USER@$EC2_HOST" "cp '$RESTORE_FROM' '$DB_PATH' && chmod 600 '$DB_PATH'"
+# Clean up decrypted temp file
+[ -n "$DECRYPTED_TMP" ] && ssh "$EC2_USER@$EC2_HOST" "shred -u '$DECRYPTED_TMP' 2>/dev/null || rm -f '$DECRYPTED_TMP'"
 # Also update the standalone symlink target
 ssh "$EC2_USER@$EC2_HOST" "ln -sf '$DB_PATH' '$APP_DIR/.next/standalone/prisma/dev.db' 2>/dev/null || true"
 echo "  ✓ Database restored"

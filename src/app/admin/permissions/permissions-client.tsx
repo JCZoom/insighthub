@@ -231,7 +231,7 @@ function PermissionGroupCard({
           <h3 className="text-lg font-medium text-[var(--text-primary)]">
             {group.name}
             {group.isSystem && (
-              <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">
+              <span className="ml-2 text-xs bg-[var(--bg-card-hover)] text-[var(--text-muted)] px-2 py-1 rounded">
                 System
               </span>
             )}
@@ -244,14 +244,14 @@ function PermissionGroupCard({
           <button
             onClick={onEdit}
             disabled={group.isSystem}
-            className="text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="text-blue-600 hover:text-blue-700 disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
           >
             Edit
           </button>
           <button
             onClick={onDelete}
             disabled={group.isSystem || group._count.userAssignments > 0}
-            className="text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="text-red-600 hover:text-red-700 disabled:text-[var(--text-muted)] disabled:cursor-not-allowed"
           >
             Delete
           </button>
@@ -260,9 +260,9 @@ function PermissionGroupCard({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Feature Permissions</h4>
+          <h4 className="font-medium text-[var(--text-primary)] mb-2">Feature Permissions</h4>
           {enabledFeatures.length > 0 ? (
-            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+            <ul className="text-sm text-[var(--text-secondary)] space-y-1">
               {enabledFeatures.map((feature) => (
                 <li key={feature} className="flex items-center">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -271,14 +271,14 @@ function PermissionGroupCard({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No feature permissions</p>
+            <p className="text-sm text-[var(--text-muted)]">No feature permissions</p>
           )}
         </div>
 
         <div>
-          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Data Access</h4>
+          <h4 className="font-medium text-[var(--text-primary)] mb-2">Data Access</h4>
           {dataAccess.length > 0 ? (
-            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+            <ul className="text-sm text-[var(--text-secondary)] space-y-1">
               {dataAccess.map((access) => (
                 <li key={access} className="flex items-center">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
@@ -287,13 +287,13 @@ function PermissionGroupCard({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No data access</p>
+            <p className="text-sm text-[var(--text-muted)]">No data access</p>
           )}
         </div>
       </div>
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-[var(--text-secondary)]">
           <strong>{group._count.userAssignments}</strong> users assigned
         </p>
       </div>
@@ -332,7 +332,7 @@ function CreateGroupModal({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Name *
               </label>
               <input
@@ -340,24 +340,24 @@ function CreateGroupModal({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               />
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Feature Permissions</h3>
+              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-3">Feature Permissions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(FEATURE_PERMISSION_LABELS).map(([key, label]) => (
                   <label key={key} className="flex items-center">
@@ -382,11 +382,11 @@ function CreateGroupModal({
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Data Permissions</h3>
+              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-3">Data Permissions</h3>
               <div className="space-y-2">
                 {Object.keys(DATA_CATEGORIES).map((category) => (
                   <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{category}</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{category}</span>
                     <select
                       value={formData.dataPermissions[category as DataCategory]}
                       onChange={(e) =>
@@ -398,7 +398,7 @@ function CreateGroupModal({
                           },
                         })
                       }
-                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-sm"
+                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm"
                     >
                       <option value="NONE">None</option>
                       <option value="FILTERED">Filtered</option>
@@ -414,7 +414,7 @@ function CreateGroupModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-[var(--text-secondary)] bg-[var(--bg-card-hover)] rounded-lg hover:bg-[var(--bg-card)] transition-colors"
             >
               Cancel
             </button>
@@ -460,7 +460,7 @@ function EditGroupModal({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Name *
               </label>
               <input
@@ -468,24 +468,24 @@ function EditGroupModal({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               />
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Feature Permissions</h3>
+              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-3">Feature Permissions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(FEATURE_PERMISSION_LABELS).map(([key, label]) => (
                   <label key={key} className="flex items-center">
@@ -510,11 +510,11 @@ function EditGroupModal({
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Data Permissions</h3>
+              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-3">Data Permissions</h3>
               <div className="space-y-2">
                 {Object.keys(DATA_CATEGORIES).map((category) => (
                   <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{category}</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{category}</span>
                     <select
                       value={formData.dataPermissions[category as DataCategory]}
                       onChange={(e) =>
@@ -526,7 +526,7 @@ function EditGroupModal({
                           },
                         })
                       }
-                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-sm"
+                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm"
                     >
                       <option value="NONE">None</option>
                       <option value="FILTERED">Filtered</option>
@@ -542,7 +542,7 @@ function EditGroupModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-[var(--text-secondary)] bg-[var(--bg-card-hover)] rounded-lg hover:bg-[var(--bg-card)] transition-colors"
             >
               Cancel
             </button>

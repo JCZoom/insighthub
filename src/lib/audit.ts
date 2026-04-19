@@ -17,6 +17,12 @@ export enum AuditAction {
   DASHBOARD_DELETE = 'dashboard.delete',
   DASHBOARD_SHARE = 'dashboard.share',
   DASHBOARD_DUPLICATE = 'dashboard.duplicate',
+  DASHBOARD_MOVE = 'dashboard.move',
+
+  // Folder actions
+  FOLDER_CREATE = 'folder.create',
+  FOLDER_UPDATE = 'folder.update',
+  FOLDER_DELETE = 'folder.delete',
 
   // Version actions
   VERSION_SAVE = 'version.save',
@@ -29,6 +35,7 @@ export enum ResourceType {
   GLOSSARY = 'glossary',
   DASHBOARD = 'dashboard',
   VERSION = 'version',
+  FOLDER = 'folder',
 }
 
 interface AuditLogData {

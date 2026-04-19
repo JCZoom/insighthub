@@ -340,7 +340,7 @@ function AssignPermissionModal({
             )}
 
             {availableGroups.length === 0 && (
-              <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+              <div className="bg-[var(--bg-card-hover)] border border-[var(--border-color)] rounded-lg p-3">
                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                   All available permission groups have already been assigned to this user.
                 </p>

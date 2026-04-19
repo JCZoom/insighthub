@@ -29,14 +29,14 @@ ssh "$EC2_USER@$EC2_HOST" "sudo mkdir -p /var/log/insighthub && sudo chown $EC2_
 # Define the cron block
 CRON_MARKER="# === InsightHub Automated Tasks ==="
 CRON_BLOCK="$CRON_MARKER
-# Daily database backup at 3:00 AM
-0 3 * * * sqlite3 $APP_DIR/prisma/dev.db \".backup $APP_DIR/backups/daily-\$(date +\\%Y\\%m\\%d).db\" >> /var/log/insighthub/backup.log 2>&1
+# Daily database backup at 3:00 AM (encrypted if BACKUP_ENCRYPTION_KEY is set)
+0 3 * * * BKFILE=$APP_DIR/backups/daily-\$(date +\\%Y\\%m\\%d).db; sqlite3 $APP_DIR/prisma/dev.db \".backup \$BKFILE\"; ENCKEY=\$(grep '^BACKUP_ENCRYPTION_KEY=' $APP_DIR/.env.local 2>/dev/null | cut -d= -f2- | tr -d '\"' | tr -d "'"); if [ -n \"\$ENCKEY\" ]; then openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -in \"\$BKFILE\" -out \"\${BKFILE}.enc\" -pass \"pass:\$ENCKEY\" && shred -u \"\$BKFILE\" 2>/dev/null || rm -f \"\$BKFILE\"; fi >> /var/log/insighthub/backup.log 2>&1
 
 # Health check every 5 minutes
 */5 * * * * curl -sf --max-time 10 https://dashboards.jeffcoy.net/api/health > /dev/null 2>&1 || echo \"[\$(date -u +\\%Y-\\%m-\\%dT\\%H:\\%M:\\%SZ)] UNHEALTHY\" >> /var/log/insighthub/health.log
 
 # Prune backups older than 14 days (Sundays at 4:00 AM)
-0 4 * * 0 find $APP_DIR/backups -name '*.db' -mtime +14 -delete >> /var/log/insighthub/backup.log 2>&1
+0 4 * * 0 find $APP_DIR/backups \( -name '*.db' -o -name '*.db.enc' \) -mtime +14 -delete >> /var/log/insighthub/backup.log 2>&1
 
 # Rotate health log weekly (keep last 4 weeks)
 0 0 * * 1 cd /var/log/insighthub && mv health.log health.log.\$(date +\\%Y\\%m\\%d) 2>/dev/null; find . -name 'health.log.*' -mtime +28 -delete

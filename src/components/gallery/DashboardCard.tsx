@@ -20,6 +20,11 @@ export interface DashboardCardData {
   isPublic?: boolean;
   isShared?: boolean;
   isFavorite?: boolean;
+  folderId?: string | null;
+  folder?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface DashboardCardProps {

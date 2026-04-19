@@ -71,6 +71,8 @@ if [ -f "$PROJECT_DIR/.env.local" ]; then
     fi
     scp -q "$TMPENV" "$EC2_HOST:$APP_DIR/.env.local"
     rm -f "$TMPENV"
+    # Restrict .env.local permissions — contains secrets
+    ssh "$EC2_HOST" "chmod 600 $APP_DIR/.env.local"
     # Safety net: ensure NEXTAUTH_SECRET is ≥ 32 chars for production
     # (assertEnv() throws in production if it's shorter)
     SECRET_LEN=$(ssh "$EC2_HOST" "grep '^NEXTAUTH_SECRET=' $APP_DIR/.env.local | cut -d= -f2 | tr -d '\"' | tr -d \"'\" | wc -c | tr -d ' '")
@@ -121,7 +123,7 @@ ssh "$EC2_HOST" "cd $APP_DIR && DATABASE_URL='file:$DB_PATH' npx tsx prisma/seed
 # Symlink DB in standalone dir to the canonical DB (so writes persist across deploys)
 ssh "$EC2_HOST" "ln -sf $DB_PATH $APP_DIR/.next/standalone/prisma/dev.db 2>/dev/null || true"
 # Ensure DB file is writable
-ssh "$EC2_HOST" "chmod 664 $DB_PATH"
+ssh "$EC2_HOST" "chmod 600 $DB_PATH"
 echo "  ✓ Database seeded"
 
 # 8. Create/update systemd service

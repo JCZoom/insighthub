@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X } from 'lucide-react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X, Folder } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
+import { FolderTree, type FolderNode } from '@/components/folders/FolderTree';
+import { FolderBreadcrumbs, buildBreadcrumbs } from '@/components/folders/FolderBreadcrumbs';
+import { FolderManager } from '@/components/folders/FolderManager';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -137,10 +140,106 @@ export function GalleryPage() {
   const [filterDateRange, setFilterDateRange] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const { toast } = useToast();
 
+  // Folder-related state
+  const [folders, setFolders] = useState<FolderNode[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [showFolderTree, setShowFolderTree] = useState(false);
+
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
   const galleryRouter = useRouter();
 
   const hasActiveFilters = filterOwner || filterDepartment || filterTag || filterDateRange !== 'all';
+
+  // Fetch folders function
+  const fetchFolders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/folders');
+      if (res.ok) {
+        const { folders } = await res.json();
+        setFolders(buildFolderTree(folders));
+      }
+    } catch {
+      // Silently handle folder fetch errors
+    }
+  }, []);
+
+  // Initialize folder manager
+  const folderManager = FolderManager({ onFoldersUpdate: fetchFolders });
+
+  // Build folder tree from flat folder list
+  function buildFolderTree(flatFolders: any[]): FolderNode[] {
+    const folderMap = new Map<string, FolderNode>();
+    const rootFolders: FolderNode[] = [];
+
+    // Create folder nodes
+    flatFolders.forEach(folder => {
+      folderMap.set(folder.id, {
+        ...folder,
+        children: []
+      });
+    });
+
+    // Build tree structure
+    flatFolders.forEach(folder => {
+      const node = folderMap.get(folder.id)!;
+      if (folder.parentId) {
+        const parent = folderMap.get(folder.parentId);
+        if (parent) {
+          if (!parent.children) parent.children = [];
+          parent.children.push(node);
+        }
+      } else {
+        rootFolders.push(node);
+      }
+    });
+
+    return rootFolders;
+  }
+
+  // Handle folder selection
+  const handleFolderSelect = useCallback((folderId: string | null) => {
+    setCurrentFolderId(folderId);
+    setSelectedCardIndex(-1); // Reset dashboard selection
+    // On mobile, close folder tree after selection
+    if (window.innerWidth < 768) {
+      setShowFolderTree(false);
+    }
+  }, []);
+
+  // Wrapper functions to match FolderTree interface
+  const handleRenameFolder = useCallback((folderId: string, currentName: string) => {
+    const folder = findFolderInTree(folders, folderId);
+    if (folder) {
+      folderManager.renameFolder(folder);
+    }
+  }, [folders, folderManager]);
+
+  const handleDeleteFolder = useCallback((folderId: string) => {
+    const folder = findFolderInTree(folders, folderId);
+    if (folder) {
+      folderManager.deleteFolder(folder);
+    }
+  }, [folders, folderManager]);
+
+  // Helper function to find folder in tree
+  function findFolderInTree(folders: FolderNode[], folderId: string): any | null {
+    for (const folder of folders) {
+      if (folder.id === folderId) {
+        return {
+          id: folder.id,
+          name: folder.name,
+          parentId: folder.parentId,
+          visibility: folder.visibility,
+          _count: folder._count
+        };
+      }
+      if (folder.children) {
+        const found = findFolderInTree(folder.children, folderId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
 
   // Gallery keyboard shortcuts: Alt+arrows for tabs, j/k to nav, Enter to open, n for new, Esc to deselect, 1-5 for tabs
   useEffect(() => {
@@ -183,6 +282,8 @@ export function GalleryPage() {
         setSelectedCardIndex(prev => {
           // Total cards = 1 "Create New Dashboard" card + filtered dashboards
           const totalCards = 1 + filteredRef.current.length;
+          // Ensure we have at least the "Create New Dashboard" card
+          if (totalCards === 0) return 0;
           // If no selection yet, start with "Create New Dashboard" card
           if (prev < 0) {
             return 0;
@@ -199,6 +300,8 @@ export function GalleryPage() {
         setSelectedCardIndex(prev => {
           // Total cards = 1 "Create New Dashboard" card + filtered dashboards
           const totalCards = 1 + filteredRef.current.length;
+          // Ensure we have at least the "Create New Dashboard" card
+          if (totalCards === 0) return 0;
           // If no selection yet, start with last dashboard card
           if (prev < 0) {
             return Math.max(0, totalCards - 1);
@@ -276,6 +379,8 @@ export function GalleryPage() {
             isPublic: d.isPublic || false,
             isShared: userId ? d.owner?.id !== userId : false,
             isFavorite: false,
+            folderId: d.folderId,
+            folder: d.folder ? { id: d.folder.id, name: d.folder.name } : null,
           }),
         );
         // Merge: user-created dashboards + templates (skip dupes by id)
@@ -292,6 +397,11 @@ export function GalleryPage() {
     }
     loadDashboards();
   }, []);
+
+  // Fetch folders
+  useEffect(() => {
+    fetchFolders();
+  }, [fetchFolders]);
 
   const toggleFavorite = useCallback((id: string) => {
     setDashboards(prev => {
@@ -390,6 +500,9 @@ export function GalleryPage() {
   const clearFilters = () => { setFilterOwner(''); setFilterDepartment(''); setFilterTag(''); setFilterDateRange('all'); };
 
   const filtered = sortDashboards(dashboards.filter(d => {
+    // Folder filtering - only show dashboards in the current folder
+    if (d.folderId !== currentFolderId) return false;
+
     if (activeTab === 'templates' && !d.isTemplate) return false;
     if (activeTab === 'company') return matchesSearch(d) && matchesFilters(d);
     if (activeTab === 'my' && (d.isTemplate || d.isShared)) return false;
@@ -413,15 +526,69 @@ export function GalleryPage() {
   const filteredRef = useRef(filtered);
   filteredRef.current = filtered;
 
+  // Reset selection when filtered list changes significantly
+  useEffect(() => {
+    const totalCards = 1 + filtered.length;
+    if (selectedCardIndex >= totalCards) {
+      setSelectedCardIndex(-1);
+    }
+  }, [filtered.length, selectedCardIndex]);
+
   return (
-    <main className="flex-1 w-full px-4 sm:px-6 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Dashboards</h1>
-        <p className="text-sm text-[var(--text-secondary)]">
-          Create, discover, and share dashboards across your organization.
-        </p>
-      </div>
+    <main className="flex-1 w-full">
+      <div className="flex h-full">
+        {/* Folder Sidebar */}
+        <div className={cn(
+          'border-r border-[var(--border-color)] bg-[var(--bg-card)]/50 transition-all duration-300',
+          showFolderTree ? 'w-64' : 'w-0 overflow-hidden'
+        )}>
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Folders</h3>
+            <FolderTree
+              folders={folders}
+              selectedFolderId={currentFolderId}
+              onFolderSelect={handleFolderSelect}
+              onCreateFolder={folderManager.createFolder}
+              onRenameFolder={handleRenameFolder}
+              onDeleteFolder={handleDeleteFolder}
+              showDashboards={false}
+            />
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 px-4 sm:px-6 py-6">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Dashboards</h1>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Create, discover, and share dashboards across your organization.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowFolderTree(!showFolderTree)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                title="Toggle folder tree"
+              >
+                <Folder size={16} />
+                <span className="hidden sm:inline">Folders</span>
+              </button>
+            </div>
+
+            {/* Breadcrumbs */}
+            {(currentFolderId || showFolderTree) && (
+              <div className="mb-4">
+                <FolderBreadcrumbs
+                  breadcrumbs={buildBreadcrumbs(currentFolderId,
+                    folders.flatMap(f => [f, ...(f.children || []).map(c => ({ ...c, parentId: f.id }))])
+                  )}
+                  onNavigate={handleFolderSelect}
+                />
+              </div>
+            )}
+          </div>
 
       {/* Tabs + search bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -682,6 +849,11 @@ export function GalleryPage() {
           </div>
         )}
       </section>
+        </div>
+      </div>
+
+      {/* Folder Management Modals */}
+      {folderManager.modals}
     </main>
   );
 }

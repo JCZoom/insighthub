@@ -21,6 +21,14 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_NAME="insighthub-${TIMESTAMP}.db"
 KEEP_DAYS=14
 
+# Encryption — set BACKUP_ENCRYPTION_KEY in .env.local or environment
+# When set, backups are AES-256-CBC encrypted at rest (.db.enc)
+if [ -z "${BACKUP_ENCRYPTION_KEY:-}" ] && [ -f "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.env.local" ]; then
+    BACKUP_ENCRYPTION_KEY=$(grep '^BACKUP_ENCRYPTION_KEY=' "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.env.local" | cut -d= -f2- | tr -d '"' | tr -d "'")
+fi
+ENCRYPT=${BACKUP_ENCRYPTION_KEY:+true}
+ENCRYPT=${ENCRYPT:-false}
+
 # Parse args
 REMOTE_ONLY=false
 LIST_ONLY=false
@@ -34,11 +42,11 @@ done
 # List mode
 if [ "$LIST_ONLY" = true ]; then
     echo "=== Backups on EC2 ==="
-    ssh "$EC2_USER@$EC2_HOST" "ls -lh $BACKUP_DIR/*.db 2>/dev/null || echo '  (no backups found)'"
+    ssh "$EC2_USER@$EC2_HOST" "ls -lh $BACKUP_DIR/insighthub-*.db $BACKUP_DIR/insighthub-*.db.enc 2>/dev/null || echo '  (no backups found)'"
     echo ""
     echo "=== Local backups ==="
     if [ -d "$LOCAL_BACKUP_DIR" ]; then
-        ls -lh "$LOCAL_BACKUP_DIR"/*.db 2>/dev/null || echo "  (no backups found)"
+        ls -lh "$LOCAL_BACKUP_DIR"/insighthub-*.db "$LOCAL_BACKUP_DIR"/insighthub-*.db.enc 2>/dev/null || echo "  (no backups found)"
     else
         echo "  (no local backup directory)"
     fi
@@ -65,9 +73,24 @@ if [ "$BACKUP_SIZE" -lt 1024 ]; then
 fi
 echo "  ✓ Backup created: $BACKUP_NAME ($(echo "$BACKUP_SIZE" | awk '{printf "%.1f MB", $1/1024/1024}'))"
 
+# 2b. Encrypt the backup if BACKUP_ENCRYPTION_KEY is set
+if [ "$ENCRYPT" = true ]; then
+    echo "  Encrypting backup (AES-256-CBC)..."
+    ssh "$EC2_USER@$EC2_HOST" "openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 \
+        -in '$BACKUP_DIR/$BACKUP_NAME' \
+        -out '$BACKUP_DIR/${BACKUP_NAME}.enc' \
+        -pass 'pass:$BACKUP_ENCRYPTION_KEY'"
+    # Securely remove the unencrypted backup
+    ssh "$EC2_USER@$EC2_HOST" "shred -u '$BACKUP_DIR/$BACKUP_NAME' 2>/dev/null || rm -f '$BACKUP_DIR/$BACKUP_NAME'"
+    BACKUP_NAME="${BACKUP_NAME}.enc"
+    echo "  ✓ Encrypted → $BACKUP_NAME"
+else
+    echo "  ⚠ BACKUP_ENCRYPTION_KEY not set — backup stored UNENCRYPTED"
+fi
+
 # 3. Prune old backups (keep last N days)
 echo "[2/3] Pruning backups older than ${KEEP_DAYS} days..."
-PRUNED=$(ssh "$EC2_USER@$EC2_HOST" "find $BACKUP_DIR -name 'insighthub-*.db' -mtime +$KEEP_DAYS -delete -print | wc -l")
+PRUNED=$(ssh "$EC2_USER@$EC2_HOST" "find $BACKUP_DIR \( -name 'insighthub-*.db' -o -name 'insighthub-*.db.enc' \) -mtime +$KEEP_DAYS -delete -print | wc -l")
 echo "  ✓ Pruned $PRUNED old backup(s)"
 
 # 4. Download to local machine (unless remote-only)
