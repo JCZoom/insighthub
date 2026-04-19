@@ -8,6 +8,7 @@ import { useDataSourcePermissions, useDataSourceAccess } from '@/hooks/useDataSo
 import { validateWidgetDataAccess, getDataSourceRestrictionExplanation } from '@/lib/auth/permissions';
 import type { WidgetConfig, WidgetType, ThresholdConfig } from '@/types';
 import { useSession } from 'next-auth/react';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -627,17 +628,17 @@ function VisualTab({
           <FieldLabel>Background Color</FieldLabel>
           <div className="flex gap-2 flex-wrap">
             {TEXT_BG_COLORS.map(({ value, label, color }) => (
-              <button
-                key={value}
-                onClick={() => updateCustomStyle('backgroundColor', value)}
-                title={label}
-                className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                  (cs.backgroundColor || '') === value
-                    ? 'border-white scale-110 shadow-lg'
-                    : 'border-[var(--border-color)] hover:border-white/30 hover:scale-105'
-                }`}
-                style={{ backgroundColor: color || 'var(--bg-card)' }}
-              />
+              <Tooltip key={value} content={label}>
+                <button
+                  onClick={() => updateCustomStyle('backgroundColor', value)}
+                  className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                    (cs.backgroundColor || '') === value
+                      ? 'border-white scale-110 shadow-lg'
+                      : 'border-[var(--border-color)] hover:border-white/30 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color || 'var(--bg-card)' }}
+                />
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -646,17 +647,17 @@ function VisualTab({
           <FieldLabel>Title Color</FieldLabel>
           <div className="flex gap-2 flex-wrap">
             {TEXT_COLORS.map(({ value, label, color }) => (
-              <button
-                key={value}
-                onClick={() => updateCustomStyle('titleColor', value)}
-                title={label}
-                className={`w-6 h-6 rounded-full border-2 transition-all ${
-                  (cs.titleColor || '') === value
-                    ? 'border-white scale-110 shadow-lg'
-                    : 'border-transparent hover:border-white/30 hover:scale-105'
-                }`}
-                style={{ backgroundColor: color }}
-              />
+              <Tooltip key={value} content={label}>
+                <button
+                  onClick={() => updateCustomStyle('titleColor', value)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${
+                    (cs.titleColor || '') === value
+                      ? 'border-white scale-110 shadow-lg'
+                      : 'border-transparent hover:border-white/30 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -665,17 +666,17 @@ function VisualTab({
           <FieldLabel>Text Color</FieldLabel>
           <div className="flex gap-2 flex-wrap">
             {TEXT_COLORS.map(({ value, label, color }) => (
-              <button
-                key={value}
-                onClick={() => updateCustomStyle('textColor', value)}
-                title={label}
-                className={`w-6 h-6 rounded-full border-2 transition-all ${
-                  (cs.textColor || '') === value
-                    ? 'border-white scale-110 shadow-lg'
-                    : 'border-transparent hover:border-white/30 hover:scale-105'
-                }`}
-                style={{ backgroundColor: color }}
-              />
+              <Tooltip key={value} content={label}>
+                <button
+                  onClick={() => updateCustomStyle('textColor', value)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${
+                    (cs.textColor || '') === value
+                      ? 'border-white scale-110 shadow-lg'
+                      : 'border-transparent hover:border-white/30 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -684,17 +685,17 @@ function VisualTab({
           <FieldLabel>Border Accent</FieldLabel>
           <div className="flex gap-2 flex-wrap">
             {TEXT_COLORS.map(({ value, label, color }) => (
-              <button
-                key={value}
-                onClick={() => updateCustomStyle('borderAccent', value)}
-                title={label}
-                className={`w-6 h-6 rounded-full border-2 transition-all ${
-                  (cs.borderAccent || '') === value
-                    ? 'border-white scale-110 shadow-lg'
-                    : 'border-transparent hover:border-white/30 hover:scale-105'
-                }`}
-                style={{ backgroundColor: color }}
-              />
+              <Tooltip key={value} content={label}>
+                <button
+                  onClick={() => updateCustomStyle('borderAccent', value)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${
+                    (cs.borderAccent || '') === value
+                      ? 'border-white scale-110 shadow-lg'
+                      : 'border-transparent hover:border-white/30 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -758,17 +759,17 @@ function VisualTab({
         <FieldLabel>Color Scheme</FieldLabel>
         <div className="flex gap-2 flex-wrap">
           {COLOR_SCHEMES.map(({ value, label, color }) => (
-            <button
-              key={value}
-              onClick={() => updateVisual({ colorScheme: value })}
-              title={label}
-              className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                vc.colorScheme === value
-                  ? 'border-white scale-110 shadow-lg'
-                  : 'border-transparent hover:border-white/30 hover:scale-105'
-              }`}
-              style={{ backgroundColor: color }}
-            />
+            <Tooltip key={value} content={label}>
+              <button
+                onClick={() => updateVisual({ colorScheme: value })}
+                className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                  vc.colorScheme === value
+                    ? 'border-white scale-110 shadow-lg'
+                    : 'border-transparent hover:border-white/30 hover:scale-105'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            </Tooltip>
           ))}
         </div>
       </div>
@@ -806,13 +807,14 @@ function VisualTab({
         <div>
           <div className="flex items-center justify-between mb-3">
             <FieldLabel>Thresholds</FieldLabel>
-            <button
-              onClick={addThreshold}
-              className="p-1 rounded-md hover:bg-[var(--bg-card)] transition-colors group"
-              title="Add threshold"
-            >
-              <Plus size={12} className="text-[var(--text-muted)] group-hover:text-accent-cyan" />
-            </button>
+            <Tooltip content="Add threshold">
+              <button
+                onClick={addThreshold}
+                className="p-1 rounded-md hover:bg-[var(--bg-card)] transition-colors group"
+              >
+                <Plus size={12} className="text-[var(--text-muted)] group-hover:text-accent-cyan" />
+              </button>
+            </Tooltip>
           </div>
 
           <div className="space-y-3">
@@ -863,13 +865,14 @@ function ThresholdEditor({ threshold, index, onUpdate, onRemove }: ThresholdEdit
         <span className="text-xs font-medium text-[var(--text-secondary)]">
           Threshold {index + 1}
         </span>
-        <button
-          onClick={onRemove}
-          className="p-1 rounded-md hover:bg-[var(--bg-primary)]/50 transition-colors group"
-          title="Remove threshold"
-        >
-          <Trash2 size={11} className="text-[var(--text-muted)] group-hover:text-red-400" />
-        </button>
+        <Tooltip content="Remove threshold">
+          <button
+            onClick={onRemove}
+            className="p-1 rounded-md hover:bg-[var(--bg-primary)]/50 transition-colors group"
+          >
+            <Trash2 size={11} className="text-[var(--text-muted)] group-hover:text-red-400" />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Value and Label Row */}
@@ -907,17 +910,17 @@ function ThresholdEditor({ threshold, index, onUpdate, onRemove }: ThresholdEdit
         </label>
         <div className="flex gap-2 flex-wrap">
           {THRESHOLD_COLORS.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => onUpdate({ color: value })}
-              title={label}
-              className={`w-6 h-6 rounded-full border-2 transition-all ${
-                threshold.color === value
-                  ? 'border-white scale-110 shadow-lg'
-                  : 'border-transparent hover:border-white/30 hover:scale-105'
-              }`}
-              style={{ backgroundColor: value }}
-            />
+            <Tooltip key={value} content={label}>
+              <button
+                onClick={() => onUpdate({ color: value })}
+                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                  threshold.color === value
+                    ? 'border-white scale-110 shadow-lg'
+                    : 'border-transparent hover:border-white/30 hover:scale-105'
+                }`}
+                style={{ backgroundColor: value }}
+              />
+            </Tooltip>
           ))}
           {/* Custom color input */}
           <div className="relative">
@@ -926,7 +929,6 @@ function ThresholdEditor({ threshold, index, onUpdate, onRemove }: ThresholdEdit
               value={threshold.color}
               onChange={(e) => onUpdate({ color: e.target.value })}
               className="w-6 h-6 rounded-full border-2 border-transparent hover:border-white/30 cursor-pointer"
-              title="Custom color"
             />
           </div>
         </div>

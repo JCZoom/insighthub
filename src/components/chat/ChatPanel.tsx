@@ -490,13 +490,14 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
   if (isCollapsed) {
     return (
-      <button
-        onClick={() => setIsCollapsed(false)}
-        className="fixed right-4 bottom-4 z-40 p-3 rounded-full bg-accent-blue text-white shadow-lg hover:bg-accent-blue/90 transition-colors"
-        title="Open chat"
-      >
-        <PanelRight size={20} />
-      </button>
+      <Tooltip content="Open chat" side="left">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="fixed right-4 bottom-4 z-40 p-3 rounded-full bg-accent-blue text-white shadow-lg hover:bg-accent-blue/90 transition-colors"
+        >
+          <PanelRight size={20} />
+        </button>
+      </Tooltip>
     );
   }
 

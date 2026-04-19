@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { WidgetConfig } from '@/types';
 import { queryDataSync } from '@/lib/data/sample-data';
 import { X, Copy, Check, Code2, Database, Table2, Clock, ChevronDown, ChevronUp, Download, BookOpen, ExternalLink } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface WidgetQueryPanelProps {
   widget: WidgetConfig;
@@ -317,15 +318,16 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
           <div className="px-5 py-4 border-b border-[var(--border-color)]">
             <div className="flex flex-wrap gap-2">
               {/* SQL Editor and Playground buttons deferred — uncomment when data tools are re-enabled */}
-              <button
-                onClick={handleExportJSON}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-green hover:bg-accent-green/10 transition-colors border border-[var(--border-color)] hover:border-accent-green/20"
-                disabled={data.length === 0}
-                title="Export data as JSON"
-              >
+              <Tooltip content="Export data as JSON">
+                <button
+                  onClick={handleExportJSON}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-green hover:bg-accent-green/10 transition-colors border border-[var(--border-color)] hover:border-accent-green/20"
+                  disabled={data.length === 0}
+                >
                 <Download size={12} />
-                Export JSON
-              </button>
+                  Export JSON
+                </button>
+              </Tooltip>
             </div>
           </div>
 
@@ -356,12 +358,13 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
                             {term.category}
                           </span>
                           {term.dataSource && (
-                            <button
-                              title={`View in glossary: ${term.dataSource}`}
-                              className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-                            >
-                              <ExternalLink size={10} className="text-[var(--text-muted)]" />
-                            </button>
+                            <Tooltip content={`View in glossary: ${term.dataSource}`}>
+                              <button
+                                className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                              >
+                                <ExternalLink size={10} className="text-[var(--text-muted)]" />
+                              </button>
+                            </Tooltip>
                           )}
                         </div>
                       </div>
@@ -400,13 +403,14 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleCopyTSV(); }}
-                  className="text-[9px] text-[var(--text-muted)] hover:text-accent-cyan transition-colors"
-                  title="Copy data as TSV (paste into Excel/Sheets)"
-                >
-                  Copy TSV
-                </button>
+                <Tooltip content="Copy data as TSV (paste into Excel/Sheets)">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleCopyTSV(); }}
+                    className="text-[9px] text-[var(--text-muted)] hover:text-accent-cyan transition-colors"
+                  >
+                    Copy TSV
+                  </button>
+                </Tooltip>
                 {showRawData ? <ChevronUp size={12} className="text-[var(--text-muted)]" /> : <ChevronDown size={12} className="text-[var(--text-muted)]" />}
               </div>
             </button>

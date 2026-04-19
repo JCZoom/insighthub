@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { BarChart3, TrendingUp, HeadphonesIcon, PieChart, Users, Building2, ArrowRight, Play, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface TemplateGalleryProps {
   onNext: () => void;
@@ -177,13 +178,14 @@ export function TemplateGallery({ onNext }: TemplateGalleryProps) {
                   <Play size={14} />
                   Use Template
                 </button>
-                <button
-                  onClick={() => handlePreviewTemplate(template.id)}
-                  className="px-3 py-2.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
-                  title="Preview"
-                >
-                  <Eye size={14} />
-                </button>
+                <Tooltip content="Preview">
+                  <button
+                    onClick={() => handlePreviewTemplate(template.id)}
+                    className="px-3 py-2.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                  >
+                    <Eye size={14} />
+                  </button>
+                </Tooltip>
               </div>
 
               {/* Hover overlay with gradient */}

@@ -9,6 +9,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useViewport } from '@/hooks/useViewport';
 import { usePlatform } from '@/hooks/usePlatform';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 const NAV_ITEMS = [
   { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard },
@@ -93,17 +94,18 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             {/* Mobile hamburger menu */}
             <div ref={mobileMenuRef} className="relative sm:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(prev => !prev)}
-                className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                title="Menu"
-              >
+              <Tooltip content="Menu" side="bottom">
+                <button
+                  onClick={() => setMobileMenuOpen(prev => !prev)}
+                  className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                >
                 {mobileMenuOpen ? (
                   <X size={16} className="text-[var(--text-primary)]" />
                 ) : (
                   <Menu size={16} className="text-[var(--text-primary)]" />
                 )}
-              </button>
+                </button>
+              </Tooltip>
               {mobileMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-lg shadow-black/10 py-1.5 fade-in z-50">
                   {NAV_ITEMS.map(item => (
@@ -127,7 +129,6 @@ export function Navbar() {
                       href="/"
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors border-t border-[var(--border-color)] mt-1 pt-2"
-                      title={`Back to Home (${modKey}1 or g h)`}
                     >
                       <Home size={15} />
                       Home
@@ -138,14 +139,15 @@ export function Navbar() {
             </div>
 
             {isSubPage && (
-              <Link
-                href="/"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
-                title={`Back to Home (${modKey}1 or g h)`}
-              >
-                <Home size={15} />
-                <span className="hidden sm:inline">Home</span>
-              </Link>
+              <Tooltip content="Back to Home" shortcut={['mod', '1']} side="bottom">
+                <Link
+                  href="/"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
+                >
+                  <Home size={15} />
+                  <span className="hidden sm:inline">Home</span>
+                </Link>
+              </Tooltip>
             )}
             <Link
               href="/dashboard/new"
@@ -154,13 +156,14 @@ export function Navbar() {
               <Plus size={15} />
               <span className="hidden sm:inline">New Dashboard</span>
             </Link>
-            <button
-              onClick={() => setShowShortcuts(true)}
-              className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-              title={`Keyboard shortcuts (?) • ${modKey}K palette`}
-            >
-              <Keyboard size={14} className="text-[var(--text-muted)]" />
-            </button>
+            <Tooltip content="Keyboard shortcuts" shortcut="?" side="bottom">
+              <button
+                onClick={() => setShowShortcuts(true)}
+                className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <Keyboard size={14} className="text-[var(--text-muted)]" />
+              </button>
+            </Tooltip>
             <ThemeToggle />
             {/* Profile bubble with dropdown */}
             <div ref={profileRef} className="relative">

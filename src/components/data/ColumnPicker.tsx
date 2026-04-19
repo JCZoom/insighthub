@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Table, Search, Sparkles, Key, Link } from 'lucide-react';
 import type { TableConfig, ColumnMetadata, DragItem } from '@/types/visual-query';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface ColumnPickerProps {
   schema: TableConfig[];
@@ -153,19 +154,19 @@ export const ColumnPicker: React.FC<ColumnPickerProps> = ({
             {/* Special indicators */}
             <div className="flex items-center gap-1">
               {column.isPrimaryKey && (
-                <span title="Primary Key">
-                  <Key className="w-3 h-3 text-amber-400" />
-                </span>
+                <Tooltip content="Primary Key">
+                  <span><Key className="w-3 h-3 text-amber-400" /></span>
+                </Tooltip>
               )}
               {column.isForeignKey && (
-                <span title="Foreign Key">
-                  <Link className="w-3 h-3 text-cyan-400" />
-                </span>
+                <Tooltip content="Foreign Key">
+                  <span><Link className="w-3 h-3 text-cyan-400" /></span>
+                </Tooltip>
               )}
               {column.isGlossaryLinked && (
-                <span title="Glossary Term">
-                  <Sparkles className="w-3 h-3 text-accent-green" />
-                </span>
+                <Tooltip content="Glossary Term">
+                  <span><Sparkles className="w-3 h-3 text-accent-green" /></span>
+                </Tooltip>
               )}
             </div>
           </div>

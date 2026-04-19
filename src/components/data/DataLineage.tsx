@@ -17,6 +17,7 @@ import {
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 export interface DataLineageNode {
   id: string;
@@ -281,26 +282,28 @@ export const DataLineage: React.FC<DataLineageProps> = ({
                               {incoming.length + outgoing.length} connections
                             </span>
                             <div className="flex items-center gap-0.5 ml-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onNodeAction?.(node.id, 'view');
-                                }}
-                                className="p-1 hover:bg-[var(--bg-card)] rounded"
-                                title="View details"
-                              >
-                                <Eye size={10} className="text-[var(--text-muted)]" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onNodeAction?.(node.id, 'query');
-                                }}
-                                className="p-1 hover:bg-[var(--bg-card)] rounded"
-                                title="Query"
-                              >
-                                <Code size={10} className="text-[var(--text-muted)]" />
-                              </button>
+                              <Tooltip content="View details">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNodeAction?.(node.id, 'view');
+                                  }}
+                                  className="p-1 hover:bg-[var(--bg-card)] rounded"
+                                >
+                                  <Eye size={10} className="text-[var(--text-muted)]" />
+                                </button>
+                              </Tooltip>
+                              <Tooltip content="Query">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNodeAction?.(node.id, 'query');
+                                  }}
+                                  className="p-1 hover:bg-[var(--bg-card)] rounded"
+                                >
+                                  <Code size={10} className="text-[var(--text-muted)]" />
+                                </button>
+                              </Tooltip>
                             </div>
                           </div>
                         </div>
@@ -383,26 +386,28 @@ export const DataLineage: React.FC<DataLineageProps> = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onNodeAction?.(node.id, 'view');
-                      }}
-                      className="p-2 hover:bg-[var(--bg-card)] rounded"
-                      title="View details"
-                    >
-                      <Eye size={12} className="text-[var(--text-muted)]" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onNodeAction?.(node.id, 'query');
-                      }}
-                      className="p-2 hover:bg-[var(--bg-card)] rounded"
-                      title="Query"
-                    >
-                      <Code size={12} className="text-[var(--text-muted)]" />
-                    </button>
+                    <Tooltip content="View details">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNodeAction?.(node.id, 'view');
+                        }}
+                        className="p-2 hover:bg-[var(--bg-card)] rounded"
+                      >
+                        <Eye size={12} className="text-[var(--text-muted)]" />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Query">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNodeAction?.(node.id, 'query');
+                        }}
+                        className="p-2 hover:bg-[var(--bg-card)] rounded"
+                      >
+                        <Code size={12} className="text-[var(--text-muted)]" />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
               );

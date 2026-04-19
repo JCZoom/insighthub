@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { BarChart3, LineChart, ScatterChart, PieChart, TrendingUp, Settings, Download, ExternalLink, Maximize2, Minimize2 } from 'lucide-react';
 import { QuickChartConfig, WidgetPromotionRequest } from '@/types/playground';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface QuickChartProps {
   data: Record<string, unknown>[];
@@ -46,41 +47,43 @@ function ChartHeader({ config, onConfigChange, onToggleSettings, showSettings, o
         {/* Chart Type Selector */}
         <div className="flex items-center gap-0.5 border border-[var(--border-color)] rounded overflow-hidden">
           {chartTypes.map(({ type, icon: Icon, label }) => (
-            <button
-              key={type}
-              onClick={() => onConfigChange({ ...config, type })}
-              className={`p-1.5 text-xs transition-colors ${
-                config.type === type
-                  ? 'bg-accent-blue text-white'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
-              }`}
-              title={label}
-            >
-              <Icon className="w-3 h-3" />
-            </button>
+            <Tooltip key={type} content={label}>
+              <button
+                onClick={() => onConfigChange({ ...config, type })}
+                className={`p-1.5 text-xs transition-colors ${
+                  config.type === type
+                    ? 'bg-accent-blue text-white'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+              </button>
+            </Tooltip>
           ))}
         </div>
 
-        <button
-          onClick={onToggleSettings}
-          className={`p-1.5 rounded text-xs transition-colors ${
-            showSettings
-              ? 'bg-accent-purple text-white'
-              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
-          }`}
-          title="Chart Settings"
-        >
-          <Settings className="w-3 h-3" />
-        </button>
+        <Tooltip content="Chart Settings">
+          <button
+            onClick={onToggleSettings}
+            className={`p-1.5 rounded text-xs transition-colors ${
+              showSettings
+                ? 'bg-accent-purple text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+            }`}
+          >
+            <Settings className="w-3 h-3" />
+          </button>
+        </Tooltip>
 
         {onFullscreen && (
-          <button
-            onClick={onFullscreen}
-            className="p-1.5 rounded text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-          </button>
+          <Tooltip content={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+            <button
+              onClick={onFullscreen}
+              className="p-1.5 rounded text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+            >
+              {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+            </button>
+          </Tooltip>
         )}
       </div>
     </div>
@@ -610,24 +613,26 @@ export function QuickChart({ data, columns, config, onConfigChange, onPromoteToW
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={exportChart}
-              className="flex items-center gap-1 px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded transition-colors"
-              title="Export Chart Data"
-            >
+            <Tooltip content="Export Chart Data">
+              <button
+                onClick={exportChart}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded transition-colors"
+              >
               <Download className="w-3 h-3" />
-              Export
-            </button>
+                Export
+              </button>
+            </Tooltip>
 
             {onPromoteToWidget && (
-              <button
-                onClick={promoteToWidget}
-                className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-accent-purple hover:bg-accent-purple/90 rounded transition-colors"
-                title="Add to Dashboard"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Promote to Widget
-              </button>
+              <Tooltip content="Add to Dashboard">
+                <button
+                  onClick={promoteToWidget}
+                  className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-accent-purple hover:bg-accent-purple/90 rounded transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Promote to Widget
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>

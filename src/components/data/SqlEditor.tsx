@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Play, Square, Copy, Save, Download, Upload, Loader2 } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface SqlEditorProps {
   value: string;
@@ -121,32 +122,34 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleCopy}
-            className="p-1.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-            title="Copy to clipboard"
-          >
-            <Copy className="w-3 h-3 text-[var(--text-muted)]" />
-          </button>
-          {onExecute && (
+          <Tooltip content="Copy to clipboard">
             <button
-              onClick={onExecute}
-              disabled={isExecuting || !value.trim()}
-              className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-accent-blue text-white text-xs font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
-              title="Execute query (Ctrl/Cmd + Enter)"
+              onClick={handleCopy}
+              className="p-1.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
             >
-              {isExecuting ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play className="w-3 h-3" />
-                  Run
-                </>
-              )}
+              <Copy className="w-3 h-3 text-[var(--text-muted)]" />
             </button>
+          </Tooltip>
+          {onExecute && (
+            <Tooltip content="Execute query" shortcut={['mod', 'enter']}>
+              <button
+                onClick={onExecute}
+                disabled={isExecuting || !value.trim()}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-accent-blue text-white text-xs font-medium hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
+              >
+                {isExecuting ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    Run
+                  </>
+                )}
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>

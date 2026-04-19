@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Lightbulb, Database, Calculator, ToggleLeft, ToggleRight, BookOpen } from 'lucide-react';
 import type { WidgetConfig } from '@/types';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface GlossaryTerm {
   id: string;
@@ -113,18 +114,19 @@ export function MetricExplanationModal({ widget, onClose }: MetricExplanationMod
             </p>
           </div>
           {isPowerUser && (
-            <button
-              onClick={() => setShowQuery(!showQuery)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-              title={showQuery ? 'Hide query details' : 'Show query details'}
-            >
-              {showQuery ? (
-                <ToggleRight size={16} className="text-accent-cyan" />
-              ) : (
-                <ToggleLeft size={16} className="text-[var(--text-muted)]" />
-              )}
-              <span className="text-xs text-[var(--text-secondary)]">Query</span>
-            </button>
+            <Tooltip content={showQuery ? 'Hide query details' : 'Show query details'}>
+              <button
+                onClick={() => setShowQuery(!showQuery)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                {showQuery ? (
+                  <ToggleRight size={16} className="text-accent-cyan" />
+                ) : (
+                  <ToggleLeft size={16} className="text-[var(--text-muted)]" />
+                )}
+                <span className="text-xs text-[var(--text-secondary)]">Query</span>
+              </button>
+            </Tooltip>
           )}
           <button
             onClick={onClose}

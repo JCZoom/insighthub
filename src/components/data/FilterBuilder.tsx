@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Calendar, ChevronDown, Filter } from 'lucide-react';
 import type { VisualFilter, ColumnMetadata, FilterOperation, FilterValue } from '@/types/visual-query';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface FilterBuilderProps {
   filters: VisualFilter[];
@@ -275,13 +276,14 @@ export const FilterBuilder: React.FC<FilterBuilderProps> = ({
         </div>
 
         {/* Remove button */}
-        <button
-          onClick={() => removeFilter(filter.id)}
-          className="p-2 text-muted hover:text-accent-red hover:bg-accent-red/10 rounded-md transition-colors"
-          title="Remove filter"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <Tooltip content="Remove filter">
+          <button
+            onClick={() => removeFilter(filter.id)}
+            className="p-2 text-muted hover:text-accent-red hover:bg-accent-red/10 rounded-md transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </Tooltip>
       </div>
     );
   };

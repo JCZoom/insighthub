@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { Kbd } from '@/components/ui/Kbd';
 
 interface TooltipProps {
   content: ReactNode;
@@ -10,10 +11,14 @@ interface TooltipProps {
   delay?: number;
   /** Placement relative to trigger element */
   side?: 'top' | 'bottom' | 'left' | 'right';
+  /** Keyboard shortcut keys to display (e.g. ['mod', 's'] or 'mod+s') */
+  shortcut?: string | string[];
   className?: string;
+  /** CSS classes for the outer trigger wrapper (use for layout positioning, e.g. 'absolute top-1 right-1') */
+  wrapperClassName?: string;
 }
 
-export function Tooltip({ content, children, delay = 200, side = 'top', className }: TooltipProps) {
+export function Tooltip({ content, children, delay = 200, side = 'top', shortcut, className, wrapperClassName }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,7 +90,7 @@ export function Tooltip({ content, children, delay = 200, side = 'top', classNam
       onMouseLeave={hide}
       onFocus={show}
       onBlur={hide}
-      className="inline-flex"
+      className={cn('inline-flex', wrapperClassName)}
     >
       {children}
       {visible && (
@@ -105,7 +110,10 @@ export function Tooltip({ content, children, delay = 200, side = 'top', classNam
             top: coords.y,
           }}
         >
-          {content}
+          <span className="inline-flex items-center gap-1.5">
+            <span>{content}</span>
+            {shortcut && <Kbd keys={shortcut} variant="inline" />}
+          </span>
         </div>
       )}
     </span>

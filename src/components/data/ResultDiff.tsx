@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { ArrowLeft, ArrowRight, Plus, Minus, Edit, Info, Download } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
 import {
   QueryResults,
   ResultComparison,
@@ -330,21 +331,23 @@ export function ResultDiff({ leftResults, rightResults, leftTitle = 'Left Query'
               </button>
             </div>
 
-            <button
-              onClick={() => setShowSummary(!showSummary)}
-              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg"
-              title="Toggle Summary"
-            >
-              <Info className="w-4 h-4" />
-            </button>
+            <Tooltip content="Toggle Summary">
+              <button
+                onClick={() => setShowSummary(!showSummary)}
+                className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg"
+              >
+                <Info className="w-4 h-4" />
+              </button>
+            </Tooltip>
 
-            <button
-              onClick={exportComparison}
-              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg"
-              title="Export Comparison"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+            <Tooltip content="Export Comparison">
+              <button
+                onClick={exportComparison}
+                className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -423,9 +426,9 @@ export function ResultDiff({ leftResults, rightResults, leftTitle = 'Left Query'
                   <div className="flex items-center gap-1">
                     <span>{column}</span>
                     {!leftResults.columns.includes(column) && (
-                      <span title="Column missing in left result">
+                      <Tooltip content="Column missing in left result"><span>
                         <Minus className="w-3 h-3 text-red-500" />
-                      </span>
+                      </span></Tooltip>
                     )}
                   </div>
                 </th>
@@ -440,9 +443,9 @@ export function ResultDiff({ leftResults, rightResults, leftTitle = 'Left Query'
                   <div className="flex items-center gap-1">
                     <span>{column}</span>
                     {!rightResults.columns.includes(column) && (
-                      <span title="Column added in right result">
+                      <Tooltip content="Column added in right result"><span>
                         <Plus className="w-3 h-3 text-green-500" />
-                      </span>
+                      </span></Tooltip>
                     )}
                   </div>
                 </th>

@@ -14,19 +14,20 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2, FolderInput } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { createTouchDragHandler } from '@/hooks/useTouchDrag';
+
 import { useViewport } from '@/hooks/useViewport';
 import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
 import { cn } from '@/lib/utils';
 import { formatShortcut } from '@/components/ui/Kbd';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG } from '@/lib/export-utils';
 import { WidgetQueryPanel } from './WidgetQueryPanel';
 import { DataFreshness } from './DataFreshness';
-import { AddToDashboardModal } from './AddToDashboardModal';
+
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -60,7 +61,6 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     origY: number;
     ghostX: number;
     ghostY: number;
-    isOptionDrag?: boolean;
   } | null>(null);
   const [resizeState, setResizeState] = useState<{
     widgetId: string;
@@ -80,7 +80,6 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [previewMode, setPreviewMode] = useState<'responsive' | 'desktop' | 'tablet' | 'mobile'>('responsive');
   const [queryPanelWidget, setQueryPanelWidget] = useState<WidgetConfig | null>(null);
-  const [addToDashboardWidget, setAddToDashboardWidget] = useState<WidgetConfig | null>(null);
   const [marqueeState, setMarqueeState] = useState<{
     startX: number; startY: number;
     currentX: number; currentY: number;
@@ -279,7 +278,6 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       actions: getWidgetActions({
         editConfig: () => { selectWidget(widget.id); setConfigWidgetId(widget.id); },
         duplicate: () => duplicateWidget(widget.id),
-        copyToDashboard: () => setAddToDashboardWidget(widget),
         delete: () => removeWidget(widget.id),
         widen: () => {
           const newW = Math.min(widget.position.w + 3, effectiveGridColumns - widget.position.x);
@@ -390,100 +388,119 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     document.addEventListener('pointerup', handleUp);
   };
 
-  // --- Drag-and-drop (supports multi-selection) with touch optimization ---
+  // --- Drag-and-drop (supports multi-selection) ---
+  // Uses document-level listeners so drag tracking survives React re-renders.
+  // Returns only { onPointerDown } — move/up are handled via document listeners.
   const createDragHandler = (widget: WidgetConfig) => {
     const isMultiDrag = selectedWidgetIds.length > 1 && selectedWidgetIds.includes(widget.id);
 
-    return createTouchDragHandler({
-      holdThreshold: isTouch ? 300 : 0,
-      onHoldStart: () => {
-        setDragHoldState({ widgetId: widget.id, isHolding: true });
-        // Haptic feedback for hold start
-        if ('vibrate' in navigator) {
-          navigator.vibrate([20]);
-        }
-      },
-      onHoldEnd: () => {
-        setDragHoldState(null);
-      },
-      onDragStart: (e: PointerEvent) => {
-        setDragHoldState(null);
-        const optionHeld = e.altKey;
-        setDragState({
-          widgetId: widget.id,
-          startX: e.clientX,
-          startY: e.clientY,
-          origX: widget.position.x,
-          origY: widget.position.y,
-          ghostX: widget.position.x,
-          ghostY: widget.position.y,
-          isOptionDrag: optionHeld,
-        });
-        if (optionHeld) {
-          document.body.style.cursor = 'copy';
-        }
-      },
-      onDragMove: (me: PointerEvent) => {
-        if (!gridRef.current || !dragState) return;
-        const gridRect = gridRef.current.getBoundingClientRect();
-        const cellW = gridRect.width / effectiveGridColumns;
-        const cellH = layout.rowHeight + layout.gap;
-        const dx = me.clientX - dragState.startX;
-        const dy = me.clientY - dragState.startY;
-        const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
-        const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
-        setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
-      },
-      onDragEnd: (ue: PointerEvent) => {
-        document.body.style.cursor = '';
-        if (!gridRef.current || !dragState) {
-          setDragState(null);
-          return;
-        }
-        const gridRect = gridRef.current.getBoundingClientRect();
-        const cellW = gridRect.width / effectiveGridColumns;
-        const cellH = layout.rowHeight + layout.gap;
-        const dx = ue.clientX - dragState.startX;
-        const dy = ue.clientY - dragState.startY;
-        const deltaCol = Math.round(dx / cellW);
-        const deltaRow = Math.round(dy / cellH);
+    return {
+      onPointerDown: (e: React.PointerEvent) => {
+        e.preventDefault(); // Prevent native drag/text selection
+        const isTouchEvent = e.pointerType !== 'mouse';
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const origX = widget.position.x;
+        const origY = widget.position.y;
 
-        if (dragState.isOptionDrag) {
-          // Option+drag: duplicate widget at the new position
-          const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, widget.position.x + deltaCol));
-          const newY = Math.max(0, widget.position.y + deltaRow);
-          const clone: WidgetConfig = {
-            ...structuredClone(widget),
-            id: `widget-${widget.type}-${Math.random().toString(36).slice(2, 8)}`,
-            title: `${widget.title} (copy)`,
-            position: { ...widget.position, x: newX, y: newY },
+        const beginDrag = () => {
+          document.body.style.userSelect = 'none';
+          setDragHoldState(null);
+          setDragState({
+            widgetId: widget.id,
+            startX, startY, origX, origY,
+            ghostX: origX, ghostY: origY,
+          });
+
+          // Snap at 35% of a cell instead of 50% — feels more responsive
+          const snap = (v: number) => v >= 0 ? Math.floor(v + 0.65) : Math.ceil(v - 0.65);
+
+          const handleMove = (me: PointerEvent) => {
+            if (!gridRef.current) return;
+            const gridRect = gridRef.current.getBoundingClientRect();
+            const cellW = gridRect.width / effectiveGridColumns;
+            const cellH = layout.rowHeight + layout.gap;
+            const dx = me.clientX - startX;
+            const dy = me.clientY - startY;
+            const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, origX + snap(dx / cellW)));
+            const newY = Math.max(0, origY + snap(dy / cellH));
+            setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
           };
-          addWidget(clone);
-          toast({ type: 'success', title: 'Widget duplicated', description: `"${clone.title}" created at new position.` });
-        } else if (deltaCol !== 0 || deltaRow !== 0) {
-          if (isMultiDrag) {
-            // Move all selected widgets by the same delta
-            const store = useDashboardStore.getState();
-            const moves = selectedWidgetIds.map(id => {
-              const w = store.schema.widgets.find(wg => wg.id === id);
-              if (!w) return null;
-              return {
-                id,
-                x: Math.max(0, Math.min(effectiveGridColumns - w.position.w, w.position.x + deltaCol)),
-                y: Math.max(0, w.position.y + deltaRow),
-              };
-            }).filter((m): m is {id: string; x: number; y: number} => m !== null);
-            if (moves.length > 0) moveWidgets(moves);
-          } else {
-            const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, widget.position.x + deltaCol));
-            const newY = Math.max(0, widget.position.y + deltaRow);
-            moveWidget(widget.id, newX, newY);
-          }
+
+          const handleUp = (ue: PointerEvent) => {
+            document.removeEventListener('pointermove', handleMove);
+            document.removeEventListener('pointerup', handleUp);
+            activeListenersRef.current.pointermove = undefined;
+            activeListenersRef.current.pointerup = undefined;
+            document.body.style.userSelect = '';
+
+            if (!gridRef.current) { setDragState(null); return; }
+            const gridRect = gridRef.current.getBoundingClientRect();
+            const cellW = gridRect.width / effectiveGridColumns;
+            const cellH = layout.rowHeight + layout.gap;
+            const dx = ue.clientX - startX;
+            const dy = ue.clientY - startY;
+            const deltaCol = snap(dx / cellW);
+            const deltaRow = snap(dy / cellH);
+
+            if (deltaCol !== 0 || deltaRow !== 0) {
+              if (isMultiDrag) {
+                const store = useDashboardStore.getState();
+                const moves = selectedWidgetIds.map(id => {
+                  const w = store.schema.widgets.find(wg => wg.id === id);
+                  if (!w) return null;
+                  return {
+                    id,
+                    x: Math.max(0, Math.min(effectiveGridColumns - w.position.w, w.position.x + deltaCol)),
+                    y: Math.max(0, w.position.y + deltaRow),
+                  };
+                }).filter((m): m is {id: string; x: number; y: number} => m !== null);
+                if (moves.length > 0) moveWidgets(moves);
+              } else {
+                const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, origX + deltaCol));
+                const newY = Math.max(0, origY + deltaRow);
+                moveWidget(widget.id, newX, newY);
+              }
+            }
+            setDragState(null);
+          };
+
+          activeListenersRef.current.pointermove = handleMove;
+          activeListenersRef.current.pointerup = handleUp;
+          document.addEventListener('pointermove', handleMove);
+          document.addEventListener('pointerup', handleUp);
+        };
+
+        if (isTouchEvent) {
+          // Touch: hold 300ms before drag starts
+          setDragHoldState({ widgetId: widget.id, isHolding: true });
+          if ('vibrate' in navigator) navigator.vibrate([20]);
+          const holdTimeout = setTimeout(() => {
+            if ('vibrate' in navigator) navigator.vibrate([30]);
+            beginDrag();
+          }, 300);
+          const cancelHold = (me: PointerEvent) => {
+            if (Math.sqrt((me.clientX - startX) ** 2 + (me.clientY - startY) ** 2) > 5) {
+              clearTimeout(holdTimeout);
+              setDragHoldState(null);
+              document.removeEventListener('pointermove', cancelHold);
+              document.removeEventListener('pointerup', cancelUp);
+            }
+          };
+          const cancelUp = () => {
+            clearTimeout(holdTimeout);
+            setDragHoldState(null);
+            document.removeEventListener('pointermove', cancelHold);
+            document.removeEventListener('pointerup', cancelUp);
+          };
+          document.addEventListener('pointermove', cancelHold);
+          document.addEventListener('pointerup', cancelUp);
+        } else {
+          // Mouse: start drag immediately
+          beginDrag();
         }
-        setDragState(null);
       },
-      enableMouseDrag: true,
-    });
+    };
   };
 
   // --- Enhanced resize with multiple directions ---
@@ -647,14 +664,15 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               autoFocus
             />
           ) : (
-            <button
-              onClick={() => { setEditTitle(title); setIsEditingTitle(true); }}
-              className="flex items-center gap-1.5 text-lg font-semibold text-[var(--text-primary)] hover:text-accent-blue transition-colors group/title"
-              title="Click to rename"
-            >
-              {title}
-              <Pencil size={12} className="text-[var(--text-muted)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
-            </button>
+            <Tooltip content="Click to rename" side="bottom">
+              <button
+                onClick={() => { setEditTitle(title); setIsEditingTitle(true); }}
+                className="flex items-center gap-1.5 text-lg font-semibold text-[var(--text-primary)] hover:text-accent-blue transition-colors group/title"
+              >
+                {title}
+                <Pencil size={12} className="text-[var(--text-muted)] opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              </button>
+            </Tooltip>
           )}
           {isDirty && <span className="pill pill-amber">Unsaved</span>}
           {isAiWorking && (
@@ -669,90 +687,98 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 <span key={filter.field} className="flex items-center gap-1 pill pill-cyan text-xs">
                   <Filter size={10} />
                   {filter.label}
-                  <button
-                    onClick={() => removeGlobalFilter(filter.field)}
-                    className="ml-1 hover:bg-white/20 rounded px-1 transition-colors"
-                    title="Remove filter"
-                  >
+                  <Tooltip content="Remove filter" side="top">
+                    <button
+                      onClick={() => removeGlobalFilter(filter.field)}
+                      className="ml-1 hover:bg-white/20 rounded px-1 transition-colors"
+                    >
                     <X size={10} />
-                  </button>
+                    </button>
+                  </Tooltip>
                 </span>
               ))}
               {schema.globalFilters.length > 1 && (
-                <button
-                  onClick={clearGlobalFilters}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  title="Clear all filters"
-                >
-                  Clear all
-                </button>
+                <Tooltip content="Clear all filters" side="top">
+                  <button
+                    onClick={clearGlobalFilters}
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    Clear all
+                  </button>
+                </Tooltip>
               )}
             </div>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title={`Undo ${formatShortcut(['mod', 'z'])}`}
-          >
-            <Undo2 size={16} className="text-[var(--text-secondary)]" />
-          </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
-            title={`Redo ${formatShortcut(['mod', 'shift', 'z'])}`}
-          >
-            <Redo2 size={16} className="text-[var(--text-secondary)]" />
-          </button>
+          <Tooltip content="Undo" shortcut={['mod', 'z']}>
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
+            >
+              <Undo2 size={16} className="text-[var(--text-secondary)]" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Redo" shortcut={['mod', 'shift', 'z']}>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              className="p-2 rounded-lg hover:bg-[var(--bg-card)] disabled:opacity-30 transition-colors"
+            >
+              <Redo2 size={16} className="text-[var(--text-secondary)]" />
+            </button>
+          </Tooltip>
           <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
           {onToggleLibrary && (
-            <button
-              onClick={onToggleLibrary}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isLibraryOpen
-                  ? 'bg-accent-purple/10 text-accent-purple'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
-              }`}
-              title="Browse Widget Library (L)"
-            >
-              <Library size={14} />
-              {!viewport.isToolbarCompact && <span>Widgets</span>}
-            </button>
+            <Tooltip content="Widget Library" shortcut="l">
+              <button
+                onClick={onToggleLibrary}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isLibraryOpen
+                    ? 'bg-accent-purple/10 text-accent-purple'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
+                }`}
+              >
+                <Library size={14} />
+                {!viewport.isToolbarCompact && <span>Widgets</span>}
+              </button>
+            </Tooltip>
           )}
           {onToggleGlossary && (
-            <button
-              onClick={onToggleGlossary}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isGlossaryOpen
-                  ? 'bg-accent-purple/10 text-accent-purple'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
-              }`}
-              title="Glossary reference panel"
-            >
-              <BookOpen size={14} />
-              {!viewport.isToolbarCompact && <span>Glossary</span>}
-            </button>
+            <Tooltip content="Glossary reference panel">
+              <button
+                onClick={onToggleGlossary}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isGlossaryOpen
+                    ? 'bg-accent-purple/10 text-accent-purple'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]'
+                }`}
+              >
+                <BookOpen size={14} />
+                {!viewport.isToolbarCompact && <span>Glossary</span>}
+              </button>
+            </Tooltip>
           )}
-          <button
-            onClick={() => setShowShare(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
-            title="Share dashboard"
-          >
-            <Share2 size={14} />
-            {!viewport.isToolbarCompact && <span>Share</span>}
-          </button>
-          <div className="relative">
+          <Tooltip content="Share dashboard">
             <button
-              onClick={() => setShowExportMenu(prev => !prev)}
+              onClick={() => setShowShare(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
-              title="Export dashboard"
             >
-              <Download size={14} />
-              {!viewport.isToolbarCompact && <span>Export</span>}
+              <Share2 size={14} />
+              {!viewport.isToolbarCompact && <span>Share</span>}
             </button>
+          </Tooltip>
+          <div className="relative">
+            <Tooltip content="Export dashboard">
+              <button
+                onClick={() => setShowExportMenu(prev => !prev)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
+              >
+                <Download size={14} />
+                {!viewport.isToolbarCompact && <span>Export</span>}
+              </button>
+            </Tooltip>
             {showExportMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
@@ -769,41 +795,45 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             )}
           </div>
           {/* Responsive preview toggle — tablet/phone previews deferred, keeping desktop-only for now */}
-          <button
-            onClick={() => setShowHelp(true)}
-            className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
-            title={`Keyboard shortcuts (?) • ${formatShortcut(['mod', 'k'])} palette`}
-          >
-            <Keyboard size={14} className="text-[var(--text-muted)]" />
-          </button>
+          <Tooltip content="Keyboard shortcuts" shortcut="?">
+            <button
+              onClick={() => setShowHelp(true)}
+              className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
+            >
+              <Keyboard size={14} className="text-[var(--text-muted)]" />
+            </button>
+          </Tooltip>
           <div className="relative flex items-center">
-            <button
-              onClick={handleSave}
-              disabled={saveStatus === 'saving'}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
-              title={`Save dashboard ${formatShortcut(['mod', 's'])}`}
-            >
-              {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
-              {!viewport.isToolbarCompact && (saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save')}
-            </button>
-            <button
-              onClick={() => setShowSaveMenu(prev => !prev)}
-              className="flex items-center justify-center w-8 h-8 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
-              title="Save options"
-            >
-              <ChevronDown size={12} />
-            </button>
+            <Tooltip content="Save dashboard" shortcut={['mod', 's']}>
+              <button
+                onClick={handleSave}
+                disabled={saveStatus === 'saving'}
+                className="flex items-center gap-1.5 px-3 h-8 rounded-l-lg bg-accent-green/10 text-accent-green text-sm font-medium hover:bg-accent-green/20 transition-colors disabled:opacity-50"
+              >
+                {saveStatus === 'saving' ? <Loader2 size={14} className="animate-spin" /> : saveStatus === 'saved' ? <Check size={14} /> : <Save size={14} />}
+                {!viewport.isToolbarCompact && (saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save')}
+              </button>
+            </Tooltip>
+            <Tooltip content="Save options">
+              <button
+                onClick={() => setShowSaveMenu(prev => !prev)}
+                className="flex items-center justify-center w-8 h-8 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
+              >
+                <ChevronDown size={12} />
+              </button>
+            </Tooltip>
             {showSaveMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
                 <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl shadow-black/20 py-1">
-                  <button
-                    onClick={handleSaveAs}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
-                    title={`Save as new dashboard ${formatShortcut(['mod', 'shift', 's'])}`}
-                  >
-                    <Copy size={12} /> Save As…
-                  </button>
+                  <Tooltip content="Save as copy" shortcut={['mod', 'shift', 's']} side="left">
+                    <button
+                      onClick={handleSaveAs}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <Copy size={12} /> Save As…
+                    </button>
+                  </Tooltip>
                 </div>
               </>
             )}
@@ -901,19 +931,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     gridColumn: `${dragState.ghostX + 1} / span ${draggedWidget.position.w}`,
                     gridRow: `${dragState.ghostY + 1} / span ${draggedWidget.position.h}`,
                   }}
-                  className={cn(
-                    "rounded-xl border-2 border-dashed pointer-events-none transition-all duration-100",
-                    dragState.isOptionDrag
-                      ? "border-accent-green/60 bg-accent-green/10"
-                      : "border-accent-blue/50 bg-accent-blue/5"
-                  )}
-                >
-                  {dragState.isOptionDrag && (
-                    <div className="flex items-center justify-center h-full text-accent-green/70 text-xs font-medium">
-                      <Copy size={14} className="mr-1" /> Duplicate here
-                    </div>
-                  )}
-                </div>
+                  className="rounded-xl border-2 border-dashed border-accent-blue/50 bg-accent-blue/5 pointer-events-none transition-all duration-100"
+                />
               );
             })()}
 
@@ -970,13 +989,16 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 {!isEffectivelyViewOnly && (
                   <div
                     data-export-ignore="true"
-                    {...createDragHandler(widget)}
-                    {...createLongPressHandler((e: PointerEvent) => {
-                      handleWidgetContextMenu(
-                        { clientX: e.clientX, clientY: e.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
-                        widget
-                      );
-                    })}
+                    onPointerDown={(e) => {
+                      // Compose drag + long-press handlers so neither overwrites the other
+                      createDragHandler(widget).onPointerDown(e);
+                      createLongPressHandler((ev: PointerEvent) => {
+                        handleWidgetContextMenu(
+                          { clientX: ev.clientX, clientY: ev.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent,
+                          widget
+                        );
+                      }).onPointerDown(e);
+                    }}
                     className={cn(
                       "absolute top-1 left-1 z-10 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] cursor-grab active:cursor-grabbing transition-all",
                       isTouch
@@ -990,74 +1012,66 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                       minWidth: isTouch ? getTouchTargetSize() + 'px' : 'auto',
                       minHeight: isTouch ? getTouchTargetSize() + 'px' : 'auto',
                     }}
-                    title={isTouch ? "Drag to reposition • Long press for menu" : "Drag to reposition"}
                   >
                     <GripVertical size={isTouch ? 16 : 12} className="text-[var(--text-muted)]" />
                   </div>
                 )}
                 {/* Glossary terms badge */}
                 {widget.glossaryTermIds && widget.glossaryTermIds.length > 0 && (
-                  <div
-                    data-export-ignore="true"
-                    className="absolute bottom-1 left-1 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent-purple/10 border border-accent-purple/20 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title={`${widget.glossaryTermIds.length} glossary term${widget.glossaryTermIds.length !== 1 ? 's' : ''} linked`}
-                  >
-                    <BookOpen size={9} className="text-accent-purple" />
-                    <span className="text-[9px] font-medium text-accent-purple">{widget.glossaryTermIds.length}</span>
-                  </div>
+                  <Tooltip content={`${widget.glossaryTermIds.length} glossary term${widget.glossaryTermIds.length !== 1 ? 's' : ''} linked`} wrapperClassName="absolute bottom-1 left-1 z-10">
+                    <div
+                      data-export-ignore="true"
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent-purple/10 border border-accent-purple/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <BookOpen size={9} className="text-accent-purple" />
+                      <span className="text-[9px] font-medium text-accent-purple">{widget.glossaryTermIds.length}</span>
+                    </div>
+                  </Tooltip>
                 )}
                 {/* Action buttons - hidden in view-only mode */}
                 {!isEffectivelyViewOnly && (
                   <>
                     {/* Download/export button (top-right, fourth) */}
-                    <button
-                      data-export-ignore="true"
-                      onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
-                      className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
-                      title="Export widget as PNG"
-                    >
-                      <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
-                    </button>
+                    <Tooltip content="Export widget as PNG" wrapperClassName="absolute top-1 right-[6.5rem] z-10 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        data-export-ignore="true"
+                        onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
+                        className="p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
+                      >
+                        <Download size={12} className="text-[var(--text-muted)] hover:text-accent-green transition-colors" />
+                      </button>
+                    </Tooltip>
                     {/* Info/Explain button (top-right, third) */}
-                    <button
-                      data-export-ignore="true"
-                      onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
-                      className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
-                      title="Explain this metric"
-                    >
-                      <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
-                    </button>
+                    <Tooltip content="Explain this metric" wrapperClassName="absolute top-1 right-17 z-10 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        data-export-ignore="true"
+                        onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
+                        className="p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
+                      >
+                        <HelpCircle size={12} className="text-[var(--text-muted)] hover:text-accent-purple transition-colors" />
+                      </button>
+                    </Tooltip>
                     {/* Edit config button (top-right, second) */}
-                    <button
-                      data-export-ignore="true"
-                      onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
-                      className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
-                      title="Edit widget config"
-                    >
-                      <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
-                    </button>
+                    <Tooltip content="Edit widget config" wrapperClassName="absolute top-1 right-9 z-10 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        data-export-ignore="true"
+                        onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
+                        className="p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
+                      >
+                        <Settings2 size={12} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
+                      </button>
+                    </Tooltip>
                     {/* Delete button (top-right) */}
-                    <button
-                      data-export-ignore="true"
-                      onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
-                      className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
-                      title={`Delete ${widget.title} (Del)`}
-                    >
-                      <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
-                    </button>
+                    <Tooltip content="Delete widget" shortcut="del" wrapperClassName="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        data-export-ignore="true"
+                        onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
+                        className="p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
+                      >
+                        <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
+                      </button>
+                    </Tooltip>
                   </>
-                )}
-                {/* "Add to my dashboard" button — shown only in view-only mode */}
-                {isEffectivelyViewOnly && widget.type !== 'text_block' && widget.type !== 'divider' && (
-                  <button
-                    data-export-ignore="true"
-                    onClick={(e) => { e.stopPropagation(); setAddToDashboardWidget(widget); }}
-                    className="absolute top-1 right-1 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-blue/10 hover:border-accent-blue/40 transition-all"
-                    title="Add this widget to one of your dashboards"
-                  >
-                    <FolderInput size={12} className="text-[var(--text-muted)] group-hover:text-accent-blue transition-colors" />
-                    <span className="text-[10px] font-medium text-[var(--text-muted)] group-hover:text-accent-blue transition-colors">Add to Dashboard</span>
-                  </button>
                 )}
                 {/* Enhanced resize handles (all edges and corners) - hidden in view-only mode */}
                 {!isEffectivelyViewOnly && (
@@ -1071,13 +1085,14 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 {widget.type !== 'text_block' && widget.type !== 'divider' && (
                   <div data-export-ignore="true" className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-[var(--bg-card)]/90 to-transparent rounded-b-xl">
                     <DataFreshness widgetId={widget.id} />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setQueryPanelWidget(widget); }}
-                      className="p-1 rounded-md hover:bg-accent-cyan/20 transition-all"
-                      title="View query & data"
-                    >
-                      <Code2 size={11} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
-                    </button>
+                    <Tooltip content="View query & data">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setQueryPanelWidget(widget); }}
+                        className="p-1 rounded-md hover:bg-accent-cyan/20 transition-all"
+                      >
+                        <Code2 size={11} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
+                      </button>
+                    </Tooltip>
                   </div>
                 )}
                 <WidgetErrorBoundary
@@ -1139,15 +1154,16 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
 
         {/* Floating chat toggle button for tablet/mobile */}
         {viewport.isChatDrawer && onToggleChatDrawer && (
-          <button
-            onClick={onToggleChatDrawer}
-            className="fixed bottom-6 right-6 z-30 p-3 rounded-full bg-accent-blue text-white shadow-lg hover:bg-accent-blue/90 transition-colors"
-            title="Toggle Chat"
-          >
-            <MessageCircle size={20} />
+          <Tooltip content="Toggle Chat" side="left">
+            <button
+              onClick={onToggleChatDrawer}
+              className="fixed bottom-6 right-6 z-30 p-3 rounded-full bg-accent-blue text-white shadow-lg hover:bg-accent-blue/90 transition-colors"
+            >
+              <MessageCircle size={20} />
             {/* Notification badge for new messages - could be expanded later */}
             {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent-red rounded-full" /> */}
-          </button>
+            </button>
+          </Tooltip>
         )}
 
       </div>
@@ -1165,19 +1181,6 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         <WidgetQueryPanel
           widget={queryPanelWidget}
           onClose={() => setQueryPanelWidget(null)}
-        />
-      )}
-      {addToDashboardWidget && (
-        <AddToDashboardModal
-          widget={addToDashboardWidget}
-          onClose={() => setAddToDashboardWidget(null)}
-          onSuccess={(targetId, targetTitle) => {
-            toast({
-              type: 'success',
-              title: 'Widget added!',
-              description: `"${addToDashboardWidget.title}" was copied to "${targetTitle}".`,
-            });
-          }}
         />
       )}
       </div>

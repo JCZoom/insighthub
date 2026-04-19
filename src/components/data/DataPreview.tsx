@@ -17,6 +17,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { TablePreviewData } from '@/types/data-explorer';
 
 interface DataPreviewProps {
@@ -252,26 +253,28 @@ export function DataPreview({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                "p-2 rounded-md transition-colors text-xs",
-                showFilters
-                  ? "bg-accent-blue/10 text-accent-blue"
-                  : "hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)]"
-              )}
-              title="Toggle filters"
-            >
-              <Filter size={12} />
-            </button>
-            <button
-              onClick={fetchData}
-              className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] transition-colors"
-              title="Refresh data"
-              disabled={loading}
-            >
-              <RefreshCw size={12} className={cn("text-[var(--text-muted)]", loading && "animate-spin")} />
-            </button>
+            <Tooltip content="Toggle filters">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  "p-2 rounded-md transition-colors text-xs",
+                  showFilters
+                    ? "bg-accent-blue/10 text-accent-blue"
+                    : "hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)]"
+                )}
+              >
+                <Filter size={12} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Refresh data">
+              <button
+                onClick={fetchData}
+                className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] transition-colors"
+                disabled={loading}
+              >
+                <RefreshCw size={12} className={cn("text-[var(--text-muted)]", loading && "animate-spin")} />
+              </button>
+            </Tooltip>
             {onClose && (
               <button
                 onClick={onClose}

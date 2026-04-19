@@ -14,6 +14,7 @@ import {
 import { ResultDiff } from './ResultDiff';
 import { QuickChart } from './QuickChart';
 import { queryDataSync } from '@/lib/data/sample-data';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface PlaygroundTabComponentProps {
   tab: PlaygroundTab;
@@ -416,30 +417,33 @@ export function PlaygroundTabComponent({ tab, onUpdateTab, uiState, onUpdateUISt
             </button>
 
             <div className="flex items-center gap-1 border border-[var(--border-color)] rounded-lg overflow-hidden">
-              <button
-                onClick={() => addCell('markdown')}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]"
-                title="Add Markdown Cell"
-              >
-                <Type className="w-3 h-3" />
-                Text
-              </button>
-              <button
-                onClick={() => addCell('query')}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] border-l border-[var(--border-color)]"
-                title="Add Query Cell"
-              >
-                <Code2 className="w-3 h-3" />
-                Query
-              </button>
-              <button
-                onClick={() => addCell('chart')}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] border-l border-[var(--border-color)]"
-                title="Add Chart Cell"
-              >
-                <BarChart3 className="w-3 h-3" />
-                Chart
-              </button>
+              <Tooltip content="Add Markdown Cell">
+                <button
+                  onClick={() => addCell('markdown')}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]"
+                >
+                  <Type className="w-3 h-3" />
+                  Text
+                </button>
+              </Tooltip>
+              <Tooltip content="Add Query Cell">
+                <button
+                  onClick={() => addCell('query')}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] border-l border-[var(--border-color)]"
+                >
+                  <Code2 className="w-3 h-3" />
+                  Query
+                </button>
+              </Tooltip>
+              <Tooltip content="Add Chart Cell">
+                <button
+                  onClick={() => addCell('chart')}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] border-l border-[var(--border-color)]"
+                >
+                  <BarChart3 className="w-3 h-3" />
+                  Chart
+                </button>
+              </Tooltip>
             </div>
           </div>
 

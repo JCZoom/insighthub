@@ -20,6 +20,7 @@ import {
   Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type {
   DataSource,
   DataTable,
@@ -183,12 +184,12 @@ export function SchemaExplorer({
   // Access level icons
   const getAccessIcon = (accessLevel?: 'FULL' | 'FILTERED' | 'NONE', isAccessible?: boolean) => {
     if (!isAccessible || accessLevel === 'NONE') {
-      return <span title="Access denied"><Lock size={12} className="text-red-400" /></span>;
+      return <Tooltip content="Access denied"><span><Lock size={12} className="text-red-400" /></span></Tooltip>;
     }
     if (accessLevel === 'FILTERED') {
-      return <span title="Filtered access"><AlertTriangle size={12} className="text-yellow-400" /></span>;
+      return <Tooltip content="Filtered access"><span><AlertTriangle size={12} className="text-yellow-400" /></span></Tooltip>;
     }
-    return <span title="Full access"><CheckCircle size={12} className="text-green-400" /></span>;
+    return <Tooltip content="Full access"><span><CheckCircle size={12} className="text-green-400" /></span></Tooltip>;
   };
 
   if (!isOpen) return null;
@@ -347,27 +348,30 @@ export function SchemaExplorer({
                                 {getAccessIcon(table.accessLevel, table.isAccessible)}
                               </button>
                               <div className="flex items-center gap-1 pr-2">
-                                <button
-                                  onClick={() => onTableSelect?.(source.name, table.name)}
-                                  className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-                                  title="Preview table data"
-                                >
-                                  <Eye size={10} className="text-[var(--text-muted)]" />
-                                </button>
-                                <button
-                                  onClick={() => onOpenInSqlEditor?.(source.name, table.name)}
-                                  className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-                                  title="Open in SQL Editor"
-                                >
-                                  <Code size={10} className="text-[var(--text-muted)]" />
-                                </button>
-                                <button
-                                  onClick={() => onOpenInVisualQueryBuilder?.(source.name, table.name)}
-                                  className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-                                  title="Open in Visual Query Builder"
-                                >
-                                  <Zap size={10} className="text-accent-blue" />
-                                </button>
+                                <Tooltip content="Preview table data">
+                                  <button
+                                    onClick={() => onTableSelect?.(source.name, table.name)}
+                                    className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                  >
+                                    <Eye size={10} className="text-[var(--text-muted)]" />
+                                  </button>
+                                </Tooltip>
+                                <Tooltip content="Open in SQL Editor">
+                                  <button
+                                    onClick={() => onOpenInSqlEditor?.(source.name, table.name)}
+                                    className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                  >
+                                    <Code size={10} className="text-[var(--text-muted)]" />
+                                  </button>
+                                </Tooltip>
+                                <Tooltip content="Open in Visual Query Builder">
+                                  <button
+                                    onClick={() => onOpenInVisualQueryBuilder?.(source.name, table.name)}
+                                    className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                  >
+                                    <Zap size={10} className="text-accent-blue" />
+                                  </button>
+                                </Tooltip>
                               </div>
                             </div>
 
@@ -406,27 +410,31 @@ export function SchemaExplorer({
                                     </button>
                                     <div className="flex items-center gap-1">
                                       {column.glossaryTerm && (
-                                        <span title={`Linked to: ${column.glossaryTerm.term}`}>
-                                          <BookOpen
-                                            size={10}
-                                            className="text-accent-purple"
-                                          />
-                                        </span>
+                                        <Tooltip content={`Linked to: ${column.glossaryTerm.term}`}>
+                                          <span>
+                                            <BookOpen
+                                              size={10}
+                                              className="text-accent-purple"
+                                            />
+                                          </span>
+                                        </Tooltip>
                                       )}
-                                      <button
-                                        onClick={() => onOpenInSqlEditor?.(source.name, table.name, column.name)}
-                                        className="p-0.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-                                        title="Open in SQL Editor"
-                                      >
-                                        <Code size={9} className="text-[var(--text-muted)]" />
-                                      </button>
-                                      <button
-                                        onClick={() => onOpenInVisualQueryBuilder?.(source.name, table.name, column.name)}
-                                        className="p-0.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
-                                        title="Open in Visual Query Builder"
-                                      >
-                                        <Zap size={9} className="text-accent-blue" />
-                                      </button>
+                                      <Tooltip content="Open in SQL Editor">
+                                        <button
+                                          onClick={() => onOpenInSqlEditor?.(source.name, table.name, column.name)}
+                                          className="p-0.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                        >
+                                          <Code size={9} className="text-[var(--text-muted)]" />
+                                        </button>
+                                      </Tooltip>
+                                      <Tooltip content="Open in Visual Query Builder">
+                                        <button
+                                          onClick={() => onOpenInVisualQueryBuilder?.(source.name, table.name, column.name)}
+                                          className="p-0.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                        >
+                                          <Zap size={9} className="text-accent-blue" />
+                                        </button>
+                                      </Tooltip>
                                       {getAccessIcon(column.accessLevel, column.isAccessible)}
                                     </div>
                                   </div>

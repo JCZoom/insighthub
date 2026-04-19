@@ -14,6 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type {
   ColumnProfile,
   NumericStats,
@@ -305,14 +306,15 @@ export function DataProfiler({
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={fetchProfile}
-            className="p-1 rounded-md hover:bg-[var(--bg-card-hover)] transition-colors"
-            title="Refresh profile"
-            disabled={loading}
-          >
-            <RefreshCw size={12} className={cn("text-[var(--text-muted)]", loading && "animate-spin")} />
-          </button>
+          <Tooltip content="Refresh profile">
+            <button
+              onClick={fetchProfile}
+              className="p-1 rounded-md hover:bg-[var(--bg-card-hover)] transition-colors"
+              disabled={loading}
+            >
+              <RefreshCw size={12} className={cn("text-[var(--text-muted)]", loading && "animate-spin")} />
+            </button>
+          </Tooltip>
           {onClose && (
             <button
               onClick={onClose}

@@ -5,6 +5,7 @@ import { Search, Library, Plus, X, BarChart3, PieChart, Table2, Gauge, Type, Lay
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { useViewport } from '@/hooks/useViewport';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { WidgetTemplate } from '@/lib/data/widget-library';
 
 const TYPE_ICONS: Record<string, typeof BarChart3> = {
@@ -173,13 +174,14 @@ export function WidgetLibraryPanel({ isOpen, onClose }: WidgetLibraryPanelProps)
                       <h4 className="text-xs font-semibold text-[var(--text-primary)] truncate">
                         {w.title}
                       </h4>
-                      <button
-                        onClick={() => handleAddWidget(w)}
-                        title="Add to dashboard"
-                        className="shrink-0 p-1 rounded-md opacity-0 group-hover:opacity-100 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-all"
-                      >
-                        <Plus size={12} />
-                      </button>
+                      <Tooltip content="Add to dashboard">
+                        <button
+                          onClick={() => handleAddWidget(w)}
+                          className="shrink-0 p-1 rounded-md opacity-0 group-hover:opacity-100 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-all"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </Tooltip>
                     </div>
                     <p className="text-[10px] text-[var(--text-secondary)] line-clamp-1 mt-0.5">
                       {w.description}

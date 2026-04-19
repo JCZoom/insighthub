@@ -7,6 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import type { WidgetConfig } from '@/types';
+import { Tooltip as UITooltip } from '@/components/ui/Tooltip';
 import { queryDataSync } from '@/lib/data/sample-data';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 import { exportToCSV, exportToPNG } from '@/lib/export-utils';
@@ -403,22 +404,24 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
               </p>
             </div>
             <div data-export-ignore="true" className="flex items-center gap-1">
-              <button
-                onClick={() => exportToCSV(primaryData, `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_data`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
-                title="Export data as CSV"
-              >
-                <FileText size={14} />
-                CSV
-              </button>
-              <button
-                onClick={() => exportToPNG('widget-detail-overlay', `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
-                title="Export widget as PNG image"
-              >
-                <Camera size={14} />
-                PNG
-              </button>
+              <UITooltip content="Export data as CSV">
+                <button
+                  onClick={() => exportToCSV(primaryData, `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_data`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                >
+                  <FileText size={14} />
+                  CSV
+                </button>
+              </UITooltip>
+              <UITooltip content="Export widget as PNG image">
+                <button
+                  onClick={() => exportToPNG('widget-detail-overlay', `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                >
+                  <Camera size={14} />
+                  PNG
+                </button>
+              </UITooltip>
               {/* SVG export hidden — font fidelity issues. Code kept in export-utils.ts for future use. */}
               <button
                 data-export-ignore="true"

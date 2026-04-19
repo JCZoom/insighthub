@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { Clock, RotateCcw, CheckCircle2, CloudDownload, Loader2, Bookmark, GitCompare, Plus, Minus, Pencil, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useToast } from '@/components/ui/toast';
 import type { DashboardSchema, WidgetConfig } from '@/types';
 
@@ -319,7 +320,6 @@ export function VersionTimeline() {
                   'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]',
                   reverting === v.id && 'opacity-50'
                 )}
-                title={`Revert to v${v.version}`}
               >
                 {reverting === v.id ? (
                   <Loader2 size={11} className="animate-spin shrink-0" />
@@ -356,7 +356,6 @@ export function VersionTimeline() {
                       ? 'bg-accent-blue/10 text-accent-blue cursor-default'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] cursor-pointer'
                   )}
-                  title={i === historyIndex ? 'Current state' : `Revert to: ${entry.note}`}
                 >
                   {i === historyIndex ? (
                     <CheckCircle2 size={11} className="shrink-0" />
@@ -369,13 +368,14 @@ export function VersionTimeline() {
                   </span>
                 </button>
                 {i !== historyIndex && (
-                  <button
-                    onClick={() => showLocalDiff(i)}
-                    className="p-1 rounded hover:bg-accent-purple/10 transition-colors shrink-0"
-                    title={`Compare v${i + 1} with current`}
-                  >
-                    <GitCompare size={10} className="text-accent-purple/60 hover:text-accent-purple" />
-                  </button>
+                  <Tooltip content={`Compare v${i + 1} with current`}>
+                    <button
+                      onClick={() => showLocalDiff(i)}
+                      className="p-1 rounded hover:bg-accent-purple/10 transition-colors shrink-0"
+                    >
+                      <GitCompare size={10} className="text-accent-purple/60 hover:text-accent-purple" />
+                    </button>
+                  </Tooltip>
                 )}
               </div>
             ))}

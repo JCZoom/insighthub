@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Eye, BarChart3, PieChart, Table2, Gauge, Type, LayoutGrid, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { findRelatedWidgets } from '@/lib/widget-matching';
 import type { GlossaryEntry } from '@/app/glossary/glossary-client';
 import type { WidgetTemplate } from '@/lib/data/widget-library';
@@ -139,20 +140,22 @@ export function RelatedWidgets({ glossaryTerm }: RelatedWidgetsProps) {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => setPreviewWidget(widget)}
-                          title="Preview widget"
-                          className="p-1 rounded-md opacity-0 group-hover:opacity-100 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-all"
-                        >
-                          <Eye size={10} />
-                        </button>
-                        <button
-                          onClick={() => setAddToDashboardWidget(widget)}
-                          title="Add to dashboard"
-                          className="p-1 rounded-md opacity-0 group-hover:opacity-100 bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 transition-all"
-                        >
-                          <Plus size={10} />
-                        </button>
+                        <Tooltip content="Preview widget">
+                          <button
+                            onClick={() => setPreviewWidget(widget)}
+                            className="p-1 rounded-md opacity-0 group-hover:opacity-100 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-all"
+                          >
+                            <Eye size={10} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Add to dashboard">
+                          <button
+                            onClick={() => setAddToDashboardWidget(widget)}
+                            className="p-1 rounded-md opacity-0 group-hover:opacity-100 bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 transition-all"
+                          >
+                            <Plus size={10} />
+                          </button>
+                        </Tooltip>
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-1.5">

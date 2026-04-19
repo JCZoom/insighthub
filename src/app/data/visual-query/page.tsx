@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { VisualQueryBuilder } from '@/components/data/VisualQueryBuilder';
 import { Database, Eye, Code, Save, Share } from 'lucide-react';
 import { queryDataSync } from '@/lib/data/sample-data';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type {
   VisualQueryConfig,
   QueryExecutionResult,
@@ -261,20 +262,22 @@ function VisualQueryPageContent() {
                           </p>
                         </div>
                         <div className="flex items-center gap-1 ml-2">
-                          <button
-                            onClick={() => loadQuery(query)}
-                            className="p-1 text-[var(--text-muted)] hover:text-accent-blue rounded transition-colors"
-                            title="Load query"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => deleteQuery(query.id)}
-                            className="p-1 text-[var(--text-muted)] hover:text-red-400 rounded transition-colors"
-                            title="Delete query"
-                          >
-                            ×
-                          </button>
+                          <Tooltip content="Load query">
+                            <button
+                              onClick={() => loadQuery(query)}
+                              className="p-1 text-[var(--text-muted)] hover:text-accent-blue rounded transition-colors"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Delete query">
+                            <button
+                              onClick={() => deleteQuery(query.id)}
+                              className="p-1 text-[var(--text-muted)] hover:text-red-400 rounded transition-colors"
+                            >
+                              ×
+                            </button>
+                          </Tooltip>
                         </div>
                       </div>
                     </div>

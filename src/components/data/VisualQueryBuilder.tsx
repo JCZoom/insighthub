@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Code, Play, Save, Plus, Trash2, Eye, Settings, Database, AlertCircle } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { ColumnPicker } from './ColumnPicker';
 import { FilterBuilder } from './FilterBuilder';
 import { FormulaBar } from './FormulaBar';
@@ -341,25 +342,27 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
                         {col.column.displayName || col.column.name}
                       </span>
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleColumnSelect(col.column)}
-                          className="p-1 text-muted hover:text-foreground rounded"
-                          title={col.isVisible ? 'Hide column' : 'Show column'}
-                        >
-                          <Eye className={`w-3 h-3 ${col.isVisible ? '' : 'opacity-50'}`} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setQuery(prev => ({
-                              ...prev,
-                              columns: prev.columns.filter(c => c.id !== col.id)
-                            }));
-                          }}
-                          className="p-1 text-muted hover:text-accent-red rounded"
-                          title="Remove column"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        <Tooltip content={col.isVisible ? 'Hide column' : 'Show column'}>
+                          <button
+                            onClick={() => handleColumnSelect(col.column)}
+                            className="p-1 text-muted hover:text-foreground rounded"
+                          >
+                            <Eye className={`w-3 h-3 ${col.isVisible ? '' : 'opacity-50'}`} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Remove column">
+                          <button
+                            onClick={() => {
+                              setQuery(prev => ({
+                                ...prev,
+                                columns: prev.columns.filter(c => c.id !== col.id)
+                              }));
+                            }}
+                            className="p-1 text-muted hover:text-accent-red rounded"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </Tooltip>
                       </div>
                     </div>
                     <div className="text-xs text-muted">
