@@ -225,34 +225,16 @@ select:focus-visible,
 .stagger-4 { animation-delay: 240ms; }
 .stagger-5 { animation-delay: 320ms; }
 
-.hero-glow {
-  position: relative;
-  outline: none !important;
-}
+.hero-glow,
 .hero-glow:focus-within {
   outline: none !important;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05);
 }
-.hero-glow *:focus {
+.hero-glow *:focus,
+.hero-glow *:focus-visible {
   outline: none !important;
-}
-.hero-glow::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(188,140,255,0.15), transparent 60%);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask-composite: xor;
-  padding: 1.5px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-.hero-glow:focus-within::after {
-  opacity: 1;
+  box-shadow: none !important;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 /* WebKit scrollbar styling (Chrome, Safari, Edge) */

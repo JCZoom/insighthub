@@ -61,8 +61,25 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       options?: Record<string, unknown>
     ) => Promise<HTMLCanvasElement>;
 
+    // html2canvas cannot parse oklab()/oklch() color functions used by Tailwind v4.
+    // Convert all computed colors to rgb() before cloning.
+    function resolveToRgb(value: string): string {
+      if (!value || (!value.includes('oklab') && !value.includes('oklch') && !value.includes('color('))) return value;
+      // Use a temp element to let the browser resolve the color
+      const temp = document.createElement('div');
+      temp.style.color = value;
+      temp.style.display = 'none';
+      document.body.appendChild(temp);
+      const resolved = getComputedStyle(temp).color; // always returns rgb()/rgba()
+      document.body.removeChild(temp);
+      return resolved || value;
+    }
+
+    // Resolve the bgColor in case it's an oklab value
+    const resolvedBg = resolveToRgb(bgColor);
+
     const canvas = await html2canvas(element, {
-      backgroundColor: bgColor,
+      backgroundColor: resolvedBg,
       scale: 2,
       useCORS: true,
       allowTaint: true,
@@ -70,17 +87,30 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       removeContainer: true,
       onclone: (clonedDoc: Document) => {
         const clonedRoot = clonedDoc.documentElement;
-        // Copy all CSS custom properties to the cloned document
+        // Copy all CSS custom properties, resolving oklab→rgb
         Object.entries(cssVars).forEach(([key, val]) => {
-          clonedRoot.style.setProperty(key, val);
+          clonedRoot.style.setProperty(key, resolveToRgb(val));
         });
-        // Also set on body for inheritance
-        clonedDoc.body.style.setProperty('background-color', bgColor);
+        clonedDoc.body.style.setProperty('background-color', resolvedBg);
 
-        // Remove any backdrop-filter elements (unsupported by html2canvas)
-        clonedDoc.querySelectorAll('[class*="backdrop"]').forEach(el => {
-          (el as HTMLElement).style.backdropFilter = 'none';
-          (el as HTMLElement).style.setProperty('-webkit-backdrop-filter', 'none');
+        // Walk all elements and convert any oklab/oklch inline or computed colors to rgb
+        clonedDoc.querySelectorAll('*').forEach(node => {
+          const el = node as HTMLElement;
+          const cs = clonedDoc.defaultView?.getComputedStyle(el);
+          if (!cs) return;
+          // Fix color, background-color, border-color
+          const colorProps = ['color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor'] as const;
+          colorProps.forEach(prop => {
+            const v = cs[prop as keyof CSSStyleDeclaration] as string;
+            if (v && (v.includes('oklab') || v.includes('oklch') || v.includes('color('))) {
+              el.style[prop as 'color'] = resolveToRgb(v);
+            }
+          });
+          // Strip backdrop-filter (unsupported by html2canvas)
+          if (cs.backdropFilter && cs.backdropFilter !== 'none') {
+            el.style.backdropFilter = 'none';
+            el.style.setProperty('-webkit-backdrop-filter', 'none');
+          }
         });
       },
     });

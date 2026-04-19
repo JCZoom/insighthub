@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   },
   ai: {
     chatModel: 'claude-sonnet-4-20250514',
-    explainModel: 'claude-haiku-4-20250514',
+    explainModel: 'claude-sonnet-4-20250514',
     maxTokensPerRequest: 4096,
     enableStreamingResponses: true,
   },

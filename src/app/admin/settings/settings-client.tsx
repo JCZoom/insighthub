@@ -20,7 +20,6 @@ const ROLE_OPTIONS = ['VIEWER', 'CREATOR', 'POWER_USER', 'ADMIN'];
 
 const AI_MODELS = [
   'claude-sonnet-4-20250514',
-  'claude-haiku-4-20250514',
   'claude-opus-4-20250514',
 ];
 
