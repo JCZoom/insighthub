@@ -67,6 +67,23 @@ export default function DataExplorerPage() {
     alert('SQL query copied to clipboard!\n\n' + query);
   }, []);
 
+  // Handle "Open in Visual Query Builder"
+  const handleOpenInVisualQueryBuilder = useCallback((source: string, table?: string, column?: string) => {
+    // Navigate to Visual Query Builder
+    const url = new URL('/data/visual-query', window.location.origin);
+
+    // Pass table/column information via URL params for initialization
+    if (table) {
+      url.searchParams.set('table', table);
+      url.searchParams.set('source', source);
+    }
+    if (column) {
+      url.searchParams.set('column', column);
+    }
+
+    window.open(url.toString(), '_blank');
+  }, []);
+
   // Toggle panels
   const togglePanel = useCallback((panel: keyof DataExplorerState) => {
     setState(prev => ({ ...prev, [panel]: !prev[panel] }));
@@ -174,6 +191,7 @@ export default function DataExplorerPage() {
           onTableSelect={handleTableSelect}
           onColumnSelect={handleColumnSelect}
           onOpenInSqlEditor={handleOpenInSqlEditor}
+          onOpenInVisualQueryBuilder={handleOpenInVisualQueryBuilder}
         />
 
         {/* Main content area */}

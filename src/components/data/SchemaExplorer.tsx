@@ -16,7 +16,8 @@ import {
   BookOpen,
   Loader2,
   Filter,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
@@ -33,6 +34,7 @@ interface SchemaExplorerProps {
   onTableSelect?: (source: string, table: string) => void;
   onColumnSelect?: (source: string, table: string, column: string) => void;
   onOpenInSqlEditor?: (source: string, table?: string, column?: string) => void;
+  onOpenInVisualQueryBuilder?: (source: string, table?: string, column?: string) => void;
   className?: string;
 }
 
@@ -42,6 +44,7 @@ export function SchemaExplorer({
   onTableSelect,
   onColumnSelect,
   onOpenInSqlEditor,
+  onOpenInVisualQueryBuilder,
   className
 }: SchemaExplorerProps) {
   const [schema, setSchema] = useState<DataSource[]>([]);
@@ -358,6 +361,13 @@ export function SchemaExplorer({
                                 >
                                   <Code size={10} className="text-[var(--text-muted)]" />
                                 </button>
+                                <button
+                                  onClick={() => onOpenInVisualQueryBuilder?.(source.name, table.name)}
+                                  className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                  title="Open in Visual Query Builder"
+                                >
+                                  <Zap size={10} className="text-accent-blue" />
+                                </button>
                               </div>
                             </div>
 
@@ -409,6 +419,13 @@ export function SchemaExplorer({
                                         title="Open in SQL Editor"
                                       >
                                         <Code size={9} className="text-[var(--text-muted)]" />
+                                      </button>
+                                      <button
+                                        onClick={() => onOpenInVisualQueryBuilder?.(source.name, table.name, column.name)}
+                                        className="p-0.5 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                                        title="Open in Visual Query Builder"
+                                      >
+                                        <Zap size={9} className="text-accent-blue" />
                                       </button>
                                       {getAccessIcon(column.accessLevel, column.isAccessible)}
                                     </div>
