@@ -55,6 +55,7 @@ export function ShareModal({ onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   // User search
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,16 +119,32 @@ export function ShareModal({ onClose }: ShareModalProps) {
   };
 
   const togglePublic = async () => {
-    if (!dashboardId) return;
+    if (!dashboardId) {
+      setToggleError('Save the dashboard before changing visibility.');
+      return;
+    }
     setSaving(true);
+    setToggleError(null);
     try {
+      const newValue = !isPublic;
       const res = await fetch(`/api/dashboards/${dashboardId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPublic: !isPublic }),
+        body: JSON.stringify({ isPublic: newValue }),
       });
-      if (res.ok) setIsPublic(!isPublic);
-    } catch { /* silent */ }
+      if (res.ok) {
+        setIsPublic(newValue);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.error || `Server returned ${res.status}`;
+        console.error('Toggle public failed:', msg);
+        setToggleError(msg);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error';
+      console.error('Toggle public failed:', err);
+      setToggleError(msg);
+    }
     setSaving(false);
   };
 
@@ -386,15 +403,20 @@ export function ShareModal({ onClose }: ShareModalProps) {
                   <button
                     onClick={togglePublic}
                     disabled={saving}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                    aria-pressed={isPublic}
+                    aria-label={isPublic ? 'Make private' : 'Make public'}
+                    className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
                       isPublic ? 'bg-accent-green' : 'bg-[var(--bg-card-hover)] border border-[var(--border-color)]'
-                    } ${saving ? 'opacity-50' : ''}`}
+                    } ${saving ? 'opacity-50 cursor-wait' : 'hover:opacity-80'}`}
                   >
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
                       isPublic ? 'translate-x-[22px]' : 'translate-x-0.5'
                     }`} />
                   </button>
                 </div>
+                {toggleError && (
+                  <p className="text-[10px] text-accent-red mt-2">{toggleError}</p>
+                )}
               </div>
 
               {/* Embed snippet */}

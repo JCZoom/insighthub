@@ -8,6 +8,7 @@ import { FolderBreadcrumbs, buildBreadcrumbs } from '@/components/folders/Folder
 import { FolderManager } from '@/components/folders/FolderManager';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -246,6 +247,13 @@ export function GalleryPage() {
     function handleKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      // Ctrl+Option+F (Mac) / Ctrl+Alt+F (Win) — toggle folder panel
+      if (e.altKey && (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setShowFolderTree(prev => !prev);
+        return;
+      }
 
       // Alt+Arrow Left/Right to cycle tabs
       if (e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
@@ -507,6 +515,25 @@ export function GalleryPage() {
     }
   }, [toast]);
 
+  // Move dashboard to folder (drag-and-drop or API call)
+  const handleMoveDashboard = useCallback(async (dashboardId: string, toFolderId: string | null) => {
+    try {
+      const res = await fetch(`/api/dashboards/${dashboardId}/move`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId: toFolderId }),
+      });
+      if (res.ok) {
+        setDashboards(prev => prev.map(d => d.id === dashboardId ? { ...d, folderId: toFolderId } : d));
+        toast({ type: 'success', title: 'Dashboard moved', description: toFolderId ? 'Moved to folder.' : 'Moved to root.' });
+      } else {
+        toast({ type: 'error', title: 'Move failed', description: 'Could not move this dashboard.' });
+      }
+    } catch {
+      toast({ type: 'error', title: 'Move failed', description: 'Network error.' });
+    }
+  }, [toast]);
+
   // Derive unique values for filter dropdowns
   const ownerOptions = useMemo(() => [...new Set(dashboards.map(d => d.ownerName).filter(Boolean))].sort(), [dashboards]);
   const departmentOptions = useMemo(() => {
@@ -587,6 +614,7 @@ export function GalleryPage() {
               onCreateFolder={folderManager.createFolder}
               onRenameFolder={handleRenameFolder}
               onDeleteFolder={handleDeleteFolder}
+              onMoveDashboard={handleMoveDashboard}
               showDashboards={false}
             />
           </div>
@@ -603,14 +631,15 @@ export function GalleryPage() {
                   Create, discover, and share dashboards across your organization.
                 </p>
               </div>
-              <button
-                onClick={() => setShowFolderTree(!showFolderTree)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                title="Toggle folder tree"
-              >
-                <Folder size={16} />
-                <span className="hidden sm:inline">Folders</span>
-              </button>
+              <Tooltip content="Toggle folder tree" side="bottom">
+                <button
+                  onClick={() => setShowFolderTree(!showFolderTree)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  <Folder size={16} />
+                  <span className="hidden sm:inline">Folders</span>
+                </button>
+              </Tooltip>
             </div>
 
             {/* Breadcrumbs */}

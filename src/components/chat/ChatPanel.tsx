@@ -10,6 +10,7 @@ import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 // --- Rotating status messages while AI is working ---
 const AI_PHASES = [
@@ -590,7 +591,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           paddingBottom: isMobile && keyboardHeight > 0 ? '20px' : '12px',
         }}
       >
-        <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2">
+        <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2 focus-within:border-[var(--border-color)]">
           <textarea
             ref={inputRef}
             value={input}
@@ -598,11 +599,12 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             onKeyDown={handleKeyDown}
             placeholder="Describe what you want to see..."
             rows={1}
-            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none max-h-32"
+            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none max-h-32 focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             style={{ minHeight: '24px' }}
           />
           {/* Microphone button */}
           {micSupported && (
+            <Tooltip content={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`} side="top">
             <button
               onClick={toggleMic}
               className={cn(
@@ -611,7 +613,6 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                   ? 'bg-accent-red/15 text-accent-red'
                   : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
               )}
-              title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
             >
               <Mic size={14} />
               {isListening && (
@@ -621,6 +622,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                 </span>
               )}
             </button>
+            </Tooltip>
           )}
           <button
             onClick={() => sendMessage(input)}

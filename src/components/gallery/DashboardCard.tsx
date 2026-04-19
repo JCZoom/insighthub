@@ -7,6 +7,7 @@ import { BarChart3, Clock, Users, Star, Trash2, ExternalLink, Pencil, Copy, Shar
 import { relativeTime } from '@/lib/utils';
 import { DashboardThumbnail } from './DashboardThumbnail';
 import { ShareModal } from './ShareModal';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 export interface DashboardCardData {
   id: string;
@@ -91,11 +92,18 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
 
   const isOwned = !dashboard.isTemplate;
 
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    e.dataTransfer.setData('application/dashboard-id', dashboard.id);
+    e.dataTransfer.effectAllowed = 'move';
+  }, [dashboard.id]);
+
   const listRow = (
     <Link
       href={`/dashboard/${dashboard.id}`}
       className={`block group ${isSelected ? 'ring-2 ring-accent-blue rounded-xl' : ''}`}
       onContextMenu={handleContextMenu}
+      draggable
+      onDragStart={handleDragStart}
     >
       <div className="card p-0 overflow-hidden flex items-center gap-4 px-4 py-3">
         <h3 className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-accent-blue transition-colors truncate min-w-0 flex-1">
@@ -128,30 +136,32 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
           </div>
         )}
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={handleFavoriteClick}
-            tabIndex={-1}
-            className="p-1 rounded-md hover:bg-black/10 transition-colors"
-            title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          >
-            <Star
-              size={13}
-              className={
-                dashboard.isFavorite
-                  ? 'text-accent-amber fill-accent-amber'
-                  : 'text-[var(--text-muted)] hover:text-accent-amber'
-              }
-            />
-          </button>
-          {isOwned && onDelete && (
+          <Tooltip content={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'} side="top">
             <button
-              onClick={handleDeleteClick}
+              onClick={handleFavoriteClick}
               tabIndex={-1}
-              className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
-              title="Delete dashboard"
+              className="p-1 rounded-md hover:bg-black/10 transition-colors"
             >
-              <Trash2 size={13} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
+              <Star
+                size={13}
+                className={
+                  dashboard.isFavorite
+                    ? 'text-accent-amber fill-accent-amber'
+                    : 'text-[var(--text-muted)] hover:text-accent-amber'
+                }
+              />
             </button>
+          </Tooltip>
+          {isOwned && onDelete && (
+            <Tooltip content="Delete dashboard" side="top">
+              <button
+                onClick={handleDeleteClick}
+                tabIndex={-1}
+                className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
+              >
+                <Trash2 size={13} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -163,6 +173,8 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
       href={`/dashboard/${dashboard.id}`}
       className={`block group ${isSelected ? 'ring-2 ring-accent-blue rounded-xl' : ''}`}
       onContextMenu={handleContextMenu}
+      draggable
+      onDragStart={handleDragStart}
     >
       <div className="card p-0 overflow-hidden h-full flex flex-col">
         {/* Dashboard thumbnail */}
@@ -175,11 +187,11 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
             className="absolute inset-0"
           />
           {/* Favorite button */}
+          <Tooltip content={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'} side="left">
           <button
             onClick={handleFavoriteClick}
             tabIndex={-1}
             className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 transition-colors z-10"
-            title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Star
               size={14}
@@ -190,16 +202,18 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
               }
             />
           </button>
+          </Tooltip>
           {/* Delete button — visible on hover, only for owned dashboards */}
           {isOwned && onDelete && (
+            <Tooltip content="Delete dashboard" side="left">
             <button
               onClick={handleDeleteClick}
               tabIndex={-1}
               className="absolute top-2 right-8 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all z-10"
-              title="Delete dashboard"
             >
               <Trash2 size={14} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
             </button>
+            </Tooltip>
           )}
         </div>
 

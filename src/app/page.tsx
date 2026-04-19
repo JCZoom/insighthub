@@ -10,6 +10,7 @@ import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
 import { formatShortcut } from '@/components/ui/Kbd';
 import Link from 'next/link';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 const QUICK_ACTIONS = [
   {
@@ -175,13 +176,14 @@ export default function Home() {
               About
             </Link>
           </div>
-          <button
-            onClick={() => setShowShortcuts(true)}
-            className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-            title="Keyboard shortcuts (?)"
-          >
-            <Keyboard size={14} className="text-[var(--text-muted)]" />
-          </button>
+          <Tooltip content="Keyboard shortcuts (?)" side="bottom">
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <Keyboard size={14} className="text-[var(--text-muted)]" />
+            </button>
+          </Tooltip>
           <ThemeToggle />
           {/* Profile bubble with dropdown */}
           <div ref={profileRef} className="relative">
@@ -264,7 +266,6 @@ export default function Home() {
                         ? 'bg-accent-red/15 text-accent-red'
                         : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
                     }`}
-                    title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
                   >
                     <Mic size={18} />
                     {isListening && (
@@ -293,7 +294,6 @@ export default function Home() {
                         ? 'bg-accent-red/15 text-accent-red'
                         : 'text-[var(--text-muted)] hover:text-accent-purple hover:bg-accent-purple/10'
                     }`}
-                    title={isListening ? `Stop recording ${formatShortcut(['shift', 'mod', 'm'])}` : `Voice input ${formatShortcut(['shift', 'mod', 'm'])}`}
                   >
                     <Mic size={18} />
                     {isListening && (

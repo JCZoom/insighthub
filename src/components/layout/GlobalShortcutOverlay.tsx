@@ -79,6 +79,7 @@ const GALLERY_SHORTCUTS: ShortcutGroup = {
     { keys: ['Alt', '←'], description: 'Previous tab' },
     { keys: ['Alt', '→'], description: 'Next tab' },
     { keys: ['Esc'], description: 'Deselect card' },
+    { keys: ['Ctrl', 'Alt', 'F'], description: 'Toggle folder panel' },
   ],
 };
 
@@ -86,6 +87,7 @@ const GALLERY_SHORTCUTS: ShortcutGroup = {
 /** Resolve 'Mod' and 'Shift' to OS-specific symbols */
 function resolveKey(key: string, mac: boolean): string {
   if (key === 'Mod') return mac ? '⌘' : 'Ctrl';
+  if (key === 'Ctrl') return mac ? '⌃' : 'Ctrl';
   if (key === 'Shift') return mac ? '⇧' : 'Shift';
   if (key === 'Alt') return mac ? '⌥' : 'Alt';
   if (key === 'Delete') return mac ? 'Delete' : 'Del';
