@@ -18,6 +18,9 @@
 
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import fs from 'fs';
+import path from 'path';
+import YAML from 'yaml';
 import { initializeDefaultPermissionGroups } from '../src/lib/auth/permissions';
 
 const prisma = new PrismaClient();
@@ -115,6 +118,75 @@ function getSeasonalMultiplier(date: Date): number {
   // Lower volumes in summer months
   if (month >= 5 && month <= 7) return 0.8;
   return 1.0;
+}
+
+interface YamlGlossaryEntry {
+  term: string;
+  category: string;
+  definition: string;
+  formula?: string;
+  data_source?: string;
+  related_terms?: string[];
+  approved_by?: string;
+  last_reviewed?: string;
+  exclusions?: string[];
+}
+
+async function seedGlossaryTerms() {
+  console.log('📖 Seeding glossary terms from glossary/terms.yaml...');
+
+  const filePath = path.join(process.cwd(), 'glossary', 'terms.yaml');
+  if (!fs.existsSync(filePath)) {
+    console.warn('  ⚠ glossary/terms.yaml not found — skipping glossary seed');
+    return;
+  }
+
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const entries = YAML.parse(content) as YamlGlossaryEntry[];
+  if (!Array.isArray(entries) || entries.length === 0) {
+    console.warn('  ⚠ glossary/terms.yaml is empty or invalid — skipping');
+    return;
+  }
+
+  let created = 0;
+  let updated = 0;
+
+  for (const entry of entries) {
+    const relatedTerms = Array.isArray(entry.related_terms) ? entry.related_terms.join(',') : '';
+    const lastReviewedAt = entry.last_reviewed ? new Date(entry.last_reviewed) : null;
+
+    await prisma.glossaryTerm.upsert({
+      where: { term: entry.term },
+      update: {
+        definition: entry.definition.trim(),
+        formula: entry.formula || null,
+        category: entry.category,
+        relatedTerms,
+        dataSource: entry.data_source || null,
+        approvedBy: entry.approved_by || null,
+        lastReviewedAt,
+      },
+      create: {
+        term: entry.term,
+        definition: entry.definition.trim(),
+        formula: entry.formula || null,
+        category: entry.category,
+        relatedTerms,
+        dataSource: entry.data_source || null,
+        approvedBy: entry.approved_by || null,
+        lastReviewedAt,
+      },
+    });
+
+    const existing = await prisma.glossaryTerm.findUnique({ where: { term: entry.term } });
+    if (existing?.createdAt.getTime() === existing?.updatedAt.getTime()) {
+      created++;
+    } else {
+      updated++;
+    }
+  }
+
+  console.log(`✅ Glossary: ${entries.length} terms seeded (${created} new, ${updated} updated)`);
 }
 
 async function generateSampleCustomers() {
@@ -450,7 +522,10 @@ async function main() {
   await initializeDefaultPermissionGroups();
   console.log('✅ Permission groups initialized');
 
-  // 3. Create template dashboards
+  // 3. Seed glossary terms from YAML → DB
+  await seedGlossaryTerms();
+
+  // 4. Create template dashboards
   for (const tmpl of TEMPLATE_DASHBOARDS) {
     const existing = await prisma.dashboard.findUnique({ where: { id: tmpl.id } });
     if (existing) {

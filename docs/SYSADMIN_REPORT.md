@@ -4,13 +4,15 @@
 **Production URL:** https://dashboards.jeffcoy.net  
 **EC2 Host:** `jeffreycoy@autoqa` (via Tailscale)  
 **App Directory:** `/opt/insighthub`  
-**Review Date:** April 18, 2026
+**Review Date:** April 19, 2026
 
 ---
 
 ## Executive Summary
 
 InsightHub runs as a Node.js 20 application on a single EC2 instance, managed by systemd, behind an Nginx reverse proxy with Certbot TLS. The database is SQLite (single file). Deployment is via rsync over Tailscale SSH with automatic rollback on health check failure.
+
+**New in April 19 update:** Phase 3 preview features (Snowflake connector, Data Explorer, Visual Query Builder, Query Playground) have been implemented behind admin feature toggles. Redis is an optional dependency for query caching. A new admin settings panel (`/admin/settings`) allows live configuration of feature flags and AI prompts. System settings are stored in `data/system-settings.json` (new writable path).
 
 This report covers server configuration, deployment procedures, database management, monitoring, environment variables, Nginx configuration, backup/restore, troubleshooting, and operational recommendations.
 
@@ -260,16 +262,30 @@ sudo systemctl status certbot.timer
 | `LOG_LEVEL` | `info` (prod) / `debug` (dev) | Minimum log level |
 | `GIT_COMMIT` | Set by deploy | Shown in health endpoint |
 
-### 3.4 Snowflake Variables (Phase 3 — currently unused)
+### 3.4 Snowflake Variables (Phase 3 — Behind Feature Toggle)
+
+These are now connected to the Snowflake connector (`src/lib/snowflake/config.ts`). The connector is **behind a feature toggle** (`enableSnowflakeConnector` in admin settings) and gracefully degrades to sample data when unconfigured.
 
 ```
-SNOWFLAKE_ACCOUNT=
-SNOWFLAKE_USERNAME=
-SNOWFLAKE_PASSWORD=
-SNOWFLAKE_WAREHOUSE=
-SNOWFLAKE_DATABASE=
-SNOWFLAKE_SCHEMA=
+SNOWFLAKE_ACCOUNT=         # Required for Snowflake
+SNOWFLAKE_USERNAME=        # Required for Snowflake
+SNOWFLAKE_PASSWORD=        # Required for Snowflake
+SNOWFLAKE_WAREHOUSE=       # Required for Snowflake
+SNOWFLAKE_DATABASE=        # Required for Snowflake
+SNOWFLAKE_SCHEMA=          # Required for Snowflake
 ```
+
+### 3.5a Redis Variables (Optional — Query Caching)
+
+Redis is used for caching Snowflake query results. The app functions without Redis — caching is simply disabled.
+
+```
+REDIS_URL=                 # e.g., redis://localhost:6379 (optional)
+REDIS_PASSWORD=            # Optional, if Redis requires auth
+REDIS_TLS=                 # Set to 'true' for TLS connections
+```
+
+> **⚠️ Note:** If `REDIS_URL` is not set, the code defaults to `redis://localhost:6379` and `isRedisConfigured()` will return true even though Redis isn't available. This causes connection errors on startup before the error handler marks it unavailable. This is a known issue (CISO Risk #19).
 
 ### 3.5 Asana Integration
 
@@ -285,9 +301,11 @@ At server startup, `src/lib/env.ts` validates all environment variables and:
 - **Throws** if required vars are missing (prevents broken startup)
 - **Warns** for missing optional vars
 - **Validates** format (e.g., API key prefixes, NEXTAUTH_SECRET length)
-- **Alerts** if dev mode is on in production
+- **Warns** (not fatal) if dev mode is on in production
 
 This runs via `src/instrumentation.ts` → `assertEnv()`.
+
+> **⚠️ April 19 change:** The DEV_MODE production check was **downgraded from fatal error to warning-only** (`src/lib/env.ts:172–181`). If `NEXT_PUBLIC_DEV_MODE=true` is accidentally left in `.env.local`, the server will start but **authentication is fully bypassed**. Ensure this variable is always `false` (or absent) in production.
 
 ---
 
@@ -378,7 +396,7 @@ The deploy script copies these manually because Next.js standalone mode doesn't 
 |----------|-------|
 | **Engine** | SQLite 3 |
 | **File** | `/opt/insighthub/prisma/dev.db` |
-| **Permissions** | `chmod 664` |
+| **Permissions** | `chmod 600` (hardened from 664 — April 2026) |
 | **ORM** | Prisma 5 |
 | **Standalone symlink** | `/opt/insighthub/.next/standalone/prisma/dev.db → /opt/insighthub/prisma/dev.db` |
 

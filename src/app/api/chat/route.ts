@@ -4,7 +4,9 @@ import path from 'path';
 import YAML from 'yaml';
 import Anthropic from '@anthropic-ai/sdk';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
-import type { DashboardSchema } from '@/types';
+import type { DashboardSchema, SchemaPatch, VerificationReport } from '@/types';
+import { verifyDashboardIntegrity } from '@/lib/ai/verify-integrity';
+import { applyPatches } from '@/lib/ai/schema-patcher';
 import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
 import { getCurrentUser } from '@/lib/auth/session';
 import prisma from '@/lib/db/prisma';
@@ -44,11 +46,32 @@ const ChatRequestSchema = z.object({
 });
 
 /**
- * Load glossary from the canonical YAML file so the AI prompt and the
- * glossary page always agree. Falls back to an empty array on error
- * rather than crashing the chat endpoint.
+ * Load glossary terms for the AI system prompt.
+ *
+ * Source priority:
+ *   1. Database (GlossaryTerm table) — reliable across all environments
+ *   2. YAML file (glossary/terms.yaml) — local fallback
+ *
+ * Canonical source of truth: glossary/terms.yaml
+ * Seeded into DB via: npx tsx prisma/seed.ts
  */
-function loadGlossaryForPrompt(): { term: string; category: string; definition: string; formula: string | null }[] {
+async function loadGlossaryForPrompt(): Promise<{ term: string; category: string; definition: string; formula: string | null }[]> {
+  // Try DB first — works reliably on all environments (local, EC2, etc.)
+  try {
+    const dbTerms = await prisma.glossaryTerm.findMany({ orderBy: { term: 'asc' } });
+    if (dbTerms.length > 0) {
+      return dbTerms.map(t => ({
+        term: t.term,
+        category: t.category,
+        definition: t.definition,
+        formula: t.formula,
+      }));
+    }
+  } catch (error) {
+    console.warn('DB glossary lookup failed, falling back to YAML:', error);
+  }
+
+  // Fallback: read from YAML file
   try {
     const filePath = path.join(process.cwd(), 'glossary', 'terms.yaml');
     const content = fs.readFileSync(filePath, 'utf-8');
@@ -263,7 +286,7 @@ async function handleChatRequest({
     }
 
     const anthropic = new Anthropic({ apiKey });
-    const glossaryTerms = loadGlossaryForPrompt();
+    const glossaryTerms = await loadGlossaryForPrompt();
 
     // Require authentication
     let currentUser;
@@ -371,6 +394,34 @@ async function handleChatRequest({
               controller.enqueue(new TextEncoder().encode(formatSSE(chunk.event, chunk.data)));
             }
 
+            // ── Data Integrity Verification ──────────────────
+            if (collectedPatches.length > 0 && !isSqlMode) {
+              try {
+                controller.enqueue(new TextEncoder().encode(formatSSE('progress', { message: 'Verifying data integrity...', progress: 95 })));
+
+                const preSchema = (currentSchema ?? { layout: { columns: 12, rowHeight: 80, gap: 16 }, globalFilters: [], widgets: [] }) as unknown as DashboardSchema;
+                const postSchema = applyPatches(preSchema, collectedPatches as SchemaPatch[]);
+                const verificationReport = await verifyDashboardIntegrity(
+                  message,
+                  collectedPatches as SchemaPatch[],
+                  postSchema,
+                  glossaryTerms,
+                );
+
+                controller.enqueue(new TextEncoder().encode(formatSSE('verification', {
+                  overallConfidence: verificationReport.overallConfidence,
+                  overallVerdict: verificationReport.overallVerdict,
+                  summary: verificationReport.summary,
+                  widgets: verificationReport.widgets,
+                  durationMs: verificationReport.durationMs,
+                  layers: verificationReport.layers,
+                })));
+              } catch (verifyError) {
+                console.error('[chat] Verification pipeline error (non-fatal):', verifyError);
+                // Verification failure is non-fatal — patches still apply
+              }
+            }
+
             // Save assistant message to database
             if (chatSession && finalParsedData) {
               try {
@@ -437,6 +488,23 @@ async function handleChatRequest({
     // Parse the response using shared parsing logic
     const parsed = parseAIResponse(rawText, isSqlMode);
 
+    // ── Data Integrity Verification (non-streaming) ──────
+    let verificationReport: VerificationReport | null = null;
+    if (parsed.patches && parsed.patches.length > 0 && !isSqlMode) {
+      try {
+        const preSchema = (currentSchema ?? { layout: { columns: 12, rowHeight: 80, gap: 16 }, globalFilters: [], widgets: [] }) as unknown as DashboardSchema;
+        const postSchema = applyPatches(preSchema, parsed.patches as SchemaPatch[]);
+        verificationReport = await verifyDashboardIntegrity(
+          message,
+          parsed.patches as SchemaPatch[],
+          postSchema,
+          glossaryTerms,
+        );
+      } catch (verifyError) {
+        console.error('[chat] Verification pipeline error (non-fatal):', verifyError);
+      }
+    }
+
     // Save assistant message to database
     if (chatSession) {
       try {
@@ -470,7 +538,15 @@ async function handleChatRequest({
       sql: parsed.sql || undefined,
       sqlType: parsed.sqlType || undefined,
       isSqlMode,
-      sessionId: chatSession?.id // Return session ID for client to use in subsequent calls
+      sessionId: chatSession?.id, // Return session ID for client to use in subsequent calls
+      verification: verificationReport ? {
+        overallConfidence: verificationReport.overallConfidence,
+        overallVerdict: verificationReport.overallVerdict,
+        summary: verificationReport.summary,
+        widgets: verificationReport.widgets,
+        durationMs: verificationReport.durationMs,
+        layers: verificationReport.layers,
+      } : undefined,
     });
   } catch (error) {
     console.error('Chat API error:', error);

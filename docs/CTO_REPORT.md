@@ -2,14 +2,14 @@
 
 **Application:** InsightHub — AI-Powered Dashboard Builder  
 **Production URL:** https://dashboards.jeffcoy.net  
-**Review Date:** April 18, 2026  
-**Version:** 0.1.0 (Phase 1)
+**Review Date:** April 19, 2026  
+**Version:** 0.1.0 (Phase 1 + Phase 3 Preview)
 
 ---
 
 ## Executive Summary
 
-InsightHub is an internal self-service BI platform where employees create data dashboards using natural language, powered by Claude AI (Sonnet 4). It is a full-stack Next.js 16 application using TypeScript strict mode, Prisma ORM with SQLite, Zustand for state management, and Recharts for visualization. The project follows a phased roadmap: Phase 1 (current) uses sample data; Phase 3 will introduce Snowflake as a live data connector.
+InsightHub is an internal self-service BI platform where employees create data dashboards using natural language, powered by Claude AI (Sonnet 4). It is a full-stack Next.js 16 application using TypeScript strict mode, Prisma ORM with SQLite, Zustand for state management, and Recharts for visualization. The project follows a phased roadmap: Phase 1 uses sample data; **Phase 3 preview features** (Snowflake connector, Data Explorer, Visual Query Builder, Query Playground) have been implemented and are behind feature toggles.
 
 This report covers architecture, technology decisions, code quality, AI integration, scalability path, testing coverage, CI/CD pipeline, and technical debt.
 
@@ -28,15 +28,20 @@ User (Browser)
      │       │     ├── /api/chat → Anthropic Claude API (streaming SSE)
      │       │     ├── /api/voice/transcribe → OpenAI Whisper API
      │       │     ├── /api/dashboards → CRUD + versioning + sharing
-     │       │     ├── /api/data/query → Sample data engine
+     │       │     ├── /api/data/query → Sample data + Snowflake provider
+     │       │     ├── /api/data/schema → Schema introspection (Phase 3)
+     │       │     ├── /api/data/profile → Column profiling (Phase 3)
      │       │     ├── /api/glossary → Business terminology CRUD
      │       │     ├── /api/widgets → Widget library (publish/fork/search)
-     │       │     ├── /api/admin/* → User mgmt, permissions, audit logs
+     │       │     ├── /api/admin/* → User mgmt, permissions, audit, settings
+     │       │     ├── /api/user/* → GDPR export + account deletion
      │       │     └── /api/health → Health check (DB, memory, uptime)
      │       │
-     │       └── Prisma ORM → SQLite (file:./dev.db)
+     │       ├── Prisma ORM → SQLite (file:./dev.db)
+     │       └── Snowflake SDK → Snowflake (Phase 3, behind feature toggle)
      │
      ├── Zustand Store (client state, undo/redo history)
+     ├── Redis (optional) → Query result caching
      │
      └── Nginx (reverse proxy, TLS, rate limiting) → EC2
 ```
@@ -67,6 +72,8 @@ User (Browser)
 | **Styling** | `tailwindcss` | ^4 | Utility-first CSS |
 | **Charts** | `recharts` | ^3.8.1 | Declarative chart components |
 | **AI** | `@anthropic-ai/sdk` | ^0.90.0 | Claude API (streaming support) |
+| **Snowflake** | `snowflake-sdk` | (Phase 3) | Snowflake connector (dynamic require) |
+| **Cache** | `ioredis` | (optional) | Redis query caching (dynamic require) |
 | **ORM** | `@prisma/client` | ^5.22.0 | Type-safe database access |
 | **Auth** | `next-auth` | ^4.24.14 | Google OAuth + JWT sessions |
 | **State** | `zustand` | ^5.0.12 | Client state with undo/redo |
@@ -91,29 +98,39 @@ User (Browser)
 ```
 src/
 ├── app/                          # Next.js App Router
-│   ├── api/                      # 26 API route handlers
+│   ├── api/                      # ~30 API route handlers
 │   │   ├── chat/route.ts         # AI chat (486 lines — largest route)
 │   │   ├── dashboards/           # CRUD, share, version, duplicate, revert
-│   │   ├── data/query/route.ts   # Permission-gated data queries
-│   │   ├── admin/                # Audit logs, users, permission groups
+│   │   ├── data/query/route.ts   # Permission-gated data queries (sample + Snowflake)
+│   │   ├── data/schema/route.ts  # Schema introspection API (Phase 3)
+│   │   ├── data/profile/route.ts # Column profiling API (Phase 3)
+│   │   ├── admin/                # Audit logs, users, permissions, settings
 │   │   ├── glossary/             # CRUD + search
 │   │   ├── widgets/              # Library: search, publish, fork, explain
+│   │   ├── user/                 # GDPR: data export + account deletion
 │   │   ├── voice/transcribe/     # Whisper proxy
 │   │   └── health/route.ts       # Monitoring endpoint
 │   ├── dashboard/[id]/           # Dashboard editor page
 │   ├── gallery/                  # Dashboard gallery
-│   └── admin/                    # Admin audit viewer
+│   ├── data/                     # Data tools (Phase 3 preview)
+│   │   ├── explorer/             # Schema browser + column profiler
+│   │   ├── visual-query/         # Sigma-style Visual Query Builder
+│   │   └── playground/           # Multi-tab SQL notebook
+│   └── admin/                    # Admin: audit, users, permissions, settings
 │
-├── components/                   # React components (7 subdirectories)
+├── components/                   # React components (12 subdirectories)
 │   ├── chat/                     # AI chat panel
-│   ├── dashboard/                # Canvas, drag-and-drop, context menu
+│   ├── dashboard/                # Canvas, drag-and-drop, context menu, config panel
+│   ├── data/                     # Data Explorer, VQB, Playground, SQL Editor (NEW)
 │   ├── gallery/                  # Dashboard card grid
-│   ├── layout/                   # Navbar, theme toggle
+│   ├── glossary/                 # Glossary + widget linking (NEW)
+│   ├── layout/                   # Navbar, theme toggle, command palette
 │   ├── versioning/               # Version timeline
 │   └── widgets/                  # 14 widget types
 │
-├── hooks/                        # 9 custom hooks
+├── hooks/                        # 10 custom hooks
 │   ├── useAutoSave.ts            # Debounced auto-save
+│   ├── useDataSourcePermissions.ts # Client-side data permission checks (NEW)
 │   ├── useKeyboardShortcuts.ts   # Ctrl+Z, Ctrl+S, etc.
 │   ├── useSpeechToText.ts        # Browser speech recognition
 │   ├── useTouchDrag.ts           # Mobile touch support
@@ -127,17 +144,35 @@ src/
 │   │   └── change-summarizer.ts  # Human-readable change descriptions
 │   ├── auth/                     # Auth system (3 files)
 │   │   ├── config.ts             # NextAuth config, OAuth, domain restriction
-│   │   ├── permissions.ts        # RBAC engine (465 lines)
+│   │   ├── permissions.ts        # RBAC engine (825 lines, expanded for metric-level)
 │   │   └── session.ts            # Session helpers
-│   ├── data/                     # Sample data generators + templates
+│   ├── data/                     # Data providers + templates
+│   │   ├── snowflake-data-provider.ts # Snowflake query provider (Phase 3)
+│   │   ├── visual-to-sql.ts      # VQB → SQL transpiler
+│   │   ├── retention.ts          # Chat message retention (90-day)
+│   │   └── widget-library.ts     # Reusable widget definitions
+│   ├── snowflake/                # Snowflake integration (5 files, NEW)
+│   │   ├── config.ts             # Connection configuration
+│   │   ├── connection.ts         # Connection pool management
+│   │   ├── query-executor.ts     # Query execution + caching
+│   │   ├── data-security.ts      # PII detection + column masking
+│   │   ├── row-level-security.ts # Role-based row filtering
+│   │   └── schema.ts             # Schema introspection
+│   ├── redis/                    # Redis integration (2 files, NEW)
+│   │   ├── client.ts             # Redis client with cache ops
+│   │   └── config.ts             # Redis configuration
 │   ├── audit.ts                  # Audit logging
 │   ├── rate-limiter.ts           # Sliding window rate limiter (275 lines)
 │   ├── logger.ts                 # Structured logger (JSON in prod)
 │   ├── env.ts                    # Environment validation
+│   ├── settings.ts               # System settings (file-based, NEW)
 │   └── export-utils.ts           # CSV, PNG, SVG export
 │
 ├── stores/                       # Zustand stores
-├── types/                        # TypeScript interfaces
+├── types/                        # TypeScript interfaces (expanded)
+│   ├── data-explorer.ts          # Data explorer types (NEW)
+│   ├── playground.ts             # Query playground types (NEW)
+│   └── visual-query.ts           # Visual query builder types (NEW)
 └── instrumentation.ts            # Server startup hook (env validation)
 ```
 
@@ -145,12 +180,15 @@ src/
 
 | Metric | Value |
 |--------|-------|
-| API route files | 26 |
-| Custom React hooks | 9 |
-| Prisma models | 14 |
+| API route files | ~30 |
+| Custom React hooks | 10 |
+| Prisma models | 14+ |
 | Widget types | 14 |
-| E2E test files | 4 |
-| Total TypeScript source files | ~80+ |
+| E2E test files | 5 (+ `critical-flows.spec.ts`) |
+| Total TypeScript source files | ~120+ |
+| Snowflake integration files | 7 |
+| Data tool components | 11 |
+| New type definition files | 3 |
 
 ---
 
@@ -247,12 +285,28 @@ Well-indexed for common queries:
 - `AuditLog`: `@@index([userId])`, `@@index([resourceType, resourceId])`, `@@index([createdAt])`
 - `WidgetTemplate`: `@@index([type])`, `@@index([publishedById])`
 
-### 5.3 Migration Path (Phase 3)
+### 5.3 Snowflake Connector (Phase 3 Preview — New April 19)
+
+A full Snowflake connector has been implemented behind a feature toggle (`enableSnowflakeConnector`):
+
+| Component | File | Description |
+|-----------|------|-------------|
+| Config | `src/lib/snowflake/config.ts` | Connection settings from env vars |
+| Connection pool | `src/lib/snowflake/connection.ts` | Pool with idle timeout, max connections |
+| Query executor | `src/lib/snowflake/query-executor.ts` | Parameterized queries, caching via Redis |
+| Data security | `src/lib/snowflake/data-security.ts` | PII auto-detection, column masking |
+| Row-level security | `src/lib/snowflake/row-level-security.ts` | Role-mapped row filtering |
+| Schema introspection | `src/lib/snowflake/schema.ts` | INFORMATION_SCHEMA queries |
+| Data provider | `src/lib/data/snowflake-data-provider.ts` | Dual-provider (Snowflake + sample data fallback) |
+
+The provider gracefully degrades to sample data when Snowflake is unavailable.
+
+### 5.4 Migration Path (Phase 3)
 
 The codebase is prepared for PostgreSQL migration:
 - `docker-compose.yml` has commented-out PostgreSQL service
 - `DATABASE_URL` validation accepts both `file:` and `postgresql:` prefixes: `src/lib/env.ts:27`
-- Snowflake env vars are defined but unused: `src/lib/env.ts:80–103`
+- Snowflake env vars are defined and connected: `src/lib/env.ts:80–103`
 
 ---
 
@@ -295,6 +349,7 @@ WCAG 2.1 AA testing via `@axe-core/playwright` across 6 pages: `e2e/accessibilit
 | Test Type | Framework | Files | Coverage |
 |-----------|-----------|-------|----------|
 | E2E smoke | Playwright | `e2e/smoke.spec.ts` | Health API, page rendering, navigation flows |
+| Critical flows | Playwright | `e2e/critical-flows.spec.ts` | Dashboard CRUD, sharing, versioning, admin |
 | Accessibility | axe-core | `e2e/accessibility.spec.ts` | 6 pages: home, gallery, editor, glossary, login, 404 |
 | Production health | Playwright | `e2e/production-health.spec.ts` | Response time, SSL, security headers |
 | API integration | Playwright | `e2e/api-integration.spec.ts` | API endpoint testing |
@@ -314,10 +369,12 @@ ESLint with `eslint-config-next` — runs as parallel CI gate: `.github/workflow
 
 | Gap | Recommendation |
 |-----|----------------|
-| No unit tests | Add Jest/Vitest for pure functions (schema patcher, auto-layout, permissions) |
+| No unit tests | Add Jest/Vitest for pure functions (schema patcher, auto-layout, permissions, visual-to-SQL) |
 | No integration tests for AI | Mock Anthropic API; test prompt construction + response parsing |
 | No load testing | Add k6 or Artillery for rate limiter + API performance |
 | No visual regression | Consider Playwright visual comparisons or Chromatic |
+| E2E silent skip on failure | `critical-flows.spec.ts` calls `test.skip()` on API errors instead of failing — can mask real issues in CI |
+| No Snowflake connector tests | Mock Snowflake SDK; test query building, PII detection, RLS |
 
 ---
 
@@ -431,11 +488,16 @@ The codebase has several forward-looking patterns:
 |------|----------|------|-------------|
 | Chat route size | Medium | `src/app/api/chat/route.ts` | 486 lines — extract streaming, parsing, session handling into separate modules |
 | Prompt size | Medium | `src/lib/ai/prompts.ts` | 497 lines — system prompt is very large; consider splitting by mode (dashboard vs SQL) |
-| Dashboard create validation | Medium | `src/app/api/dashboards/route.ts:71–77` | `schema` body field accepts `unknown` — add Zod validation |
+| ~~Dashboard create validation~~ | ~~Medium~~ | `src/app/api/dashboards/route.ts` | ✅ Full Zod validation added (April 18) |
 | Health check creates new PrismaClient | Low | `src/app/api/health/route.ts:21` | Creates + disconnects a fresh client per call; reuse the shared instance |
-| `any` types | Low | Various | `src/lib/audit.ts:169`, `src/app/api/admin/permission-groups/route.ts:184` — tighten types |
-| No unit tests | High | — | Pure functions (schema patcher, auto-layout, permissions) have no unit test coverage |
+| `any` types | Medium | Various | Heavy `any` usage across Snowflake/Redis modules (`connection.ts`, `client.ts`, `query-executor.ts`) — sprint review flagged |
+| No unit tests | High | — | Pure functions (schema patcher, auto-layout, permissions, visual-to-SQL) have no unit test coverage |
 | Hardcoded admin list | Low | `src/lib/auth/config.ts:17–20` | Admin emails hardcoded; should be database-driven |
+| SQL injection vectors | **Critical** | `snowflake-data-provider.ts`, `query-executor.ts`, `visual-to-sql.ts` | String interpolation of user-controlled values into SQL — sprint review identified 3 vectors. Must fix before Snowflake goes live. |
+| Large components | Medium | `VisualQueryBuilder.tsx` (575), `PlaygroundTab.tsx` (568), `QuickChart.tsx` (637) | Exceed 500 lines; extract sub-components as features stabilize |
+| File-based settings | Medium | `src/lib/settings.ts` | Settings stored in `data/system-settings.json` — won't scale to multi-instance; migrate to DB |
+| DEV_MODE check downgraded | High | `src/lib/env.ts:172–181` | Fatal error reverted to warning-only; auth bypass possible in production if misconfigured |
+| GDPR audit action mismatch | Medium | `src/app/api/user/delete/route.ts`, `export/route.ts` | Both use `AuditAction.USER_LOGIN` instead of dedicated actions |
 
 ---
 
@@ -456,13 +518,30 @@ The codebase has several forward-looking patterns:
 - ✅ Google OAuth (implemented)
 - ✅ Dashboard sharing (VIEW/COMMENT/EDIT)
 - ✅ Domain-restricted login
+- ✅ GDPR compliance (data export + account deletion)
+- ✅ Metric-level RBAC with Financial meta-category
+- ✅ Admin settings panel with feature toggles + AI prompt editor
 - ⬜ Self-service onboarding flow
 
-### Phase 3 — Live Data (Snowflake)
-- ⬜ Snowflake connector
+### Phase 3 — Live Data (Snowflake) — Preview Implemented
+- ✅ Snowflake connector (behind feature toggle, with security layers)
+- ✅ Data Explorer + Schema Browser
+- ✅ Visual Query Builder (Sigma-style drag-and-drop)
+- ✅ Query Playground (multi-tab SQL notebook)
+- ✅ Redis caching layer for query results
+- ✅ Glossary → widget linking
+- ⚠️ SQL injection fixes needed before production use (sprint review finding)
 - ⬜ PostgreSQL migration
-- ⬜ Real-time data queries
 - ⬜ Scheduled dashboard refresh
+
+### Additional Deliverables (April 19)
+- ✅ Golden layout template + zero dead space rules for AI dashboards
+- ✅ Key Insight callout mandatory on AI-generated dashboards
+- ✅ Comprehensive data integrity audit (8 bugs fixed)
+- ✅ Sample data updated to realistic company metrics (400K customers, $60M ARR, 20% churn)
+- ✅ Data Integrity Verification Pipeline spec written (`docs/DATA_INTEGRITY_VERIFICATION_SPEC.md`)
+- ✅ Demo Testing Flowchart (`docs/DEMO_TESTING_FLOWCHART.md`)
+- ✅ Sprint review conducted by Claude Opus (6.3/10, 4 critical + 10 warning issues identified)
 
 ---
 
@@ -494,3 +573,26 @@ The codebase has several forward-looking patterns:
 | Prod health tests | `e2e/production-health.spec.ts` | 1–56 (latency, SSL, headers) |
 | Health endpoint | `src/app/api/health/route.ts` | 6–53 (DB, memory, uptime) |
 | Playwright config | `playwright.config.ts` | 1–63 (test configuration) |
+| Snowflake connector | `src/lib/snowflake/*.ts` | 5 files: config, connection, query-executor, data-security, schema |
+| Snowflake RLS | `src/lib/snowflake/row-level-security.ts` | Role-based row filtering |
+| Snowflake provider | `src/lib/data/snowflake-data-provider.ts` | Dual-provider with fallback |
+| Redis client | `src/lib/redis/client.ts` | Cache ops, TTL management |
+| Redis config | `src/lib/redis/config.ts` | Redis connection settings |
+| Visual-to-SQL | `src/lib/data/visual-to-sql.ts` | VQB → SQL transpiler |
+| Data Explorer | `src/app/data/explorer/page.tsx` | Schema browser page |
+| Visual Query Builder | `src/app/data/visual-query/page.tsx` | Sigma-style VQB page |
+| Query Playground | `src/app/data/playground/page.tsx` | Multi-tab SQL notebook |
+| Data components | `src/components/data/*.tsx` | 11 components (SchemaExplorer, VQB, PlaygroundTab, etc.) |
+| Glossary widgets | `src/components/glossary/*.tsx` | AddToDashboardModal, RelatedWidgets, WidgetPreviewModal |
+| Widget matching | `src/lib/widget-matching.ts` | Glossary term → widget linking |
+| Admin settings | `src/app/admin/settings/` | Feature toggles, AI prompt editor |
+| Settings lib | `src/lib/settings.ts` | File-based system settings |
+| Permission hook | `src/hooks/useDataSourcePermissions.ts` | Client-side permission awareness |
+| GDPR export | `src/app/api/user/export/route.ts` | Right-to-access endpoint |
+| GDPR delete | `src/app/api/user/delete/route.ts` | Right-to-deletion endpoint |
+| Chat retention | `src/lib/data/retention.ts` | 90-day chat purge |
+| Critical flows E2E | `e2e/critical-flows.spec.ts` | Dashboard CRUD, sharing, admin |
+| Data types | `src/types/data-explorer.ts`, `playground.ts`, `visual-query.ts` | New type definitions |
+| Sprint review | `docs/sprint-review-2026-04-19.md` | Full code review (6.3/10) |
+| Data integrity spec | `docs/DATA_INTEGRITY_VERIFICATION_SPEC.md` | Verification pipeline design |
+| Demo flowchart | `docs/DEMO_TESTING_FLOWCHART.md` | QA testing walkthrough |

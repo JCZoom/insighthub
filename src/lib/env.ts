@@ -101,6 +101,28 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     required: false,
     description: 'Snowflake schema name (Phase 3)',
   },
+  VERIFY_INTEGRITY_ENABLED: {
+    required: false,
+    description: 'Enable the Data Integrity Verification Pipeline (default: true)',
+    example: 'true',
+  },
+  VERIFY_INTEGRITY_AI_ENABLED: {
+    required: false,
+    description: 'Enable AI verification layers 2 & 2.5 (default: true)',
+    example: 'true',
+  },
+  VERIFY_INTEGRITY_CONFIDENCE_THRESHOLD: {
+    required: false,
+    description: 'Confidence threshold below which escalation is triggered (default: 0.70)',
+    example: '0.70',
+    validate: (v) => { const n = parseFloat(v); return !isNaN(n) && n >= 0 && n <= 1; },
+  },
+  VERIFY_INTEGRITY_TIMEOUT_MS: {
+    required: false,
+    description: 'Max milliseconds to wait for AI verification (default: 5000)',
+    example: '5000',
+    validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0; },
+  },
 } as const;
 
 // ── Validation ────────────────────────────────────────────
@@ -213,6 +235,10 @@ export const env = {
   NODE_ENV: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV !== 'production',
+  VERIFY_INTEGRITY_ENABLED: process.env.VERIFY_INTEGRITY_ENABLED !== 'false',
+  VERIFY_INTEGRITY_AI_ENABLED: process.env.VERIFY_INTEGRITY_AI_ENABLED !== 'false',
+  VERIFY_INTEGRITY_CONFIDENCE_THRESHOLD: parseFloat(process.env.VERIFY_INTEGRITY_CONFIDENCE_THRESHOLD || '0.70'),
+  VERIFY_INTEGRITY_TIMEOUT_MS: parseInt(process.env.VERIFY_INTEGRITY_TIMEOUT_MS || '5000', 10),
 } as const;
 
 // ── Documentation Helper ──────────────────────────────────

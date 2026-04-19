@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic } from 'lucide-react';
+import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { handleVirtualKeyboard, isMobileDevice } from '@/lib/touch-utils';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 import { VoiceWaveform } from '@/components/chat/VoiceWaveform';
-import type { ChatMessageUI, SchemaPatch, QuickAction } from '@/types';
+import type { ChatMessageUI, SchemaPatch, QuickAction, VerificationVerdict, WidgetVerification } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
@@ -54,8 +54,58 @@ function AiStatusText({ patchCount, serverMessage }: { patchCount: number; serve
   );
 }
 
+function VerificationBadge({ verification }: { verification: VerificationData }) {
+  const { overallVerdict, overallConfidence, summary, durationMs, widgets } = verification;
+
+  const issueCount = widgets.reduce((n, w) => n + w.issues.length, 0);
+
+  const configs = {
+    PASS: {
+      Icon: ShieldCheck,
+      label: 'Verified',
+      badgeClass: 'text-accent-green bg-accent-green/10 border-accent-green/30',
+      iconClass: 'text-accent-green',
+    },
+    WARN: {
+      Icon: ShieldAlert,
+      label: 'Review suggested',
+      badgeClass: 'text-accent-amber bg-accent-amber/10 border-accent-amber/30',
+      iconClass: 'text-accent-amber',
+    },
+    FAIL: {
+      Icon: ShieldX,
+      label: 'Issues found',
+      badgeClass: 'text-accent-red bg-accent-red/10 border-accent-red/30',
+      iconClass: 'text-accent-red',
+    },
+  };
+
+  const { Icon, label, badgeClass, iconClass } = configs[overallVerdict] || configs.WARN;
+
+  return (
+    <Tooltip
+      content={`${summary}${issueCount > 0 ? ` (${issueCount} issue${issueCount !== 1 ? 's' : ''})` : ''} — ${durationMs}ms`}
+      side="top"
+    >
+      <div className={cn('mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border', badgeClass)}>
+        <Icon size={12} className={iconClass} />
+        <span>{label}</span>
+        <span className="opacity-60">({(overallConfidence * 100).toFixed(0)}%)</span>
+      </div>
+    </Tooltip>
+  );
+}
+
 interface ChatPanelProps {
   initialPrompt?: string;
+}
+
+interface VerificationData {
+  overallConfidence: number;
+  overallVerdict: VerificationVerdict;
+  summary: string;
+  widgets: WidgetVerification[];
+  durationMs: number;
 }
 
 interface StreamingState {
@@ -65,6 +115,7 @@ interface StreamingState {
   currentPatches: SchemaPatch[];
   currentQuickActions: QuickAction[];
   explanation: string;
+  verification?: VerificationData;
 }
 
 export function ChatPanel({ initialPrompt }: ChatPanelProps) {
@@ -298,6 +349,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       let allPatches: SchemaPatch[] = [];
       let finalQuickActions: QuickAction[] = [];
       let finalExplanation = '';
+      let verificationResult: VerificationData | undefined;
 
       // Process server-sent events from the readable stream
       let buffer = '';
@@ -368,6 +420,21 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                 }
                 break;
 
+              case 'verification': {
+                verificationResult = data as VerificationData;
+                const verdictMsg = data.overallVerdict === 'PASS'
+                  ? '\u2713 Data integrity verified'
+                  : data.overallVerdict === 'WARN'
+                  ? '\u26A0 Verified with warnings'
+                  : '\u2717 Verification found issues';
+                setStreamingState(prev => ({
+                  ...prev,
+                  verification: data,
+                  message: verdictMsg,
+                }));
+                break;
+              }
+
               case 'explanation':
                 finalExplanation = data.explanation || '';
                 finalQuickActions = data.quickActions || [];
@@ -414,6 +481,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                   content: finalExplanation || 'Done!',
                   schemaPatches: allPatches,
                   quickActions: finalQuickActions,
+                  verification: verificationResult,
                   createdAt: new Date(),
                 };
                 setMessages(prev => [...prev, assistantMessage]);
@@ -568,6 +636,11 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                     </button>
                   ))}
                 </div>
+              )}
+
+              {/* Verification badge */}
+              {msg.verification && (
+                <VerificationBadge verification={msg.verification} />
               )}
 
               {/* Undo button for AI changes */}

@@ -149,7 +149,7 @@ export async function buildSystemPrompt(
     ? glossaryTerms.map(t =>
         `- **${t.term}** [${t.category}]: ${t.definition}${t.formula ? ` Formula: \`${t.formula}\`` : ''}`
       ).join('\n')
-    : 'No glossary terms defined yet.';
+    : 'Glossary terms could not be loaded. Canonical definitions are maintained in glossary/terms.yaml — do not invent metric definitions.';
 
   const schemaSection = currentSchema
     ? JSON.stringify(currentSchema, null, 2)

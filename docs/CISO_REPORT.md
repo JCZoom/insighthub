@@ -2,7 +2,7 @@
 
 **Application:** InsightHub — AI-Powered Dashboard Builder  
 **Production URL:** https://dashboards.jeffcoy.net  
-**Review Date:** April 18, 2026  
+**Review Date:** April 19, 2026  
 **Classification:** Internal — Confidential
 
 ---
@@ -58,7 +58,7 @@ When `NEXT_PUBLIC_DEV_MODE=true`, all authentication is bypassed. The middleware
 - `assertEnv()` runs at server startup via `src/instrumentation.ts`
 - Deploy script (`scripts/ec2-deploy.sh:69–71`) sets `NODE_ENV=production`
 
-**✅ Resolved:** `assertEnv()` now throws a fatal error and prevents server startup when `NEXT_PUBLIC_DEV_MODE=true` in production (`src/lib/env.ts:172–182`). Previously this was a warning only.
+**⚠️ Reopened (April 19):** `assertEnv()` was **downgraded from fatal error back to warning-only** (`src/lib/env.ts:172–181`). The server now logs a warning (`🚨 WARNING: NEXT_PUBLIC_DEV_MODE=true in production`) but **does not prevent startup**. The original fatal enforcement was reverted because it blocked dev/staging workflows. The deploy script still sets `NODE_ENV=production` which helps, but if `NEXT_PUBLIC_DEV_MODE=true` is accidentally left in `.env.local`, authentication is fully bypassed with only a console warning.
 
 ### 1.3 Role-Based Access Control (RBAC)
 
@@ -72,10 +72,22 @@ Four roles exist: **VIEWER**, **CREATOR**, **POWER_USER**, **ADMIN**. Permission
 | ADMIN | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 **Key files:**
-- Permission definitions: `src/lib/auth/permissions.ts:52–146`
-- Permission resolution: `src/lib/auth/permissions.ts:164–283`
+- Permission definitions: `src/lib/auth/permissions.ts:82–176`
+- Permission resolution: `src/lib/auth/permissions.ts` (resolveUserPermissions)
+- Metric-level RBAC: `src/lib/auth/permissions.ts:57–71`
 - Admin-only guard: `src/app/api/admin/audit/route.ts:9`
 - Feature permission check: `src/app/api/admin/users/route.ts:25–28`
+- Admin settings panel: `src/app/admin/settings/settings-client.tsx`
+
+#### 1.3.1 Metric-Level RBAC (New — April 19)
+
+In addition to category-level RBAC, a **metric-level restriction system** was added allowing granular control within an allowed data category:
+
+- **`Financial` meta-category** groups `Revenue` + `Sales` for unified financial data governance: `src/lib/auth/permissions.ts:16–26`
+- **`MetricAccessRule`** interface allows restricting specific metrics (e.g., allow Revenue category but deny LTV metric): `src/lib/auth/permissions.ts:58–62`
+- **`MetricPermissionCheck`** provides detailed access verdicts with denial reasons: `src/lib/auth/permissions.ts:65–71`
+- **Widget config panel** shows lock icons and availability indicators for restricted data: `src/components/dashboard/WidgetConfigPanel.tsx`
+- **`useDataSourcePermissions`** hook provides client-side permission awareness: `src/hooks/useDataSourcePermissions.ts`
 
 ### 1.4 Data Access Controls (PII Protection)
 
@@ -90,6 +102,9 @@ The permission system includes **data category** access controls that restrict w
 | Product | NONE | FULL | FULL | FULL |
 | Operations | NONE | NONE | FULL | FULL |
 | **CustomerPII** | **NONE** | **NONE** | **NONE** | **FULL** |
+| **Financial** (meta) | **NONE** | **NONE** | **FULL** | **FULL** |
+
+> **Financial** is a meta-category spanning Revenue + Sales. Access controls are applied uniformly across both when the `Financial` category is used: `src/lib/auth/permissions.ts:16–26`.
 
 **Key implementation — data source permission check:**
 ```typescript
@@ -113,7 +128,9 @@ and must NOT generate queries or widgets using them
 
 **CustomerPII** category covers: `sample_customers`, `customers`, `customer_growth`, `customers_by_plan`, `customers_by_region` — see `src/lib/auth/permissions.ts:12`.
 
-**✅ Resolved:** Server-side PII field stripping is now enforced in `src/app/api/data/query/route.ts:16–33`. All responses from the data query API have PII fields (`name`, `email`, `company`, `account_manager`, `contact`, `owner`) replaced with `[REDACTED]` for any user without `FULL` access to the `CustomerPII` category. This is a hard control that operates regardless of what the AI generates, complementing the existing prompt-based soft control.
+**✅ Resolved (partial):** Server-side PII field stripping is enforced in `src/app/api/data/query/route.ts:16–33`. All responses from the data query API have PII fields (`name`, `email`, `company`, `account_manager`, `contact`, `owner`) replaced with `[REDACTED]` for any user without `FULL` access to the `CustomerPII` category.
+
+**⚠️ Limitation identified (April 19 sprint review):** PII stripping is **name-match only** and only runs for sample data results. If Snowflake queries alias columns (e.g., `SELECT email AS user_email`), the stripping is bypassed. The Snowflake data provider has a separate regex-based PII auto-detection layer (`src/lib/snowflake/data-security.ts`), but there is no unified PII stripping layer that covers all data sources. See Risk #13.
 
 ---
 
@@ -268,10 +285,39 @@ The `GET` method was removed from the chat endpoint for security — query param
 |-----------------|-----------|---------|-------------|
 | Anthropic API | Outbound | AI chat (Claude Sonnet 4) | API key in Authorization header |
 | OpenAI API | Outbound | Voice transcription (Whisper) | Bearer token |
+| Snowflake (Phase 3) | Outbound | Live data queries | Password auth (key-pair auth recommended) |
+| Redis (optional) | Outbound | Query result caching | URL-based auth (`REDIS_URL`) |
 
-Both API keys are server-side only. The OpenAI call is proxied through `src/app/api/voice/transcribe/route.ts` — the client never sees the key. Anthropic is called from `src/app/api/chat/route.ts:265`.
+All API keys are server-side only. The client never sees the key. Anthropic is called from `src/app/api/chat/route.ts:265`.
 
-### 4.6 Thumbnail Storage API
+### 4.6 Snowflake Connector Security (New — April 19)
+
+A comprehensive Snowflake connector was implemented with security layers:
+
+| Layer | File | Purpose |
+|-------|------|---------|
+| Connection pool | `src/lib/snowflake/connection.ts` | Pool management with idle timeout |
+| Query executor | `src/lib/snowflake/query-executor.ts` | Parameterized queries, sanitization |
+| Data security | `src/lib/snowflake/data-security.ts` | PII auto-detection, column masking |
+| Row-level security | `src/lib/snowflake/row-level-security.ts` | Role-based row filtering |
+| Schema introspection | `src/lib/snowflake/schema.ts` | INFORMATION_SCHEMA validation |
+| Redis caching | `src/lib/redis/client.ts` | Cached query results with TTL |
+
+**⚠️ Critical SQL injection risks (identified in sprint review):**
+
+1. **`buildSnowflakeQuery()`** — `source` parameter falls through the table mapping allowlist to raw interpolation: `src/lib/data/snowflake-data-provider.ts:160–168`. `groupBy` fields are concatenated directly into SQL.
+2. **`SnowflakeQueryBuilder.select()` / `.count()`** — `table` and `columns` parameters string-interpolated into SQL without validation: `src/lib/snowflake/query-executor.ts:322–365`.
+3. **Visual-to-SQL formula expressions** — User-crafted formula expressions interpolated into SELECT clause: `src/lib/data/visual-to-sql.ts:90–93`.
+
+**Mitigations needed:** Reject unmapped source names, validate identifiers against schema allowlists, use parameterized queries exclusively. See Risks #14–16.
+
+### 4.7 Admin Settings API (New — April 19)
+
+A new admin-only settings API (`src/app/api/admin/settings/route.ts`) manages system-wide feature toggles, defaults, and AI configuration. A live AI prompt editor is available at `/admin/settings`.
+
+**⚠️ Validation concern:** The PUT handler validates top-level keys against an allowlist (`features`, `defaults`, `ai`, `maintenance`), but **nested values are not validated against a schema**. The `deepMerge` in `src/lib/settings.ts` accepts any shape, creating a potential prototype pollution vector. Settings are stored in `data/system-settings.json` (file-based, not in the database). See Risk #17.
+
+### 4.8 Thumbnail Storage API
 
 The thumbnail API (`/api/thumbnails`) handles dashboard preview image storage with authentication and validation controls:
 
@@ -422,12 +468,13 @@ CPUQuota=80%
 | `@prisma/client` | ^5.22.0 | ORM — parameterized queries prevent SQL injection |
 | `zod` | ^4.3.6 | Input validation — actively maintained |
 | `@anthropic-ai/sdk` | ^0.90.0 | Official SDK — handles auth securely |
+| `snowflake-sdk` | (Phase 3) | Snowflake connector — loaded via dynamic require |
+| `ioredis` | (optional) | Redis client for query caching — loaded via dynamic require |
 
 ### 8.2 No Known Critical Vulnerabilities
 
 The codebase uses Prisma (parameterized queries) for all database access, preventing SQL injection. No raw SQL is executed except in the health check (`SELECT 1`): `src/app/api/health/route.ts:22`.
 
-**✅ Resolved:** `npm audit --audit-level=high` is now a required CI quality gate (`.github/workflows/ci.yml:48–59`). The `audit` job runs in parallel with typecheck and lint; the build will not proceed if high or critical vulnerabilities are found.
 
 ---
 
@@ -463,8 +510,13 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 
 | # | Risk | Mitigation |
 |---|------|-----------|
-| 1 | ~~Dev mode bypass could run in production (warning-only check)~~ | ✅ `assertEnv()` now throws a fatal error preventing startup: `src/lib/env.ts:172–182` |
+| 1 | **Dev mode bypass can run in production (warning-only check)** | ⚠️ **REOPENED (April 19):** `assertEnv()` was downgraded from fatal error back to warning-only (`src/lib/env.ts:172–181`). Server starts with auth bypassed. **Recommended fix:** Re-add fatal enforcement with an explicit `--allow-dev-mode` flag for staging, or use a separate `STAGING_MODE` env var. |
 | 2 | `.env.local` synced via SCP without encryption | Migrate to AWS Secrets Manager or SSM Parameter Store *(infrastructure — not code-implementable)* |
+| 13 | PII stripping bypassed via column aliasing or Snowflake results | Unify PII stripping into a centralized layer for ALL data sources; use auto-detection from `data-security.ts` as primary mechanism |
+| 14 | SQL injection in `buildSnowflakeQuery()` — unmapped source names + groupBy interpolated into SQL | Reject any source not in tableMapping allowlist; validate groupBy against schema columns |
+| 15 | SQL injection in `SnowflakeQueryBuilder.select()`/`.count()` — table + column names interpolated | Validate table/column names against INFORMATION_SCHEMA allowlist; add identifier quoting |
+| 16 | Visual-to-SQL formula expressions interpolated into SELECT clause | Validate formulas against safe function/operator allowlist; reject arbitrary expressions |
+| 17 | Admin settings API accepts arbitrary nested objects past top-level allowlist | Validate incoming body against full `SystemSettings` Zod schema at every nesting level |
 
 ### High
 
@@ -474,6 +526,8 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | 4 | SQLite database not encrypted at rest | ✅ Backups now AES-256-CBC encrypted; DB file hardened to `chmod 600`; EBS encryption verification script added. Evaluate SQLCipher for Phase 3 |
 | 5 | ~~CSP allows `'unsafe-eval'` and `'unsafe-inline'`~~ | ✅ `'unsafe-eval'` removed in production, `https://vercel.live` removed, `img-src` tightened. `'unsafe-inline'` remains (Next.js requirement). `middleware.ts:23–44` |
 | 6 | ~~No `npm audit` in CI pipeline~~ | ✅ Added as parallel CI quality gate: `.github/workflows/ci.yml:48–59` |
+| 18 | GDPR audit actions use `USER_LOGIN` instead of dedicated actions | Add `USER_DATA_EXPORT` and `USER_ACCOUNT_DELETION` to AuditAction enum — compliance-relevant for GDPR audit trail |
+| 19 | `isRedisConfigured()` always returns true due to default URL | Check `REDIS_URL` env var presence explicitly, not the fallback default value |
 
 ### Medium
 
@@ -483,8 +537,10 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | 8 | ~~Dashboard schema body not validated with Zod~~ | ✅ Full Zod validation added: `src/app/api/dashboards/route.ts:9–51` |
 | 9 | ~~AI PII enforcement is prompt-based only (soft control)~~ | ✅ Server-side PII field stripping added: `src/app/api/data/query/route.ts:7–33` |
 | 10 | ~~No GDPR self-service (data export / account deletion)~~ | ✅ `GET /api/user/export` and `POST /api/user/delete` implemented: `src/app/api/user/export/route.ts`, `src/app/api/user/delete/route.ts` |
-| 11 | In-memory rate limiting won't survive restarts or scale horizontally | Acceptable for single-instance; plan Redis if scaling |
+| 11 | In-memory rate limiting won't survive restarts or scale horizontally | Acceptable for single-instance; Redis caching layer now available (`src/lib/redis/client.ts`) |
 | 12 | ~~Vestigial `https://vercel.live` in CSP~~ | ✅ Removed from both `script-src` and `connect-src`: `middleware.ts:31–37` |
+| 20 | Snowflake query parameter sanitization uses character-stripping blacklist | Remove character-stripping in `query-executor.ts:71–97`; rely on parameterized queries only |
+| 21 | `deepMerge` in settings.ts has no prototype pollution guard | Add guard for `__proto__` and `constructor` keys: `src/lib/settings.ts:119–135` |
 
 ---
 
@@ -518,4 +574,20 @@ The codebase uses Prisma (parameterized queries) for all database access, preven
 | GDPR account delete | `src/app/api/user/delete/route.ts` | 1–100 (right-to-deletion) |
 | Dashboard validation | `src/app/api/dashboards/route.ts` | 9–51 (Zod schema validation) |
 | Thumbnail API | `src/app/api/thumbnails/route.ts` | 6–169 (auth required, ID validation, 5MB limit) |
+| Metric-level RBAC | `src/lib/auth/permissions.ts` | 16–26 (Financial meta-category), 57–71 (metric access rules) |
+| Permission hook | `src/hooks/useDataSourcePermissions.ts` | 1–94 (client-side permission awareness) |
+| Snowflake connection | `src/lib/snowflake/connection.ts` | Pool management, process.on handlers |
+| Snowflake queries | `src/lib/snowflake/query-executor.ts` | 322–365 (SQL injection risk in select/count) |
+| Snowflake data security | `src/lib/snowflake/data-security.ts` | PII auto-detection, column masking |
+| Snowflake RLS | `src/lib/snowflake/row-level-security.ts` | Role-based row filtering |
+| Snowflake data provider | `src/lib/data/snowflake-data-provider.ts` | 160–168 (SQL injection risk in buildSnowflakeQuery) |
+| Visual-to-SQL | `src/lib/data/visual-to-sql.ts` | 90–93 (formula expression injection risk) |
+| Redis client | `src/lib/redis/client.ts` | 192, 221, 248 (KEYS command usage) |
+| Redis config | `src/lib/redis/config.ts` | 39–42 (isRedisConfigured always true) |
+| Admin settings API | `src/app/api/admin/settings/route.ts` | 30–39 (shallow validation concern) |
+| Settings storage | `src/lib/settings.ts` | 119–135 (deepMerge, no prototype guard) |
+| Admin settings UI | `src/app/admin/settings/settings-client.tsx` | Feature toggles, AI prompt editor |
+| Critical flows E2E | `e2e/critical-flows.spec.ts` | 23–31 (test.skip on failure) |
+| Sprint review | `docs/sprint-review-2026-04-19.md` | Full security review findings |
+| Data integrity spec | `docs/DATA_INTEGRITY_VERIFICATION_SPEC.md` | Planned verification pipeline |
 | Gitignore (secrets) | `.gitignore` | 37–43 (env files, DB, keys) |

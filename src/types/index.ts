@@ -110,6 +110,13 @@ export interface ChatMessageUI {
   sql?: string;
   sqlType?: 'generated' | 'explained' | 'optimized' | 'verified';
   isSqlMode?: boolean;
+  verification?: {
+    overallConfidence: number;
+    overallVerdict: VerificationVerdict;
+    summary: string;
+    widgets: WidgetVerification[];
+    durationMs: number;
+  };
   createdAt: Date;
 }
 
@@ -124,3 +131,66 @@ export const EMPTY_DASHBOARD_SCHEMA: DashboardSchema = {
   globalFilters: [],
   widgets: [],
 };
+
+// ── Data Integrity Verification ────────────────────────────
+
+export type VerificationVerdict = 'PASS' | 'WARN' | 'FAIL';
+export type VerificationSeverity = 'error' | 'warning';
+export type VerificationIssueType =
+  | 'intent_mismatch'
+  | 'wrong_source'
+  | 'wrong_aggregation'
+  | 'invalid_field'
+  | 'glossary_mismatch'
+  | 'wrong_chart_type'
+  | 'structural_error'
+  | 'duplicate_id'
+  | 'grid_overflow'
+  | 'empty_schema';
+
+export interface VerificationIssue {
+  type: VerificationIssueType;
+  severity: VerificationSeverity;
+  message: string;
+  checkId?: string;
+  widgetId?: string;
+  field?: string;
+  suggestion?: string;
+}
+
+export interface WidgetVerification {
+  widgetId: string;
+  widgetTitle: string;
+  confidence: number;
+  verdict: VerificationVerdict;
+  issues: VerificationIssue[];
+}
+
+export interface DeterministicCheckResult {
+  checkId: string;
+  passed: boolean;
+  severity: 'FAIL' | 'WARN';
+  message: string;
+  widgetId?: string;
+  field?: string;
+}
+
+export interface VerificationReport {
+  startedAt: number;
+  completedAt: number;
+  durationMs: number;
+
+  overallConfidence: number;
+  overallVerdict: VerificationVerdict;
+  summary: string;
+
+  widgets: WidgetVerification[];
+
+  layers: {
+    deterministic: { ran: true; passCount: number; warnCount: number; failCount: number };
+    aiVerification: { ran: boolean; model?: string; confidence?: number; skippedReason?: string };
+    escalation: { ran: boolean; model?: string; previousConfidence?: number; newConfidence?: number; corrections?: number };
+  };
+
+  deterministicChecks: DeterministicCheckResult[];
+}
