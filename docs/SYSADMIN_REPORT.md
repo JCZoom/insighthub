@@ -853,7 +853,181 @@ Pipeline: `bitbucket-pipelines.yml`
 | 11 | **Redis for rate limiting** | Replace in-memory rate limiter for horizontal scaling |
 | 12 | **CDN for static assets** | CloudFront in front of Nginx |
 | 13 | **Load balancer** | ALB + auto-scaling group for redundancy |
-| 14 | **EBS encryption** | Enable at-rest encryption for the volume |
+| 14 | **EBS encryption** | ⚠️ **Automation ready — awaiting IAM permissions. See §13 below.** |
+
+---
+
+## 13. EBS Volume Encryption (CISO §6.1) — Action Required
+
+> **Status:** ⚠️ BLOCKED — Awaiting IAM permission grant from sysadmin  
+> **Asana Task:** "ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)"  
+> **Priority:** High — Required for SOC 2 "Encryption at Rest" control  
+> **CISO Reference:** `docs/CISO_REPORT.md` §6.1, Risk #4
+
+### 13.1 Current State
+
+The InsightHub EC2 instance's EBS root volume is **not encrypted at rest**. This is flagged as an open item in the CISO report (§6.1, SOC 2 Alignment §9.1).
+
+| Property | Value |
+|----------|-------|
+| **Instance ID** | `i-07f1bf55da9c6c7a3` |
+| **Region** | `us-east-2` |
+| **AZ** | `us-east-2b` |
+| **Volume** | 8 GB, gp3, ext4 |
+| **Encrypted** | ❌ No |
+| **IAM User** | `arn:aws:iam::734910107398:user/jeffreycoy-lambda-cli` |
+
+### 13.2 What Has Been Done
+
+1. **AWS CLI v2 installed** on the EC2 instance (`aws-cli/2.34.32`)
+2. **Automation script written:** `scripts/enable-ebs-encryption.sh` — fully automates the encryption migration:
+   - Enables default EBS encryption for the `us-east-2` region
+   - Checks current volume encryption status
+   - Creates snapshots of unencrypted volumes
+   - Copies snapshots with encryption enabled (AWS-managed KMS key)
+   - Creates new encrypted volumes from the encrypted snapshots
+   - Stops the instance, swaps old volumes for encrypted ones, restarts
+   - Verifies all volumes are encrypted post-migration
+   - Tags old volumes and snapshots for cleanup
+   - Estimated downtime: **5–10 minutes**
+3. **IAM policy document written:** `scripts/iam-ebs-encryption-policy.json`
+4. **EBS verification script updated:** `scripts/check-ebs-encryption.sh` (runs post-migration to confirm)
+
+### 13.3 What the Sysadmin Needs to Do
+
+The automation script is ready but **cannot run** because the current IAM user (`jeffreycoy-lambda-cli`) only has Lambda permissions. The sysadmin needs to grant EC2 permissions using one of these options:
+
+#### Option A — Attach policy to existing IAM user (quickest, ~2 minutes)
+
+1. Go to **AWS Console → IAM → Users → `jeffreycoy-lambda-cli`**
+2. Click **"Add permissions"** → **"Attach policies directly"**
+3. Click **"Create policy"** → **JSON** tab
+4. Paste the policy JSON below (also at `scripts/iam-ebs-encryption-policy.json`)
+5. Name it **`InsightHubEBSEncryption`** → Create policy
+6. Back on the user page, search for `InsightHubEBSEncryption` and attach it
+
+#### Option B — Create an EC2 instance profile (preferred long-term)
+
+1. Create IAM role `InsightHubEC2Role` with EC2 trust policy:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Principal": {"Service": "ec2.amazonaws.com"},
+       "Action": "sts:AssumeRole"
+     }]
+   }
+   ```
+2. Attach the EBS encryption policy (same JSON below) to the role
+3. Create an instance profile, add the role to it
+4. Associate the instance profile with instance `i-07f1bf55da9c6c7a3`
+
+This approach also enables future AWS API access from the instance without managing access keys.
+
+### 13.4 IAM Policy JSON
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EBSEncryptionMigration",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeSnapshots",
+        "ec2:CreateSnapshot",
+        "ec2:CopySnapshot",
+        "ec2:CreateVolume",
+        "ec2:AttachVolume",
+        "ec2:DetachVolume",
+        "ec2:StopInstances",
+        "ec2:StartInstances",
+        "ec2:GetEbsEncryptionByDefault",
+        "ec2:EnableEbsEncryptionByDefault",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:CreateTags",
+        "ec2:DeleteSnapshot",
+        "ec2:DeleteVolume",
+        "iam:CreateRole",
+        "iam:CreateInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:AttachRolePolicy",
+        "iam:PassRole",
+        "ec2:AssociateIamInstanceProfile",
+        "ec2:DescribeIamInstanceProfileAssociations"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> **Note:** The `iam:*` actions are only needed for Option B (instance profile creation). If using Option A, you can remove them from the policy and just grant the `ec2:*` actions.
+
+### 13.5 Running the Encryption Migration
+
+Once permissions are granted, run:
+
+```bash
+# From local machine (via Tailscale SSH)
+ssh jeffreycoy@autoqa "sudo bash /opt/insighthub/scripts/enable-ebs-encryption.sh"
+
+# Or deploy the updated scripts first, then run on EC2
+./deploy.sh
+ssh jeffreycoy@autoqa "sudo bash /opt/insighthub/scripts/enable-ebs-encryption.sh"
+```
+
+**Expected behavior:**
+1. Enables default EBS encryption for `us-east-2`
+2. Detects unencrypted root volume
+3. Stops the InsightHub service (graceful)
+4. Stops the EC2 instance (~1 min)
+5. Creates snapshot → encrypted copy → new volume (~3-5 min)
+6. Swaps volumes, starts instance
+7. Restarts InsightHub service
+8. Verifies encryption
+9. **Total downtime: ~5-10 minutes**
+
+### 13.6 Verification
+
+After migration, verify with:
+
+```bash
+# On-instance verification
+ssh jeffreycoy@autoqa "bash /opt/insighthub/scripts/check-ebs-encryption.sh"
+
+# Health check
+curl -sf https://dashboards.jeffcoy.net/api/health | python3 -m json.tool
+```
+
+### 13.7 Cleanup (After Confirming Stability)
+
+The script tags old (replaced) volumes and intermediate snapshots with `EncryptionMigration=<timestamp>`. After confirming the instance is stable for 24-48 hours:
+
+```bash
+# List tagged resources
+aws ec2 describe-volumes --region us-east-2 \
+    --filters "Name=tag-key,Values=EncryptionMigration" \
+    --query 'Volumes[].[VolumeId, State, Tags]' --output table
+
+aws ec2 describe-snapshots --region us-east-2 --owner-ids self \
+    --filters "Name=tag-key,Values=EncryptionMigration" \
+    --query 'Snapshots[].[SnapshotId, State]' --output table
+
+# Delete old volume and snapshots
+aws ec2 delete-volume --region us-east-2 --volume-id <old-vol-id>
+aws ec2 delete-snapshot --region us-east-2 --snapshot-id <snap-id>
+```
+
+### 13.8 Post-Migration CISO Report Update
+
+After successful encryption, the following items in the CISO report should be updated:
+- §6.1 table: EBS volume → ✅ Encrypted (AES-256, AWS-managed KMS)
+- §9.1 SOC 2 table: "Encryption at Rest" → ✅
+- §10 Risk #4: Mark as fully resolved
 
 ---
 
@@ -880,3 +1054,6 @@ Pipeline: `bitbucket-pipelines.yml`
 | **Rate limiter** | `src/lib/rate-limiter.ts` | App-level rate limiting configuration (275 lines) |
 | **Gitignore** | `.gitignore` | Excluded files (env, DB, backups, node_modules) |
 | **Prod health tests** | `e2e/production-health.spec.ts` | Latency, SSL, security header checks |
+| **EBS encryption** | `scripts/enable-ebs-encryption.sh` | Full EBS encryption migration automation |
+| **EBS check** | `scripts/check-ebs-encryption.sh` | Verify EBS volume encryption status |
+| **EBS IAM policy** | `scripts/iam-ebs-encryption-policy.json` | IAM policy for EC2 encryption operations |
