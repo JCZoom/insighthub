@@ -181,8 +181,9 @@ export function GalleryPage() {
       if (e.key === 'j' || e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedCardIndex(prev => {
-          const maxIndex = filteredRef.current.length;
-          if (prev >= maxIndex) {
+          // Total cards = 1 "Create New Dashboard" card + filtered dashboards
+          const totalCards = 1 + filteredRef.current.length;
+          if (prev >= totalCards - 1) {
             return 0; // Cycle back to "Create New Dashboard" card
           }
           return prev + 1;
@@ -194,9 +195,10 @@ export function GalleryPage() {
       if (e.key === 'k' || e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedCardIndex(prev => {
-          const maxIndex = filteredRef.current.length;
+          // Total cards = 1 "Create New Dashboard" card + filtered dashboards
+          const totalCards = 1 + filteredRef.current.length;
           if (prev <= 0) {
-            return maxIndex; // Cycle back to last dashboard card
+            return totalCards - 1; // Cycle back to last dashboard card
           }
           return prev - 1;
         });
@@ -209,7 +211,7 @@ export function GalleryPage() {
         if (selectedCardIndex === 0) {
           // "Create New Dashboard" card selected
           galleryRouter.push('/dashboard/new');
-        } else if (selectedCardIndex > 0 && selectedCardIndex <= filteredRef.current.length) {
+        } else {
           // Dashboard card selected (adjust index by -1 since "Create New Dashboard" is at index 0)
           const dashboardIndex = selectedCardIndex - 1;
           if (dashboardIndex >= 0 && dashboardIndex < filteredRef.current.length) {

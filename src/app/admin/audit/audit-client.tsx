@@ -136,16 +136,16 @@ export function AuditLogClient() {
       <div className="px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Audit Logs</h1>
-          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Audit Logs</h1>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
             Monitor all system activities for GDPR/SOC2 compliance
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <div className="bg-[var(--bg-card)] p-6 rounded-lg shadow-sm border border-[var(--border-color)] mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+            <h2 className="text-lg font-medium text-[var(--text-primary)] flex items-center">
               <Filter className="w-5 h-5 mr-2" />
               Filters
             </h2>
@@ -162,7 +162,7 @@ export function AuditLogClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Action filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Action
               </label>
               <select
@@ -171,7 +171,7 @@ export function AuditLogClient() {
                   setSelectedAction(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-md text-sm focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               >
                 <option value="">All actions</option>
                 {uniqueActions.map(action => (
@@ -184,7 +184,7 @@ export function AuditLogClient() {
 
             {/* Resource Type filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Resource Type
               </label>
               <select
@@ -193,7 +193,7 @@ export function AuditLogClient() {
                   setSelectedResourceType(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-md text-sm focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               >
                 <option value="">All types</option>
                 {uniqueResourceTypes.map(type => (
@@ -206,7 +206,7 @@ export function AuditLogClient() {
 
             {/* User filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 User
               </label>
               <select
@@ -215,7 +215,7 @@ export function AuditLogClient() {
                   setSelectedUserId(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-md text-sm focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               >
                 <option value="">All users</option>
                 {uniqueUsers.map(user => (
@@ -228,7 +228,7 @@ export function AuditLogClient() {
 
             {/* Start Date filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Start Date
               </label>
               <input
@@ -238,13 +238,13 @@ export function AuditLogClient() {
                   setStartDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-md text-sm focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               />
             </div>
 
             {/* End Date filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 End Date
               </label>
               <input
@@ -254,20 +254,20 @@ export function AuditLogClient() {
                   setEndDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-md text-sm focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               />
             </div>
           </div>
         </div>
 
         {/* Results */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="bg-[var(--bg-card)] rounded-lg shadow-sm border border-[var(--border-color)]">
+          <div className="px-6 py-4 border-b border-[var(--border-color)]">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              <h2 className="text-lg font-medium text-[var(--text-primary)]">
                 Audit Log Entries
               </h2>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-sm text-[var(--text-muted)]">
                 {total} total entries
               </span>
             </div>
@@ -297,39 +297,39 @@ export function AuditLogClient() {
               {/* Logs table */}
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
+                  <thead className="bg-[var(--bg-card-hover)]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                         Timestamp
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                         User
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                         Action
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                         Resource
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                         Details
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="bg-[var(--bg-card)] divide-y divide-[var(--border-color)]">
                     {logs.map((log) => {
                       const Icon = RESOURCE_ICONS[log.resourceType] || Activity;
                       return (
-                        <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        <tr key={log.id} className="hover:bg-[var(--bg-card-hover)]">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-primary)]">
                             {formatDate(log.createdAt)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              <div className="text-sm font-medium text-[var(--text-primary)]">
                                 {log.user.name}
                               </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                              <div className="text-sm text-[var(--text-secondary)]">
                                 {log.user.email}
                               </div>
                             </div>
@@ -337,36 +337,36 @@ export function AuditLogClient() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={cn(
                               'px-2 inline-flex text-xs leading-5 font-semibold rounded-full border',
-                              ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-800 border-gray-200'
+                              ACTION_COLORS[log.action] || 'bg-[var(--bg-card-hover)] text-[var(--text-primary)] border-[var(--border-color)]'
                             )}>
                               {formatActionName(log.action)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <Icon className="w-4 h-4 text-gray-400 mr-2" />
+                              <Icon className="w-4 h-4 text-[var(--text-muted)] mr-2" />
                               <div>
-                                <div className="text-sm text-gray-900 dark:text-gray-100">
+                                <div className="text-sm text-[var(--text-primary)]">
                                   {log.resourceType}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-[var(--text-muted)]">
                                   {log.resourceId}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 text-sm text-[var(--text-muted)]">
                             {log.metadata ? (
                               <details className="cursor-pointer">
-                                <summary className="text-blue-600 hover:text-blue-800">
+                                <summary className="text-accent-blue hover:text-accent-blue/80">
                                   View metadata
                                 </summary>
-                                <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 p-2 rounded overflow-x-auto">
+                                <pre className="mt-2 text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] p-2 rounded overflow-x-auto">
                                   {JSON.stringify(log.metadata, null, 2)}
                                 </pre>
                               </details>
                             ) : (
-                              <span className="text-gray-400 dark:text-gray-500">No metadata</span>
+                              <span className="text-[var(--text-muted)]">No metadata</span>
                             )}
                           </td>
                         </tr>
@@ -377,9 +377,9 @@ export function AuditLogClient() {
               </div>
 
               {/* Pagination */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="px-6 py-4 border-t border-[var(--border-color)]">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                  <div className="text-sm text-[var(--text-secondary)]">
                     Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, total)} of {total} entries
                   </div>
                   <div className="flex items-center space-x-2">
@@ -389,13 +389,13 @@ export function AuditLogClient() {
                       className={cn(
                         'px-3 py-1 rounded-md text-sm font-medium',
                         currentPage === 1
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'bg-[var(--bg-card-hover)] text-[var(--text-muted)] cursor-not-allowed'
+                          : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:bg-[var(--bg-card-hover)]'
                       )}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
+                    <span className="px-3 py-1 text-sm text-[var(--text-secondary)]">
                       Page {currentPage} of {totalPages}
                     </span>
                     <button
@@ -404,8 +404,8 @@ export function AuditLogClient() {
                       className={cn(
                         'px-3 py-1 rounded-md text-sm font-medium',
                         currentPage === totalPages
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          ? 'bg-[var(--bg-card-hover)] text-[var(--text-muted)] cursor-not-allowed'
+                          : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:bg-[var(--bg-card-hover)]'
                       )}
                     >
                       <ChevronRight className="w-4 h-4" />

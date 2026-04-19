@@ -24,8 +24,8 @@ export default async function UsersPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
-          <p className="text-gray-600 dark:text-gray-200 mt-2">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">User Management</h1>
+          <p className="text-[var(--text-secondary)] mt-2">
             Manage users and assign permission groups to control access to data and features.
           </p>
         </div>

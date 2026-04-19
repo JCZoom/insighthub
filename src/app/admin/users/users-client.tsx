@@ -150,61 +150,61 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Users ({users.length})</h2>
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-[var(--border-color)]">
+          <h2 className="text-lg font-medium text-[var(--text-primary)]">Users ({users.length})</h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+            <thead className="bg-[var(--bg-card-hover)]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Activity
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Permission Groups
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-[var(--bg-card)] divide-y divide-[var(--border-color)]">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={user.id} className="hover:bg-[var(--bg-card-hover)]">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <div className="text-sm font-medium text-[var(--text-primary)]">
                         {user.name}
                         {user.id === currentUser.id && (
-                          <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                          <span className="ml-2 text-xs bg-accent-blue/10 text-accent-blue px-2 py-1 rounded">
                             You
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                      <div className="text-sm text-[var(--text-secondary)]">{user.email}</div>
                       {user.department && (
-                        <div className="text-xs text-gray-400 dark:text-gray-500">{user.department}</div>
+                        <div className="text-xs text-[var(--text-muted)]">{user.department}</div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-accent-blue/10 text-accent-blue">
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-primary)]">
                     <div className="space-y-1">
                       <div>Joined: {formatDate(user.createdAt)}</div>
                       <div>Last login: {formatDate(user.lastLoginAt)}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-xs text-[var(--text-muted)]">
                         {user._count.dashboards} dashboards, {user._count.publishedWidgets} widgets
                       </div>
                     </div>
@@ -214,26 +214,26 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
                       {user.permissionAssignments.map((assignment) => (
                         <div
                           key={assignment.permissionGroup.id}
-                          className="flex items-center justify-between bg-gray-100 dark:bg-gray-600 rounded px-2 py-1"
+                          className="flex items-center justify-between bg-[var(--bg-card-hover)] rounded px-2 py-1"
                         >
-                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-xs font-medium text-[var(--text-primary)]">
                             {assignment.permissionGroup.name}
                             {assignment.permissionGroup.isSystem && (
-                              <span className="ml-1 text-gray-500 dark:text-gray-400">(System)</span>
+                              <span className="ml-1 text-[var(--text-muted)]">(System)</span>
                             )}
                           </span>
                           <button
                             onClick={() =>
                               removePermissionGroup(user.id, assignment.permissionGroup.id)
                             }
-                            className="text-red-500 hover:text-red-700 text-xs"
+                            className="text-accent-red hover:text-accent-red/80 text-xs"
                           >
                             ✕
                           </button>
                         </div>
                       ))}
                       {user.permissionAssignments.length === 0 && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400">No permission groups assigned</span>
+                        <span className="text-sm text-[var(--text-muted)]">No permission groups assigned</span>
                       )}
                     </div>
                   </td>
@@ -243,7 +243,7 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
                         setSelectedUser(user);
                         setShowAssignModal(true);
                       }}
-                      className="text-blue-600 hover:text-blue-700"
+                      className="text-accent-blue hover:text-accent-blue/80"
                     >
                       Assign Permission
                     </button>
@@ -299,21 +299,21 @@ function AssignPermissionModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+      <div className="bg-[var(--bg-card)] rounded-lg max-w-md w-full">
         <div className="p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+          <h3 className="text-lg font-medium text-[var(--text-primary)] mb-4">
             Assign Permission Group to {user.name}
           </h3>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 Permission Group
               </label>
               <select
                 value={selectedGroupId}
                 onChange={(e) => setSelectedGroupId(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-accent-blue/50 focus:border-accent-blue/50"
               >
                 <option value="">Select a permission group...</option>
                 {availableGroups.map((group) => (
@@ -351,14 +351,14 @@ function AssignPermissionModal({
           <div className="flex justify-end gap-3 mt-6">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-[var(--text-secondary)] bg-[var(--bg-card-hover)] rounded-lg hover:bg-[var(--bg-card-hover)]/80 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleAssign}
               disabled={!selectedGroupId}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 disabled:bg-[var(--text-muted)] disabled:cursor-not-allowed"
             >
               Assign Group
             </button>
