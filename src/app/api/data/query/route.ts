@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryData, getAvailableSources } from '@/lib/data/sample-data';
+import { queryDataWithProvider } from '@/lib/data/snowflake-data-provider';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics, getCategoryForSource, resolveUserPermissions } from '@/lib/auth/permissions';
 import type { SessionUser } from '@/lib/auth/session';
@@ -144,19 +145,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await queryData(source, groupBy);
+    // Use the new Snowflake data provider with automatic fallback to sample data
+    const result = await queryDataWithProvider(source, user, groupBy, {
+      useCache: true,
+      cacheTTL: 300, // 5 minutes
+      applyRLS: true,
+      applySecurity: true
+    });
 
-    // Apply FILTERED access restrictions if needed (aggregate-only view)
-    result.data = await applyFilteredAccess(result.data, source, user);
-
-    // Server-side PII stripping — hard control regardless of AI-generated queries
-    result.data = await stripPiiFields(result.data, user);
+    // Legacy compatibility - also apply the existing PII stripping if using sample data
+    if (result.dataSource === 'sample') {
+      result.data = await applyFilteredAccess(result.data, source, user);
+      result.data = await stripPiiFields(result.data, user);
+    }
 
     // Include access level information in response for frontend awareness
     const response = {
-      ...result,
-      accessLevel: metricCheck.accessLevel,
-      isFiltered: metricCheck.accessLevel === 'FILTERED'
+      data: result.data,
+      columns: result.columns.map(col => col.name), // Legacy compatibility
+      accessLevel: result.accessLevel || metricCheck.accessLevel,
+      isFiltered: result.isFiltered || metricCheck.accessLevel === 'FILTERED',
+      executionTime: result.executionTime,
+      fromCache: result.fromCache,
+      dataSource: result.dataSource,
+      totalRows: result.totalRows,
+      appliedPolicies: result.appliedPolicies
     };
 
     return NextResponse.json(response);

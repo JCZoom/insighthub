@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics } from '@/lib/auth/permissions';
 import { getAvailableSources } from '@/lib/data/sample-data';
+import { getDataSourcesWithProvider } from '@/lib/data/snowflake-data-provider';
 import type {
   DataSource,
   DataTable,
@@ -340,8 +341,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filterByCategory = searchParams.get('category');
 
-    // Build schema with permissions
-    let schema = await buildSchemaWithPermissions(user);
+    // Build schema with permissions using Snowflake or sample data provider
+    let schema = await getDataSourcesWithProvider(user);
 
     // Apply category filter if provided
     if (filterByCategory) {
