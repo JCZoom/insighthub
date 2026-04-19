@@ -165,7 +165,7 @@ export default function PermissionGroupsClient({ user }: PermissionGroupsClientP
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Permission Groups</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Permission Groups</h2>
         <button
           onClick={() => setShowCreateModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -225,19 +225,19 @@ function PermissionGroupCard({
     .map(([category, level]) => `${category}: ${level}`);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             {group.name}
             {group.isSystem && (
-              <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+              <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">
                 System
               </span>
             )}
           </h3>
           {group.description && (
-            <p className="text-gray-600 mt-1">{group.description}</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">{group.description}</p>
           )}
         </div>
         <div className="flex gap-2">
@@ -260,9 +260,9 @@ function PermissionGroupCard({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <h4 className="font-medium text-gray-900 mb-2">Feature Permissions</h4>
+          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Feature Permissions</h4>
           {enabledFeatures.length > 0 ? (
-            <ul className="text-sm text-gray-600 space-y-1">
+            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
               {enabledFeatures.map((feature) => (
                 <li key={feature} className="flex items-center">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -271,14 +271,14 @@ function PermissionGroupCard({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">No feature permissions</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No feature permissions</p>
           )}
         </div>
 
         <div>
-          <h4 className="font-medium text-gray-900 mb-2">Data Access</h4>
+          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Data Access</h4>
           {dataAccess.length > 0 ? (
-            <ul className="text-sm text-gray-600 space-y-1">
+            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
               {dataAccess.map((access) => (
                 <li key={access} className="flex items-center">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
@@ -287,13 +287,13 @@ function PermissionGroupCard({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">No data access</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No data access</p>
           )}
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <p className="text-sm text-gray-600">
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           <strong>{group._count.userAssignments}</strong> users assigned
         </p>
       </div>
@@ -326,13 +326,13 @@ function CreateGroupModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6">
-          <h2 className="text-xl font-semibold mb-6">Create Permission Group</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Create Permission Group</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Name *
               </label>
               <input
@@ -340,24 +340,24 @@ function CreateGroupModal({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Feature Permissions</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Feature Permissions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(FEATURE_PERMISSION_LABELS).map(([key, label]) => (
                   <label key={key} className="flex items-center">
@@ -382,11 +382,11 @@ function CreateGroupModal({
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Data Permissions</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Data Permissions</h3>
               <div className="space-y-2">
                 {Object.keys(DATA_CATEGORIES).map((category) => (
                   <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{category}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{category}</span>
                     <select
                       value={formData.dataPermissions[category as DataCategory]}
                       onChange={(e) =>
@@ -398,7 +398,7 @@ function CreateGroupModal({
                           },
                         })
                       }
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-sm"
                     >
                       <option value="NONE">None</option>
                       <option value="FILTERED">Filtered</option>
@@ -454,13 +454,13 @@ function EditGroupModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6">
-          <h2 className="text-xl font-semibold mb-6">Edit Permission Group</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Edit Permission Group</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Name *
               </label>
               <input
@@ -468,24 +468,24 @@ function EditGroupModal({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Feature Permissions</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Feature Permissions</h3>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(FEATURE_PERMISSION_LABELS).map(([key, label]) => (
                   <label key={key} className="flex items-center">
@@ -510,11 +510,11 @@ function EditGroupModal({
             </div>
 
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Data Permissions</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Data Permissions</h3>
               <div className="space-y-2">
                 {Object.keys(DATA_CATEGORIES).map((category) => (
                   <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{category}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{category}</span>
                     <select
                       value={formData.dataPermissions[category as DataCategory]}
                       onChange={(e) =>
@@ -526,7 +526,7 @@ function EditGroupModal({
                           },
                         })
                       }
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-sm"
                     >
                       <option value="NONE">None</option>
                       <option value="FILTERED">Filtered</option>

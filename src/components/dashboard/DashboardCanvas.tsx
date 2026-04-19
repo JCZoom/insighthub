@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { createTouchDragHandler } from '@/hooks/useTouchDrag';
@@ -72,6 +72,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const [explainWidget, setExplainWidget] = useState<WidgetConfig | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'responsive' | 'desktop' | 'tablet' | 'mobile'>('responsive');
   const [marqueeState, setMarqueeState] = useState<{
     startX: number; startY: number;
     currentX: number; currentY: number;
@@ -91,6 +92,15 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   }>({});
 
   const router = useRouter();
+
+  // Responsive preview mode: override grid columns and canvas width
+  const effectiveGridColumns = previewMode === 'responsive' ? viewport.gridColumns
+    : previewMode === 'desktop' ? 12
+    : previewMode === 'tablet' ? 6
+    : 1;
+  const previewMaxWidth = previewMode === 'tablet' ? 768 : previewMode === 'mobile' ? 375 : undefined;
+  const isPreviewConstrained = previewMode === 'tablet' || previewMode === 'mobile';
+  const isEffectivelyViewOnly = viewport.isViewOnly || isPreviewConstrained;
 
   // Long press context menu support
   const { createLongPressHandler, LongPressRing } = useLongPressContextMenu();
@@ -263,7 +273,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         duplicate: () => duplicateWidget(widget.id),
         delete: () => removeWidget(widget.id),
         widen: () => {
-          const newW = Math.min(widget.position.w + 3, viewport.gridColumns - widget.position.x);
+          const newW = Math.min(widget.position.w + 3, effectiveGridColumns - widget.position.x);
           updateWidget(widget.id, { position: { ...widget.position, w: newW } });
         },
         narrow: () => {
@@ -402,11 +412,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       onDragMove: (me: PointerEvent) => {
         if (!gridRef.current || !dragState) return;
         const gridRect = gridRef.current.getBoundingClientRect();
-        const cellW = gridRect.width / viewport.gridColumns;
+        const cellW = gridRect.width / effectiveGridColumns;
         const cellH = layout.rowHeight + layout.gap;
         const dx = me.clientX - dragState.startX;
         const dy = me.clientY - dragState.startY;
-        const newX = Math.max(0, Math.min(viewport.gridColumns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
+        const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, Math.round(widget.position.x + dx / cellW)));
         const newY = Math.max(0, Math.round(widget.position.y + dy / cellH));
         setDragState(prev => prev ? { ...prev, ghostX: newX, ghostY: newY } : null);
       },
@@ -416,7 +426,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           return;
         }
         const gridRect = gridRef.current.getBoundingClientRect();
-        const cellW = gridRect.width / viewport.gridColumns;
+        const cellW = gridRect.width / effectiveGridColumns;
         const cellH = layout.rowHeight + layout.gap;
         const dx = ue.clientX - dragState.startX;
         const dy = ue.clientY - dragState.startY;
@@ -432,13 +442,13 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               if (!w) return null;
               return {
                 id,
-                x: Math.max(0, Math.min(viewport.gridColumns - w.position.w, w.position.x + deltaCol)),
+                x: Math.max(0, Math.min(effectiveGridColumns - w.position.w, w.position.x + deltaCol)),
                 y: Math.max(0, w.position.y + deltaRow),
               };
             }).filter((m): m is {id: string; x: number; y: number} => m !== null);
             if (moves.length > 0) moveWidgets(moves);
           } else {
-            const newX = Math.max(0, Math.min(viewport.gridColumns - widget.position.w, widget.position.x + deltaCol));
+            const newX = Math.max(0, Math.min(effectiveGridColumns - widget.position.w, widget.position.x + deltaCol));
             const newY = Math.max(0, widget.position.y + deltaRow);
             moveWidget(widget.id, newX, newY);
           }
@@ -472,7 +482,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       };
 
       const gridRect = gridRef.current.getBoundingClientRect();
-      const cellW = gridRect.width / viewport.gridColumns;
+      const cellW = gridRect.width / effectiveGridColumns;
       const cellH = layout.rowHeight + layout.gap;
 
       // Current widget bounds in pixels
@@ -489,11 +499,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       // Handle different resize directions
       switch (direction) {
         case 'se': // Southeast - resize width and height
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), effectiveGridColumns - widget.position.x));
           newH = Math.max(minH, Math.round((py - currentTop) / cellH));
           break;
         case 'e': // East - resize width only
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), effectiveGridColumns - widget.position.x));
           break;
         case 's': // South - resize height only
           newH = Math.max(minH, Math.round((py - currentTop) / cellH));
@@ -523,7 +533,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           newY = Math.max(0, widget.position.y + widget.position.h - newH);
           break;
         case 'ne': // Northeast - resize width and height, move y
-          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), viewport.gridColumns - widget.position.x));
+          newW = Math.max(minW, Math.min(Math.round((px - currentLeft) / cellW), effectiveGridColumns - widget.position.x));
           const newHeightNE = Math.max(minH, Math.round((currentBottom - py) / cellH));
           newH = Math.min(newHeightNE, widget.position.y + widget.position.h);
           newY = Math.max(0, widget.position.y + widget.position.h - newH);
@@ -736,6 +746,35 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               </>
             )}
           </div>
+          {/* Responsive preview toggle */}
+          {viewport.layoutMode !== 'mobile' && (
+            <>
+              <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
+              <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--bg-card)]/50 border border-[var(--border-color)]">
+                <button
+                  onClick={() => setPreviewMode(prev => prev === 'desktop' ? 'responsive' : 'desktop')}
+                  className={cn("p-1.5 rounded transition-colors", previewMode === 'desktop' ? "bg-accent-blue/15 text-accent-blue" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
+                  title={previewMode === 'desktop' ? 'Back to responsive layout' : 'Preview: Desktop (12 columns)'}
+                >
+                  <Monitor size={14} />
+                </button>
+                <button
+                  onClick={() => setPreviewMode(prev => prev === 'tablet' ? 'responsive' : 'tablet')}
+                  className={cn("p-1.5 rounded transition-colors", previewMode === 'tablet' ? "bg-accent-blue/15 text-accent-blue" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
+                  title={previewMode === 'tablet' ? 'Back to responsive layout' : 'Preview: Tablet (768px, 6 columns)'}
+                >
+                  <Tablet size={14} />
+                </button>
+                <button
+                  onClick={() => setPreviewMode(prev => prev === 'mobile' ? 'responsive' : 'mobile')}
+                  className={cn("p-1.5 rounded transition-colors", previewMode === 'mobile' ? "bg-accent-blue/15 text-accent-blue" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
+                  title={previewMode === 'mobile' ? 'Back to responsive layout' : 'Preview: Mobile (375px, 1 column)'}
+                >
+                  <Smartphone size={13} />
+                </button>
+              </div>
+            </>
+          )}
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
@@ -788,8 +827,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto p-4 relative"
-        onContextMenu={viewport.isViewOnly ? (e) => e.preventDefault() : handleCanvasContextMenu}
-        onPointerDown={viewport.isViewOnly ? undefined : handleMarqueeStart}
+        onContextMenu={isEffectivelyViewOnly ? (e) => e.preventDefault() : handleCanvasContextMenu}
+        onPointerDown={isEffectivelyViewOnly ? undefined : handleMarqueeStart}
       >
         {/* AI working shimmer overlay */}
         {isAiWorking && (
@@ -802,6 +841,16 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 <p className="text-[10px] text-[var(--text-muted)]">The AI is generating your widgets</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Preview mode indicator */}
+        {isPreviewConstrained && (
+          <div className="text-center mb-3">
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] bg-[var(--bg-card)] px-2.5 py-1 rounded-full border border-[var(--border-color)]">
+              {previewMode === 'tablet' ? <Tablet size={10} /> : <Smartphone size={10} />}
+              {previewMode === 'tablet' ? 'Tablet Preview • 768px • 6 columns' : 'Mobile Preview • 375px • 1 column'}
+            </span>
           </div>
         )}
 
@@ -820,10 +869,11 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           <div
             ref={gridRef}
             id="dashboard-grid"
-            className="grid gap-4"
+            className={cn("grid gap-4 transition-all duration-300", isPreviewConstrained && "mx-auto")}
             style={{
-              gridTemplateColumns: `repeat(${viewport.gridColumns}, 1fr)`,
+              gridTemplateColumns: `repeat(${effectiveGridColumns}, 1fr)`,
               gridAutoRows: `${layout.rowHeight}px`,
+              ...(isPreviewConstrained ? { maxWidth: previewMaxWidth } : {}),
             }}
           >
             {/* Drag ghost outline(s) — shows destination for all selected widgets during multi-drag */}
@@ -837,7 +887,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 return selectedWidgetIds.map(id => {
                   const w = widgets.find(wg => wg.id === id);
                   if (!w) return null;
-                  const ghostX = Math.max(0, Math.min(viewport.gridColumns - w.position.w, w.position.x + deltaCol));
+                  const ghostX = Math.max(0, Math.min(effectiveGridColumns - w.position.w, w.position.x + deltaCol));
                   const ghostY = Math.max(0, w.position.y + deltaRow);
                   return (
                     <div
@@ -868,6 +918,9 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               const isDragging = dragState?.widgetId === widget.id;
               const isMultiDragging = isDragging && selectedWidgetIds.length > 1 && isSelected;
               const isResizing = resizeState?.widgetId === widget.id;
+              // Clamp widget position for preview mode (narrower grids)
+              const displayW = Math.min(widget.position.w, effectiveGridColumns);
+              const displayX = Math.min(widget.position.x, Math.max(0, effectiveGridColumns - displayW));
               return (
               <div
                 key={widget.id}
@@ -875,7 +928,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 data-widget-id={widget.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!viewport.isViewOnly) {
+                  if (!isEffectivelyViewOnly) {
                     if (e.shiftKey || e.metaKey) {
                       toggleSelection(widget.id);
                     } else {
@@ -885,20 +938,20 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
-                  if (!viewport.isViewOnly) {
+                  if (!isEffectivelyViewOnly) {
                     selectWidget(widget.id);
                     setConfigWidgetId(widget.id);
                   }
                 }}
                 onContextMenu={(e) => {
-                  if (!viewport.isViewOnly) {
+                  if (!isEffectivelyViewOnly) {
                     handleWidgetContextMenu(e, widget);
                   } else {
                     e.preventDefault();
                   }
                 }}
                 style={{
-                  gridColumn: `${(isResizing ? resizeState.previewX : widget.position.x) + 1} / span ${isResizing ? resizeState.previewW : widget.position.w}`,
+                  gridColumn: `${(isResizing ? resizeState.previewX : displayX) + 1} / span ${isResizing ? resizeState.previewW : displayW}`,
                   gridRow: `${(isResizing ? resizeState.previewY : widget.position.y) + 1} / span ${isResizing ? resizeState.previewH : widget.position.h}`,
                 }}
                 className={`min-h-0 relative group transition-shadow ${
@@ -909,7 +962,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 }${isMultiDragging === false && isSelected && selectedWidgetIds.length > 1 && dragState && !isDragging ? ' opacity-60 ring-2 ring-accent-blue/30 rounded-xl scale-[0.98]' : ''}`}
               >
                 {/* Drag handle - larger and more accessible for touch (hidden in view-only mode) */}
-                {!viewport.isViewOnly && (
+                {!isEffectivelyViewOnly && (
                   <div
                     {...createDragHandler(widget)}
                     {...createLongPressHandler((e: PointerEvent) => {
@@ -947,7 +1000,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                   </div>
                 )}
                 {/* Action buttons - hidden in view-only mode */}
-                {!viewport.isViewOnly && (
+                {!isEffectivelyViewOnly && (
                   <>
                     {/* Download/export button (top-right, fourth) */}
                     <button
@@ -984,7 +1037,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                   </>
                 )}
                 {/* Enhanced resize handles (all edges and corners) - hidden in view-only mode */}
-                {!viewport.isViewOnly && (
+                {!isEffectivelyViewOnly && (
                   <ResizeHandles
                     widget={widget}
                     isActive={resizeState?.widgetId === widget.id}

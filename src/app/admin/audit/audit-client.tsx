@@ -132,20 +132,20 @@ export function AuditLogClient() {
   const uniqueUsers = [...new Map(logs.map(log => [log.userId, { id: log.userId, name: log.user.name, email: log.user.email }])).values()];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Audit Logs</h1>
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
             Monitor all system activities for GDPR/SOC2 compliance
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
               <Filter className="w-5 h-5 mr-2" />
               Filters
             </h2>
@@ -162,7 +162,7 @@ export function AuditLogClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Action filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Action
               </label>
               <select
@@ -171,7 +171,7 @@ export function AuditLogClient() {
                   setSelectedAction(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All actions</option>
                 {uniqueActions.map(action => (
@@ -184,7 +184,7 @@ export function AuditLogClient() {
 
             {/* Resource Type filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Resource Type
               </label>
               <select
@@ -193,7 +193,7 @@ export function AuditLogClient() {
                   setSelectedResourceType(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All types</option>
                 {uniqueResourceTypes.map(type => (
@@ -206,7 +206,7 @@ export function AuditLogClient() {
 
             {/* User filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 User
               </label>
               <select
@@ -215,7 +215,7 @@ export function AuditLogClient() {
                   setSelectedUserId(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All users</option>
                 {uniqueUsers.map(user => (
@@ -228,7 +228,7 @@ export function AuditLogClient() {
 
             {/* Start Date filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Start Date
               </label>
               <input
@@ -238,13 +238,13 @@ export function AuditLogClient() {
                   setStartDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             {/* End Date filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 End Date
               </label>
               <input
@@ -254,20 +254,20 @@ export function AuditLogClient() {
                   setEndDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
         </div>
 
         {/* Results */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                 Audit Log Entries
               </h2>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 {total} total entries
               </span>
             </div>
@@ -276,11 +276,11 @@ export function AuditLogClient() {
           {loading ? (
             <div className="px-6 py-12 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-500">Loading audit logs...</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading audit logs...</p>
             </div>
           ) : error ? (
             <div className="px-6 py-12 text-center">
-              <p className="text-red-600">{error}</p>
+              <p className="text-red-600 dark:text-red-400">{error}</p>
               <button
                 onClick={fetchLogs}
                 className="mt-2 text-sm text-blue-600 hover:text-blue-800"
@@ -290,46 +290,46 @@ export function AuditLogClient() {
             </div>
           ) : logs.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <p className="text-gray-500">No audit logs found matching your criteria.</p>
+              <p className="text-gray-500 dark:text-gray-400">No audit logs found matching your criteria.</p>
             </div>
           ) : (
             <>
               {/* Logs table */}
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Timestamp
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         User
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Action
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Resource
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Details
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {logs.map((log) => {
                       const Icon = RESOURCE_ICONS[log.resourceType] || Activity;
                       return (
-                        <tr key={log.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                             {formatDate(log.createdAt)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {log.user.name}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {log.user.email}
                               </div>
                             </div>
@@ -346,27 +346,27 @@ export function AuditLogClient() {
                             <div className="flex items-center">
                               <Icon className="w-4 h-4 text-gray-400 mr-2" />
                               <div>
-                                <div className="text-sm text-gray-900">
+                                <div className="text-sm text-gray-900 dark:text-gray-100">
                                   {log.resourceType}
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
                                   {log.resourceId}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
+                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                             {log.metadata ? (
                               <details className="cursor-pointer">
                                 <summary className="text-blue-600 hover:text-blue-800">
                                   View metadata
                                 </summary>
-                                <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                                <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 p-2 rounded overflow-x-auto">
                                   {JSON.stringify(log.metadata, null, 2)}
                                 </pre>
                               </details>
                             ) : (
-                              <span className="text-gray-400">No metadata</span>
+                              <span className="text-gray-400 dark:text-gray-500">No metadata</span>
                             )}
                           </td>
                         </tr>
@@ -377,9 +377,9 @@ export function AuditLogClient() {
               </div>
 
               {/* Pagination */}
-              <div className="px-6 py-4 border-t border-gray-200">
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
                     Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, total)} of {total} entries
                   </div>
                   <div className="flex items-center space-x-2">
@@ -389,13 +389,13 @@ export function AuditLogClient() {
                       className={cn(
                         'px-3 py-1 rounded-md text-sm font-medium',
                         currentPage === 1
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                       )}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <span className="px-3 py-1 text-sm text-gray-700">
+                    <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
                       Page {currentPage} of {totalPages}
                     </span>
                     <button
@@ -404,8 +404,8 @@ export function AuditLogClient() {
                       className={cn(
                         'px-3 py-1 rounded-md text-sm font-medium',
                         currentPage === totalPages
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                       )}
                     >
                       <ChevronRight className="w-4 h-4" />

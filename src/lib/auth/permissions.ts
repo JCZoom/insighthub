@@ -160,40 +160,126 @@ export function getDataCategoryForSource(source: string): DataCategory | null {
 /**
  * Resolve effective permissions for a user by combining their permission groups
  * and applying any custom overrides.
- *
- * NOTE: PermissionGroup / UserPermissionAssignment Prisma models are not yet in
- * schema.prisma. Until the RBAC migration is complete, this function uses
- * role-based defaults only. See Asana task GID 1214125662501105.
  */
 export async function resolveUserPermissions(user: SessionUser): Promise<ResolvedPermissions> {
-  // Use role-based defaults until RBAC Prisma models exist
-  const roleTemplate =
-    DEFAULT_PERMISSION_TEMPLATES[user.role as keyof typeof DEFAULT_PERMISSION_TEMPLATES] ||
-    DEFAULT_PERMISSION_TEMPLATES.VIEWER;
+  try {
+    // Fetch user's permission assignments from database
+    const assignments = await prisma.userPermissionAssignment.findMany({
+      where: { userId: user.id },
+      include: {
+        permissionGroup: true,
+      }
+    });
 
-  const effectiveFeatures = { ...roleTemplate.features };
-  const effectiveData = { ...roleTemplate.data };
+    // Start with role-based defaults as fallback
+    const roleTemplate =
+      DEFAULT_PERMISSION_TEMPLATES[user.role as keyof typeof DEFAULT_PERMISSION_TEMPLATES] ||
+      DEFAULT_PERMISSION_TEMPLATES.VIEWER;
 
-  // Build allowed and denied data sources lists
-  const allowedDataSources: string[] = [];
-  const deniedDataSources: string[] = [];
+    let effectiveFeatures = { ...roleTemplate.features };
+    let effectiveData = { ...roleTemplate.data };
 
-  for (const [category, accessLevel] of Object.entries(effectiveData) as [DataCategory, AccessLevel][]) {
-    const sources: readonly string[] = DATA_CATEGORIES[category];
-    if (accessLevel === 'FULL' || accessLevel === 'FILTERED') {
-      allowedDataSources.push(...sources);
-    } else {
-      deniedDataSources.push(...sources);
+    // If user has permission group assignments, use those instead
+    if (assignments.length > 0) {
+      // Reset to empty permissions (deny-by-default)
+      effectiveFeatures = Object.keys(effectiveFeatures).reduce((acc, key) => {
+        acc[key as keyof FeaturePermissions] = false;
+        return acc;
+      }, {} as FeaturePermissions);
+
+      effectiveData = Object.keys(effectiveData).reduce((acc, key) => {
+        acc[key as DataCategory] = 'NONE';
+        return acc;
+      }, {} as DataPermissions);
+
+      // Merge permissions from all assigned groups (grant union)
+      for (const assignment of assignments) {
+        const groupFeatures = JSON.parse(assignment.permissionGroup.featurePermissions) as FeaturePermissions;
+        const groupData = JSON.parse(assignment.permissionGroup.dataPermissions) as DataPermissions;
+
+        // Apply custom overrides if they exist
+        const overrides = JSON.parse(assignment.customOverrides || '{}') as Partial<{
+          features: Partial<FeaturePermissions>;
+          data: Partial<DataPermissions>;
+        }>;
+
+        // Merge feature permissions (OR operation - any group grants access)
+        for (const [feature, granted] of Object.entries(groupFeatures)) {
+          const override = overrides.features?.[feature as keyof FeaturePermissions];
+          if (override !== undefined) {
+            effectiveFeatures[feature as keyof FeaturePermissions] = override;
+          } else if (granted) {
+            effectiveFeatures[feature as keyof FeaturePermissions] = true;
+          }
+        }
+
+        // Merge data permissions (highest access level wins)
+        for (const [category, level] of Object.entries(groupData) as [DataCategory, AccessLevel][]) {
+          const override = overrides.data?.[category];
+          const currentLevel = effectiveData[category];
+
+          if (override) {
+            effectiveData[category] = override;
+          } else {
+            // Use the highest access level: FULL > FILTERED > NONE
+            if (level === 'FULL' || (level === 'FILTERED' && currentLevel === 'NONE')) {
+              effectiveData[category] = level;
+            }
+          }
+        }
+      }
     }
-  }
 
-  return {
-    features: effectiveFeatures,
-    data: effectiveData,
-    allowedDataSources,
-    deniedDataSources,
-    user
-  };
+    // Build allowed and denied data sources lists
+    const allowedDataSources: string[] = [];
+    const deniedDataSources: string[] = [];
+
+    for (const [category, accessLevel] of Object.entries(effectiveData) as [DataCategory, AccessLevel][]) {
+      const sources: readonly string[] = DATA_CATEGORIES[category];
+      if (accessLevel === 'FULL' || accessLevel === 'FILTERED') {
+        allowedDataSources.push(...sources);
+      } else {
+        deniedDataSources.push(...sources);
+      }
+    }
+
+    return {
+      features: effectiveFeatures,
+      data: effectiveData,
+      allowedDataSources,
+      deniedDataSources,
+      user
+    };
+  } catch (error) {
+    console.error('Error resolving user permissions:', error);
+    // Fallback to role-based permissions on error
+    const roleTemplate =
+      DEFAULT_PERMISSION_TEMPLATES[user.role as keyof typeof DEFAULT_PERMISSION_TEMPLATES] ||
+      DEFAULT_PERMISSION_TEMPLATES.VIEWER;
+
+    const effectiveFeatures = { ...roleTemplate.features };
+    const effectiveData = { ...roleTemplate.data };
+
+    const allowedDataSources: string[] = [];
+    const deniedDataSources: string[] = [];
+
+    for (const [category, accessLevel] of Object.entries(effectiveData) as [DataCategory, AccessLevel][]) {
+      const sources: readonly string[] = DATA_CATEGORIES[category];
+      if (accessLevel === 'FULL' || accessLevel === 'FILTERED') {
+        allowedDataSources.push(...sources);
+      } else {
+        deniedDataSources.push(...sources);
+      }
+    }
+
+    return {
+      features: effectiveFeatures,
+      data: effectiveData,
+      allowedDataSources,
+      deniedDataSources,
+      user
+    };
+  }
 }
 
 /**
@@ -266,26 +352,114 @@ export async function logPermissionChange(
 // --- Stubs: require PermissionGroup / UserPermissionAssignment models ---
 // See Asana task GID 1214125662501105 for RBAC implementation plan.
 
-/** Initialize default permission groups — no-op until schema migration */
+/** Initialize default permission groups based on the role templates */
 export async function initializeDefaultPermissionGroups(): Promise<void> {
-  console.warn('initializeDefaultPermissionGroups: no-op — RBAC Prisma models not yet added');
+  try {
+    console.log('Initializing default permission groups...');
+
+    for (const [roleName, template] of Object.entries(DEFAULT_PERMISSION_TEMPLATES)) {
+      // Check if this system group already exists
+      const existingGroup = await prisma.permissionGroup.findUnique({
+        where: { name: roleName }
+      });
+
+      if (!existingGroup) {
+        await prisma.permissionGroup.create({
+          data: {
+            name: roleName,
+            description: getDefaultGroupDescription(roleName),
+            isSystem: true,
+            featurePermissions: JSON.stringify(template.features),
+            dataPermissions: JSON.stringify(template.data),
+          }
+        });
+
+        console.log(`Created default permission group: ${roleName}`);
+      } else {
+        console.log(`Permission group already exists: ${roleName}`);
+      }
+    }
+
+    console.log('Default permission groups initialization complete');
+  } catch (error) {
+    console.error('Error initializing default permission groups:', error);
+    throw new Error('Failed to initialize default permission groups');
+  }
 }
 
-/** Assign a permission group to a user — no-op until schema migration */
+/** Get description for default permission groups */
+function getDefaultGroupDescription(roleName: string): string {
+  switch (roleName) {
+    case 'VIEWER':
+      return 'Read-only access to shared dashboards and basic support data.';
+    case 'CREATOR':
+      return 'Can create dashboards and access retention, support, and product data.';
+    case 'POWER_USER':
+      return 'Full access to most data categories and advanced features like publishing widgets.';
+    case 'ADMIN':
+      return 'Full system access including user management, permissions, and all data categories.';
+    default:
+      return `Default ${roleName.toLowerCase()} permission group.`;
+  }
+}
+
+/** Assign a permission group to a user */
 export async function assignPermissionGroup(
-  _userId: string,
-  _permissionGroupId: string,
-  _assignedBy: string,
-  _customOverrides?: Record<string, unknown>
+  userId: string,
+  permissionGroupId: string,
+  assignedBy: string,
+  customOverrides?: Record<string, unknown>
 ): Promise<void> {
-  throw new Error('assignPermissionGroup: RBAC Prisma models not yet added to schema');
+  try {
+    await prisma.userPermissionAssignment.create({
+      data: {
+        userId,
+        permissionGroupId,
+        assignedBy,
+        customOverrides: customOverrides ? JSON.stringify(customOverrides) : '{}',
+      }
+    });
+
+    // Log the assignment
+    await logPermissionChange(
+      assignedBy,
+      'user_permission.assign',
+      'USER_PERMISSION',
+      `${userId}:${permissionGroupId}`,
+      { userId, permissionGroupId, customOverrides }
+    );
+  } catch (error) {
+    console.error('Failed to assign permission group:', error);
+    throw new Error('Failed to assign permission group');
+  }
 }
 
-/** Remove a permission group from a user — no-op until schema migration */
+/** Remove a permission group from a user */
 export async function removePermissionGroup(
-  _userId: string,
-  _permissionGroupId: string,
-  _removedBy: string
+  userId: string,
+  permissionGroupId: string,
+  removedBy: string
 ): Promise<void> {
-  throw new Error('removePermissionGroup: RBAC Prisma models not yet added to schema');
+  try {
+    await prisma.userPermissionAssignment.delete({
+      where: {
+        userId_permissionGroupId: {
+          userId,
+          permissionGroupId,
+        }
+      }
+    });
+
+    // Log the removal
+    await logPermissionChange(
+      removedBy,
+      'user_permission.remove',
+      'USER_PERMISSION',
+      `${userId}:${permissionGroupId}`,
+      { userId, permissionGroupId }
+    );
+  } catch (error) {
+    console.error('Failed to remove permission group:', error);
+    throw new Error('Failed to remove permission group');
+  }
 }
