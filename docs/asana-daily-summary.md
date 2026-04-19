@@ -5,17 +5,17 @@
 
 | Metric | Count |
 |--------|-------|
-| Total tasks | 176 |
+| Total tasks | 177 |
 | Completed tasks | 142 |
 | Total subtasks | 476 |
 | Completed subtasks | 347 |
-| **Overall progress** | **489/652 (75%)** |
+| **Overall progress** | **489/653 (75%)** |
 
 ---
 
 # InsightHub — Asana Project Summary
 
-> Generated: 2026-04-19 12:29:07
+> Generated: 2026-04-19 12:53:32
 > Project GID: 1214122597260827
 > [View in Asana](https://app.asana.com/0/1214122597260827)
 
@@ -265,6 +265,7 @@
 
 ## 🎨 Dashboard Canvas & UX
 
+- [ ] **📱 Deferred: Mobile & Tablet Support — Fix responsive views, favorites, gallery errors**
 - [x] **Home Page Hero Redesign + Modal Scroll Fix**
 - [x] **Widget Selection — Click-to-Select with Visual Highlight**
 - [x] **Dark Theme Chart Polish — Softer Color Palette + Cursor Fix**

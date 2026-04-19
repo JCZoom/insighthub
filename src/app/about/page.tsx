@@ -169,21 +169,29 @@ export default function AboutPage() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
-          {/* Hero */}
-          <div className="text-center mb-16 pt-4 sm:pt-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-xs font-medium mb-6">
+        {/* Hero — full-bleed gradient section */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-accent-blue/[0.07] via-accent-purple/[0.04] to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-accent-blue/[0.08] rounded-full blur-[120px] pointer-events-none" />
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-16 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-xs font-medium mb-8">
               <Sparkles size={14} />
               AI-Powered Dashboard Builder
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">
-              Welcome to InsightHub
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[var(--text-primary)] mb-6 tracking-tight leading-[1.1]">
+              Welcome to<br />
+              <span className="bg-gradient-to-r from-accent-blue via-accent-purple to-accent-cyan bg-clip-text text-transparent">
+                InsightHub
+              </span>
             </h1>
-            <p className="text-[var(--text-secondary)] text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-              InsightHub turns natural language into live, interactive dashboards.
-              Describe what you want to see, and AI builds it in seconds — no code required.
+            <p className="text-[var(--text-secondary)] text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed">
+              Turn natural language into live, interactive dashboards.
+              Describe what you want to see — AI builds it in seconds.
             </p>
           </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-12">
 
           {/* Getting Started */}
           <section className="mb-16">
