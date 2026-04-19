@@ -192,9 +192,9 @@ export function TextBlockWidget({ config }: TextBlockWidgetProps) {
 
       {/* Non-header variant: title + body */}
       {showTitle && (
-        <div className="flex items-start gap-2.5 mb-1.5" style={{ justifyContent: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start' }}>
+        <div className="flex items-center gap-2.5 mb-1.5" style={{ justifyContent: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start' }}>
           {IconComponent && (
-            <span style={{ flexShrink: 0, marginTop: '1px' }}>
+            <span style={{ flexShrink: 0 }}>
               <IconComponent size={16} style={{ color: titleColor }} />
             </span>
           )}

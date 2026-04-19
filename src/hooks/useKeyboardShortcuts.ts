@@ -17,6 +17,10 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
   optionsRef.current = options;
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Guard: prevent double-handling when multiple hook instances are active
+    // (e.g. DashboardCanvas + editor page both call useKeyboardShortcuts)
+    if ((e as any).__insightHubHandled) return;
+
     const meta = e.metaKey || e.ctrlKey;
     const target = e.target as HTMLElement;
     const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
@@ -27,21 +31,24 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
       if (isInput) return;
       e.preventDefault();
       if (store.canUndo) store.undo();
+      (e as any).__insightHubHandled = true;
       return;
     }
 
     // Redo: Cmd+Shift+Z or Cmd+Y
-    if ((meta && e.shiftKey && e.key === 'z') || (meta && e.key === 'y')) {
+    if ((meta && e.shiftKey && (e.key === 'z' || e.key === 'Z')) || (meta && e.key === 'y')) {
       if (isInput) return;
       e.preventDefault();
       if (store.canRedo) store.redo();
+      (e as any).__insightHubHandled = true;
       return;
     }
 
     // Save As: Cmd+Shift+S
-    if (meta && e.shiftKey && e.key === 's') {
+    if (meta && e.shiftKey && (e.key === 's' || e.key === 'S')) {
       e.preventDefault();
       optionsRef.current.onSaveAs?.();
+      (e as any).__insightHubHandled = true;
       return;
     }
 
@@ -49,6 +56,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
     if (meta && !e.shiftKey && e.key === 's') {
       e.preventDefault();
       optionsRef.current.onSave?.();
+      (e as any).__insightHubHandled = true;
       return;
     }
 
@@ -57,6 +65,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
       if (isInput) return;
       e.preventDefault();
       if (store.selectedWidgetId) store.duplicateWidget(store.selectedWidgetId);
+      (e as any).__insightHubHandled = true;
       return;
     }
 
@@ -69,6 +78,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
         store.removeWidget(store.selectedWidgetId);
         store.selectWidget(null);
       }
+      (e as any).__insightHubHandled = true;
       return;
     }
 
@@ -76,6 +86,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
     if (e.key === 'Escape') {
       if (store.selectedWidgetId) {
         store.selectWidget(null);
+        (e as any).__insightHubHandled = true;
         return;
       }
     }
@@ -111,6 +122,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
           case 'ArrowRight': store.moveWidget(ids[0], Math.min(cols - widget.position.w, x + 1), y); break;
         }
       }
+      (e as any).__insightHubHandled = true;
       return;
     }
 
@@ -124,6 +136,7 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
         ? (currentIdx <= 0 ? widgets.length - 1 : currentIdx - 1)
         : (currentIdx + 1) % widgets.length;
       store.selectWidget(widgets[nextIdx].id);
+      (e as any).__insightHubHandled = true;
       return;
     }
 

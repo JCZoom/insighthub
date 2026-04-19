@@ -204,7 +204,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
             <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
             <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
             <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
-            <div className="flex flex-col shrink-0" style={{ width: chatWidth }}>
+            <div className="flex flex-col shrink-0 min-h-0 overflow-hidden" style={{ width: chatWidth }}>
               <ChatPanel />
               <VersionTimeline />
             </div>

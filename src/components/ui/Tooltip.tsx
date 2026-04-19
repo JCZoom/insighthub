@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Kbd } from '@/components/ui/Kbd';
 
@@ -25,36 +26,54 @@ export function Tooltip({ content, children, delay = 200, side = 'top', shortcut
   const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
+  const [effectiveSide, setEffectiveSide] = useState(side);
+
   const show = useCallback(() => {
     timerRef.current = setTimeout(() => {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
-      const tooltipEl = tooltipRef.current;
-      const tooltipW = tooltipEl?.offsetWidth || 0;
-      const tooltipH = tooltipEl?.offsetHeight || 0;
+      const GAP = 6;
+
+      // Estimate tooltip dimensions for viewport-flip check
+      // Use a generous estimate; actual size is handled by CSS transforms
+      const estH = 32; // typical single-line tooltip height
+      const estW = 120;
+
+      // Determine if the preferred side has enough viewport room; flip if not
+      let resolvedSide = side;
+      if (side === 'top' && rect.top - GAP - estH < 0) {
+        resolvedSide = 'bottom';
+      } else if (side === 'bottom' && rect.bottom + GAP + estH > window.innerHeight) {
+        resolvedSide = 'top';
+      } else if (side === 'left' && rect.left - GAP - estW < 0) {
+        resolvedSide = 'right';
+      } else if (side === 'right' && rect.right + GAP + estW > window.innerWidth) {
+        resolvedSide = 'left';
+      }
 
       let x = 0;
       let y = 0;
 
-      switch (side) {
+      switch (resolvedSide) {
         case 'top':
           x = rect.left + rect.width / 2;
-          y = rect.top - 6;
+          y = rect.top - GAP;
           break;
         case 'bottom':
           x = rect.left + rect.width / 2;
-          y = rect.bottom + 6;
+          y = rect.bottom + GAP;
           break;
         case 'left':
-          x = rect.left - 6;
+          x = rect.left - GAP;
           y = rect.top + rect.height / 2;
           break;
         case 'right':
-          x = rect.right + 6;
+          x = rect.right + GAP;
           y = rect.top + rect.height / 2;
           break;
       }
 
+      setEffectiveSide(resolvedSide);
       setCoords({ x, y });
       setVisible(true);
     }, delay);
@@ -93,7 +112,7 @@ export function Tooltip({ content, children, delay = 200, side = 'top', shortcut
       className={cn('inline-flex', wrapperClassName)}
     >
       {children}
-      {visible && (
+      {visible && createPortal(
         <div
           ref={tooltipRef}
           role="tooltip"
@@ -101,8 +120,8 @@ export function Tooltip({ content, children, delay = 200, side = 'top', shortcut
             'fixed z-[9999] px-2.5 py-1.5 rounded-lg text-xs font-medium max-w-[240px] pointer-events-none',
             'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)]',
             'shadow-lg shadow-black/20 backdrop-blur-md',
-            'animate-fadeIn',
-            sideClasses[side],
+            'animate-fadeIn whitespace-nowrap',
+            sideClasses[effectiveSide],
             className
           )}
           style={{
@@ -114,7 +133,8 @@ export function Tooltip({ content, children, delay = 200, side = 'top', shortcut
             <span>{content}</span>
             {shortcut && <Kbd keys={shortcut} variant="inline" />}
           </span>
-        </div>
+        </div>,
+        document.body
       )}
     </span>
   );

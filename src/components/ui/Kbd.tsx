@@ -67,7 +67,7 @@ function resolveKey(key: string, isMac: boolean): string {
 
 const variantStyles = {
   default: 'inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded bg-[var(--bg-card)] border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-muted)]',
-  inline: 'inline-flex items-center justify-center min-w-[18px] h-4 px-0.5 rounded bg-[var(--bg-card)] border border-[var(--border-color)] text-[9px] font-mono text-[var(--text-muted)]',
+  inline: 'inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded bg-[var(--bg-card)] border border-[var(--border-color)] text-[10px] font-mono text-[var(--text-muted)]',
   large: 'inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-color)] text-[11px] font-mono font-semibold text-[var(--text-primary)] shadow-sm',
 };
 

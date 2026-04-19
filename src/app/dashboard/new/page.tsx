@@ -109,7 +109,7 @@ function NewDashboardInner() {
             />
             <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
             <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
-            <div className="flex flex-col shrink-0" style={{ width: chatWidth }}>
+            <div className="flex flex-col shrink-0 min-h-0 overflow-hidden" style={{ width: chatWidth }}>
               <ChatPanel initialPrompt={initialPrompt} />
               <VersionTimeline />
             </div>

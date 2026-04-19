@@ -44,6 +44,16 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
     const bgRaw = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
     const bgColor = bgRaw || '#0a0e14';
 
+    // Temporarily remove selection ring classes (ring-2, ring-accent-*) from the
+    // target element so the highlight outline doesn't appear in the exported PNG.
+    const ringClasses: string[] = [];
+    element.classList.forEach(cls => {
+      if (cls.startsWith('ring-')) {
+        ringClasses.push(cls);
+      }
+    });
+    ringClasses.forEach(cls => element.classList.remove(cls));
+
     // Inject a system font fallback into the element BEFORE cloning.
     // html-to-image may fail to embed Next.js optimized font files on production
     // (CORS / opaque responses). This ensures sans-serif fallback instead of serif.
@@ -87,6 +97,8 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
     } finally {
       // Always clean up the injected style so the page isn't affected
       fontFixStyle.remove();
+      // Restore selection ring classes that were temporarily removed
+      ringClasses.forEach(cls => element.classList.add(cls));
     }
 
   } catch (error) {

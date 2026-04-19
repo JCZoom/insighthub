@@ -641,9 +641,9 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   return (
     <div className="flex-1 flex min-h-0">
       {/* Canvas + toolbar column */}
-      <div className="flex-1 flex flex-col min-h-0 min-w-0">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-y-auto">
       {/* Toolbar */}
-      <div className="relative z-20 flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 backdrop-blur-sm">
+      <div className="sticky top-0 z-20 flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           {isEditingTitle ? (
             <input
@@ -687,7 +687,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 <span key={filter.field} className="flex items-center gap-1 pill pill-cyan text-xs">
                   <Filter size={10} />
                   {filter.label}
-                  <Tooltip content="Remove filter" side="top">
+                  <Tooltip content="Remove filter" side="bottom">
                     <button
                       onClick={() => removeGlobalFilter(filter.field)}
                       className="ml-1 hover:bg-white/20 rounded px-1 transition-colors"
@@ -698,7 +698,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 </span>
               ))}
               {schema.globalFilters.length > 1 && (
-                <Tooltip content="Clear all filters" side="top">
+                <Tooltip content="Clear all filters" side="bottom">
                   <button
                     onClick={clearGlobalFilters}
                     className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
@@ -711,7 +711,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           )}
         </div>
         <div className="flex items-center gap-1">
-          <Tooltip content="Undo" shortcut={['mod', 'z']}>
+          <Tooltip content="Undo" shortcut={['mod', 'z']} side="bottom">
             <button
               onClick={undo}
               disabled={!canUndo}
@@ -720,7 +720,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               <Undo2 size={16} className="text-[var(--text-secondary)]" />
             </button>
           </Tooltip>
-          <Tooltip content="Redo" shortcut={['mod', 'shift', 'z']}>
+          <Tooltip content="Redo" shortcut={['mod', 'shift', 'z']} side="bottom">
             <button
               onClick={redo}
               disabled={!canRedo}
@@ -731,7 +731,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           </Tooltip>
           <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
           {onToggleLibrary && (
-            <Tooltip content="Widget Library" shortcut="l">
+            <Tooltip content="Widget Library" shortcut="l" side="bottom">
               <button
                 onClick={onToggleLibrary}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -746,7 +746,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             </Tooltip>
           )}
           {onToggleGlossary && (
-            <Tooltip content="Glossary reference panel">
+            <Tooltip content="Glossary reference panel" side="bottom">
               <button
                 onClick={onToggleGlossary}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -760,7 +760,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               </button>
             </Tooltip>
           )}
-          <Tooltip content="Share dashboard">
+          <Tooltip content="Share dashboard" side="bottom">
             <button
               onClick={() => setShowShare(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
@@ -770,7 +770,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             </button>
           </Tooltip>
           <div className="relative">
-            <Tooltip content="Export dashboard">
+            <Tooltip content="Export dashboard" side="bottom">
               <button
                 onClick={() => setShowExportMenu(prev => !prev)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-card)] transition-colors"
@@ -795,7 +795,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             )}
           </div>
           {/* Responsive preview toggle — tablet/phone previews deferred, keeping desktop-only for now */}
-          <Tooltip content="Keyboard shortcuts" shortcut="?">
+          <Tooltip content="Keyboard shortcuts" shortcut="?" side="bottom">
             <button
               onClick={() => setShowHelp(true)}
               className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"
@@ -804,7 +804,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             </button>
           </Tooltip>
           <div className="relative flex items-center">
-            <Tooltip content="Save dashboard" shortcut={['mod', 's']}>
+            <Tooltip content="Save dashboard" shortcut={['mod', 's']} side="bottom">
               <button
                 onClick={handleSave}
                 disabled={saveStatus === 'saving'}
@@ -814,7 +814,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 {!viewport.isToolbarCompact && (saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save')}
               </button>
             </Tooltip>
-            <Tooltip content="Save options">
+            <Tooltip content="Save options" side="bottom">
               <button
                 onClick={() => setShowSaveMenu(prev => !prev)}
                 className="flex items-center justify-center w-8 h-8 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
@@ -850,7 +850,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       {/* Widget grid */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto p-4 relative"
+        className="grow shrink-0 p-4 relative"
         onContextMenu={isEffectivelyViewOnly ? (e) => e.preventDefault() : handleCanvasContextMenu}
         onPointerDown={isEffectivelyViewOnly ? undefined : handleMarqueeStart}
       >
@@ -1130,7 +1130,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         {/* Marquee selection rectangle */}
         {marqueeState && (() => {
           const left = Math.min(marqueeState.startX, marqueeState.currentX) - marqueeState.containerRect.left;
-          const top = Math.min(marqueeState.startY, marqueeState.currentY) - marqueeState.containerRect.top + (scrollContainerRef.current?.scrollTop || 0);
+          const parentScroll = scrollContainerRef.current?.parentElement?.scrollTop || 0;
+          const top = Math.min(marqueeState.startY, marqueeState.currentY) - marqueeState.containerRect.top + parentScroll;
           const width = Math.abs(marqueeState.currentX - marqueeState.startX);
           const height = Math.abs(marqueeState.currentY - marqueeState.startY);
           if (width < 5 && height < 5) return null;

@@ -8,11 +8,11 @@
  * - 1 admin user (dev user)
  * - 4 template dashboards with initial versions
  * - Glossary terms (from YAML)
- * - 5,000 sample customers across 5 regions and 3 plans
+ * - 5,000 sample customers across 5 regions and 3 plans ($9.99/$14.99/$39.99)
  * - ~50,000 support tickets with seasonal patterns
  * - 200 sales pipeline deals
  * - Product usage data with weekday-heavy patterns
- * - Monthly revenue events with ~3-5% churn rate
+ * - Monthly revenue events with ~20% annual churn rate
  * - 18 months of historical data
  */
 
@@ -130,12 +130,12 @@ async function generateSampleCustomers() {
     const region = getWeightedRandom(REGIONS, [25, 20, 20, 20, 15]); // Slight US bias
 
     let monthlyRevenue;
-    if (plan === 'starter') monthlyRevenue = faker.number.float({ min: 29, max: 99, multipleOf: 0.01 });
-    else if (plan === 'professional') monthlyRevenue = faker.number.float({ min: 99, max: 299, multipleOf: 0.01 });
-    else monthlyRevenue = faker.number.float({ min: 299, max: 1999, multipleOf: 0.01 });
+    if (plan === 'starter') monthlyRevenue = 9.99;
+    else if (plan === 'professional') monthlyRevenue = 14.99;
+    else monthlyRevenue = 39.99;
 
-    // 3-5% monthly churn rate - some customers have cancelled
-    const isChurned = Math.random() < 0.04;
+    // ~20% annual churn rate ≈ ~1.85% monthly
+    const isChurned = Math.random() < 0.0185;
     const cancelledDate = isChurned ? randomDate(signupDate, new Date()) : null;
 
     customers.push({
@@ -362,7 +362,7 @@ async function generateSampleUsage() {
 }
 
 async function generateSampleRevenue() {
-  console.log('💸 Generating monthly revenue events with ~3-5% churn...');
+  console.log('💸 Generating monthly revenue events with ~20% annual churn...');
 
   const customers = await prisma.sampleCustomer.findMany();
   const revenue = [];
@@ -553,7 +553,7 @@ async function main() {
   console.log('  • ~50,000 support tickets with seasonal patterns');
   console.log('  • 200 sales pipeline deals');
   console.log('  • Product usage data with weekday-heavy patterns');
-  console.log('  • Revenue events with ~3-5% monthly churn');
+  console.log('  • Revenue events with ~20% annual churn');
   console.log('  • 18 months of historical data');
 }
 

@@ -45,47 +45,47 @@ export interface SampleDataResult {
 
 // Pre-generated data sets for different widget queries
 function generateMrrByMonth(): Record<string, unknown>[] {
-  let mrr = 380000;
+  let mrr = 4200000;
   return MONTHS.map(month => {
-    mrr = mrr * (1 + randBetween(-0.01, 0.04));
-    return { month, mrr: Math.round(mrr), growth: +(randBetween(-1, 4)).toFixed(1) };
+    mrr = mrr * (1 + randBetween(-0.005, 0.025));
+    return { month, mrr: Math.round(mrr), growth: +(randBetween(-0.5, 2.5)).toFixed(1) };
   });
 }
 
 function generateChurnByRegion(): Record<string, unknown>[] {
   return REGIONS.map(region => ({
     region,
-    churn_rate: +(randBetween(2, 7)).toFixed(1),
-    churned_customers: randInt(10, 80),
-    total_customers: randInt(500, 1500),
+    churn_rate: +(randBetween(1.2, 2.2)).toFixed(1),
+    churned_customers: randInt(1000, 2500),
+    total_customers: randInt(65000, 95000),
   }));
 }
 
 function generateChurnByMonth(): Record<string, unknown>[] {
   return MONTHS.map(month => ({
     month,
-    churn_rate: +(randBetween(2.5, 5.5)).toFixed(1),
-    churned: randInt(15, 60),
-    active_start: randInt(3000, 5000),
+    churn_rate: +(randBetween(1.4, 2.0)).toFixed(1),
+    churned: randInt(4500, 6500),
+    active_start: randInt(310000, 330000),
   }));
 }
 
 function generateChurnByPlan(): Record<string, unknown>[] {
   return PLANS.map(plan => ({
     plan,
-    churn_rate: plan === 'enterprise' ? +(randBetween(1, 3)).toFixed(1)
-      : plan === 'professional' ? +(randBetween(3, 5)).toFixed(1)
-      : +(randBetween(5, 8)).toFixed(1),
-    customers: plan === 'enterprise' ? randInt(200, 400)
-      : plan === 'professional' ? randInt(800, 1500)
-      : randInt(2000, 3500),
+    churn_rate: plan === 'enterprise' ? +(randBetween(0.5, 1.0)).toFixed(1)
+      : plan === 'professional' ? +(randBetween(1.2, 1.8)).toFixed(1)
+      : +(randBetween(2.0, 2.8)).toFixed(1),
+    customers: plan === 'enterprise' ? randInt(35000, 45000)
+      : plan === 'professional' ? randInt(90000, 110000)
+      : randInt(250000, 270000),
   }));
 }
 
 function generateTicketsByCategory(): Record<string, unknown>[] {
   return TICKET_CATEGORIES.map(category => ({
     category,
-    count: randInt(200, 3000),
+    count: randInt(8000, 35000),
     avg_resolution_hours: +(randBetween(2, 48)).toFixed(1),
     csat: +(randBetween(3.2, 4.8)).toFixed(1),
   }));
@@ -94,8 +94,8 @@ function generateTicketsByCategory(): Record<string, unknown>[] {
 function generateTicketsByMonth(): Record<string, unknown>[] {
   return MONTHS.map(month => ({
     month,
-    total: randInt(2500, 4500),
-    resolved: randInt(2200, 4200),
+    total: randInt(85000, 95000),
+    resolved: randInt(78000, 90000),
     avg_frt_minutes: randInt(8, 45),
     csat: +(randBetween(3.5, 4.7)).toFixed(1),
   }));
@@ -104,9 +104,9 @@ function generateTicketsByMonth(): Record<string, unknown>[] {
 function generateTicketsByTeam(): Record<string, unknown>[] {
   return TEAMS.map(team => ({
     team,
-    open: randInt(10, 80),
-    pending: randInt(5, 40),
-    resolved: randInt(200, 1200),
+    open: randInt(300, 900),
+    pending: randInt(150, 500),
+    resolved: randInt(12000, 25000),
     avg_resolution_hours: +(randBetween(4, 36)).toFixed(1),
     csat: +(randBetween(3.5, 4.8)).toFixed(1),
   }));
@@ -115,22 +115,24 @@ function generateTicketsByTeam(): Record<string, unknown>[] {
 function generateRevenueByType(): Record<string, unknown>[] {
   return ['new', 'expansion', 'contraction', 'churn', 'reactivation'].map(type => ({
     event_type: type,
-    amount: type === 'new' ? randInt(80000, 150000)
-      : type === 'expansion' ? randInt(30000, 80000)
-      : type === 'contraction' ? -randInt(10000, 40000)
-      : type === 'churn' ? -randInt(20000, 60000)
-      : randInt(5000, 20000),
-    count: randInt(10, 200),
+    amount: type === 'new' ? randInt(350000, 600000)
+      : type === 'expansion' ? randInt(120000, 250000)
+      : type === 'contraction' ? -randInt(30000, 80000)
+      : type === 'churn' ? -randInt(70000, 120000)
+      : randInt(20000, 60000),
+    count: type === 'new' ? randInt(3000, 6000)
+      : type === 'churn' ? randInt(4500, 6500)
+      : randInt(500, 3000),
   }));
 }
 
 function generateRevenueByMonth(): Record<string, unknown>[] {
-  let total = 380000;
+  let total = 4200000;
   return MONTHS.map(month => {
-    const newRev = randInt(60000, 120000);
-    const expansion = randInt(20000, 60000);
-    const contraction = -randInt(5000, 25000);
-    const churn = -randInt(15000, 45000);
+    const newRev = randInt(350000, 600000);
+    const expansion = randInt(120000, 250000);
+    const contraction = -randInt(30000, 80000);
+    const churn = -randInt(70000, 120000);
     total = total + newRev + expansion + contraction + churn;
     return { month, total: Math.round(total), new: newRev, expansion, contraction: Math.abs(contraction), churn: Math.abs(churn) };
   });
@@ -139,8 +141,8 @@ function generateRevenueByMonth(): Record<string, unknown>[] {
 function generateDealsPipeline(): Record<string, unknown>[] {
   return DEAL_STAGES.filter(s => !s.startsWith('closed')).map(stage => ({
     stage,
-    count: randInt(5, 40),
-    value: randInt(50000, 500000),
+    count: randInt(20, 120),
+    value: randInt(200000, 2000000),
     avg_days: randInt(5, 60),
   }));
 }
@@ -148,8 +150,8 @@ function generateDealsPipeline(): Record<string, unknown>[] {
 function generateDealsBySource(): Record<string, unknown>[] {
   return ['inbound', 'outbound', 'referral', 'partner'].map(source => ({
     source,
-    count: randInt(10, 80),
-    value: randInt(100000, 800000),
+    count: randInt(40, 200),
+    value: randInt(500000, 4000000),
     win_rate: +(randBetween(15, 55)).toFixed(1),
   }));
 }
@@ -157,8 +159,8 @@ function generateDealsBySource(): Record<string, unknown>[] {
 function generateUsageByFeature(): Record<string, unknown>[] {
   return FEATURES.map(feature => ({
     feature,
-    daily_users: randInt(500, 3500),
-    total_usage: randInt(10000, 100000),
+    daily_users: randInt(50000, 200000),
+    total_usage: randInt(1000000, 8000000),
     adoption_rate: +(randBetween(20, 85)).toFixed(1),
   }));
 }
@@ -166,44 +168,44 @@ function generateUsageByFeature(): Record<string, unknown>[] {
 function generateUsageByMonth(): Record<string, unknown>[] {
   return MONTHS.map(month => ({
     month,
-    mail_scan: randInt(20000, 50000),
-    package_forward: randInt(5000, 15000),
-    check_deposit: randInt(3000, 10000),
-    address_use: randInt(30000, 80000),
+    mail_scan: randInt(2000000, 4500000),
+    package_forward: randInt(500000, 1500000),
+    check_deposit: randInt(300000, 900000),
+    address_use: randInt(3000000, 7000000),
   }));
 }
 
 function generateCustomersByPlan(): Record<string, unknown>[] {
   return [
-    { plan: 'starter', count: randInt(2500, 3500), revenue: randInt(60000, 100000) },
-    { plan: 'professional', count: randInt(1000, 1800), revenue: randInt(150000, 250000) },
-    { plan: 'enterprise', count: randInt(200, 500), revenue: randInt(200000, 400000) },
+    { plan: 'starter', count: randInt(250000, 270000), revenue: randInt(2400000, 2700000) },
+    { plan: 'professional', count: randInt(90000, 110000), revenue: randInt(1350000, 1650000) },
+    { plan: 'enterprise', count: randInt(35000, 45000), revenue: randInt(1400000, 1800000) },
   ];
 }
 
 function generateCustomersByRegion(): Record<string, unknown>[] {
   return REGIONS.map(region => ({
     region,
-    count: randInt(400, 1500),
-    mrr: randInt(50000, 150000),
-    churn_rate: +(randBetween(2, 7)).toFixed(1),
+    count: randInt(65000, 95000),
+    mrr: randInt(800000, 1200000),
+    churn_rate: +(randBetween(1.2, 2.2)).toFixed(1),
   }));
 }
 
 function generateKpiSummary(): Record<string, unknown>[] {
   return [{
-    total_customers: randInt(4200, 5200),
-    active_customers: randInt(3800, 4800),
-    mrr: randInt(380000, 480000),
-    arr: randInt(4500000, 5800000),
-    churn_rate: +(randBetween(3, 5)).toFixed(1),
-    nrr: +(randBetween(102, 115)).toFixed(1),
+    total_customers: randInt(395000, 405000),
+    active_customers: randInt(315000, 325000),
+    mrr: randInt(4800000, 5200000),
+    arr: randInt(58000000, 62000000),
+    churn_rate: +(randBetween(1.5, 2.0)).toFixed(1),
+    nrr: +(randBetween(94, 100)).toFixed(1),
     avg_csat: +(randBetween(4.1, 4.6)).toFixed(1),
-    open_tickets: randInt(80, 200),
+    open_tickets: randInt(3000, 5000),
     avg_frt_minutes: randInt(12, 30),
-    pipeline_value: randInt(800000, 2000000),
+    pipeline_value: randInt(4000000, 8000000),
     win_rate: +(randBetween(25, 45)).toFixed(1),
-    avg_deal_size: randInt(8000, 25000),
+    avg_deal_size: randInt(15000, 40000),
   }];
 }
 
