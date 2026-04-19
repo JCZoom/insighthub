@@ -20,12 +20,36 @@ const ACCENT_CLASSES: Record<string, string> = {
   red: 'hero-accent-red',
 };
 
+/**
+ * Resolve a field name against the available keys in a data row.
+ * Handles exact match, normalised match (ignore _, -, spaces, case),
+ * and substring containment so AI-generated names like
+ * "overall_churn_rate" still resolve to "churn_rate".
+ */
+function resolveField(row: Record<string, unknown>, target: string): string {
+  if (target in row) return target;
+  const norm = (s: string) => s.toLowerCase().replace(/[_\s-]/g, '');
+  const nt = norm(target);
+  const keys = Object.keys(row);
+  // normalised exact match
+  const exact = keys.find(k => norm(k) === nt);
+  if (exact) return exact;
+  // target contains a key (e.g. "overall_churn_rate" contains "churn_rate")
+  const contains = keys.find(k => nt.includes(norm(k)) && norm(k).length > 2);
+  if (contains) return contains;
+  // key contains target
+  const reverse = keys.find(k => norm(k).includes(nt) && nt.length > 2);
+  if (reverse) return reverse;
+  return target; // fallback — will yield 0 as before
+}
+
 function computeAggregation(
   data: Record<string, unknown>[],
   field: string,
   fn: string,
 ): number {
-  const values = data.map(r => Number(r[field]) || 0);
+  const resolved = data.length > 0 ? resolveField(data[0], field) : field;
+  const values = data.map(r => Number(r[resolved]) || 0);
   if (values.length === 0) return 0;
   switch (fn) {
     case 'sum': return values.reduce((a, b) => a + b, 0);
@@ -49,7 +73,8 @@ export function KpiCard({ config, data }: KpiCardProps) {
 
   const row = data[0] || {};
   const agg = config.dataConfig.aggregation;
-  const field = agg?.field || Object.keys(row)[0] || 'value';
+  const rawField = agg?.field || Object.keys(row)[0] || 'value';
+  const field = resolveField(row, rawField);
   const aggFn = agg?.function || 'sum';
 
   // If we have multiple rows and an aggregation function, compute it

@@ -175,6 +175,55 @@ ${availableDataSources}
 
 ${smartSuggestions}
 
+## Pre-Aggregated Data Sources (CRITICAL — use these for widgets)
+ALWAYS use these pre-computed sources and their EXACT field names. Do NOT invent field names.
+
+### kpi_summary (for kpi_card widgets — single-row aggregate)
+Fields: total_customers, active_customers, mrr, arr, churn_rate, nrr, avg_csat, open_tickets, avg_frt_minutes, pipeline_value, win_rate, avg_deal_size
+Example: \`{ "source": "kpi_summary", "aggregation": { "function": "avg", "field": "churn_rate" } }\`
+
+### churn_by_month (monthly churn series)
+Fields: month, churn_rate, churned, active_start
+
+### churn_by_region (churn by geography)
+Fields: region, churn_rate, churned_customers, total_customers
+
+### churn_by_plan (churn by subscription tier)
+Fields: plan, churn_rate, customers
+
+### revenue_by_month (monthly revenue breakdown)
+Fields: month, total, new, expansion, contraction, churn
+
+### mrr_by_month (MRR trend)
+Fields: month, mrr, growth
+
+### tickets_by_month (support volume over time)
+Fields: month, total, resolved, avg_frt_minutes, csat
+
+### tickets_by_category (tickets grouped by type)
+Fields: category, count, avg_resolution_hours, csat
+
+### tickets_by_team (team performance)
+Fields: team, open, pending, resolved, avg_resolution_hours, csat
+
+### deals_pipeline (sales funnel stages)
+Fields: stage, count, value, avg_days
+
+### deals_by_source (deal origin breakdown)
+Fields: source, count, value, win_rate
+
+### customers_by_plan (plan distribution)
+Fields: plan, count, revenue
+
+### customers_by_region (regional distribution)
+Fields: region, count, mrr, churn_rate
+
+### usage_by_feature (feature adoption)
+Fields: feature, daily_users, total_usage, adoption_rate
+
+### usage_by_month (monthly usage trend)
+Fields: month, mail_scan, package_forward, check_deposit, address_use
+
 ## Widget Types Available
 kpi_card, line_chart, bar_chart, area_chart, pie_chart, donut_chart, stacked_bar, scatter_plot, table, funnel, gauge, metric_row, text_block, divider
 

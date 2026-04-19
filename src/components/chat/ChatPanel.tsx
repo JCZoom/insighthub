@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, PanelRightClose, PanelRight, Loader2, Undo2, Mic } from 'lucide-react';
 import { handleVirtualKeyboard, isMobileDevice } from '@/lib/touch-utils';
 import { useDashboardStore } from '@/stores/dashboard-store';
@@ -20,6 +20,20 @@ const AI_PHASES = [
   'Selecting the right visualizations…',
   'Building your dashboard…',
 ];
+
+/**
+ * Lightweight inline-markdown renderer for chat messages.
+ * Handles **bold** so error / AI messages display correctly.
+ */
+function renderMarkdown(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 function AiStatusText({ patchCount }: { patchCount: number }) {
   const [phase, setPhase] = useState(0);
@@ -236,8 +250,9 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
 
     try {
       // Build conversation history for context (last 10 messages to keep prompt size reasonable)
+      // Filter out entries with empty/missing content to avoid server-side validation errors
       const recentMessages = [...messages, userMessage]
-        .filter(m => m.role !== 'system')
+        .filter(m => m.role !== 'system' && m.content && m.content.trim().length > 0)
         .slice(-10)
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
@@ -262,7 +277,16 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Read the error body for the actual server-side error detail (e.g. Zod validation message)
+        let errorDetail = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorBody = await response.json();
+          if (errorBody.error) errorDetail = errorBody.error;
+        } catch {
+          // Couldn't parse body — keep the generic status message
+        }
+        console.error('[ChatPanel] API error:', errorDetail);
+        throw new Error(errorDetail);
       }
 
       if (!response.body) {
@@ -529,7 +553,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
                   : 'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)]'
               )}
             >
-              <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{renderMarkdown(msg.content)}</p>
 
               {/* Quick actions — shown on every assistant message */}
               {msg.quickActions && msg.quickActions.length > 0 && (
@@ -592,7 +616,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
           paddingBottom: isMobile && keyboardHeight > 0 ? '20px' : '12px',
         }}
       >
-        <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2 focus-within:border-[var(--border-color)]">
+        <div className="flex items-end gap-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-2 focus-within:border-[var(--border-color)] focus-within:ring-0 focus-within:outline-none">
           <textarea
             ref={inputRef}
             value={input}
@@ -600,7 +624,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             onKeyDown={handleKeyDown}
             placeholder="Describe what you want to see..."
             rows={1}
-            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none max-h-32 focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
+            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none max-h-32 focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none"
             style={{ minHeight: '24px' }}
           />
           {/* Microphone button */}

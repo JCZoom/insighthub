@@ -272,6 +272,19 @@ const DATA_GENERATORS: Record<string, () => Record<string, unknown>[]> = {
   'sales_pipeline': generateDealsPipeline,
   'usage': generateUsageByMonth,
   'feature_usage': generateUsageByFeature,
+  // Churn-specific aliases (AI often generates these for churn dashboards)
+  'customer_churn': generateChurnByMonth,
+  'churn_metrics': generateKpiSummary,
+  'churn_data': generateChurnByMonth,
+  'churn_analysis': generateKpiSummary,
+  'churn_summary': generateKpiSummary,
+  'retention': generateKpiSummary,
+  'retention_metrics': generateKpiSummary,
+  'retention_rate': generateKpiSummary,
+  'active_customers': generateKpiSummary,
+  'customer_retention': generateKpiSummary,
+  'customer_churn_rate': generateChurnByMonth,
+  'churn_overview': generateKpiSummary,
 };
 
 // Cache generated data so values stay stable across re-renders.

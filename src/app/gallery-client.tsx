@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X, Folder } from 'lucide-react';
+import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X, Folder, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
 import { FolderTree, type FolderNode } from '@/components/folders/FolderTree';
 import { FolderBreadcrumbs, buildBreadcrumbs } from '@/components/folders/FolderBreadcrumbs';
@@ -144,7 +144,7 @@ export function GalleryPage() {
   // Folder-related state
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [showFolderTree, setShowFolderTree] = useState(false);
+  const [showFolderTree, setShowFolderTree] = useState(true);
 
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
   const galleryRouter = useRouter();
@@ -607,7 +607,17 @@ export function GalleryPage() {
           showFolderTree ? 'w-64' : 'w-0 overflow-hidden'
         )}>
           <div className="p-4">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Folders</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Folders</h3>
+              <Tooltip content="Collapse folders" side="right">
+                <button
+                  onClick={() => setShowFolderTree(false)}
+                  className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                >
+                  <PanelLeftClose size={14} />
+                </button>
+              </Tooltip>
+            </div>
             <FolderTree
               folders={folders}
               selectedFolderId={currentFolderId}
@@ -632,15 +642,6 @@ export function GalleryPage() {
                   Create, discover, and share dashboards across your organization.
                 </p>
               </div>
-              <Tooltip content="Toggle folder tree" side="bottom">
-                <button
-                  onClick={() => setShowFolderTree(!showFolderTree)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                >
-                  <Folder size={16} />
-                  <span className="hidden sm:inline">Folders</span>
-                </button>
-              </Tooltip>
             </div>
 
             {/* Breadcrumbs */}
@@ -688,6 +689,20 @@ export function GalleryPage() {
               className="pl-8 pr-3 py-1.5 text-sm rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-accent-blue/50 w-full sm:w-56 transition-colors"
             />
           </div>
+          <Tooltip content={showFolderTree ? 'Hide folders' : 'Show folders'} side="bottom">
+            <button
+              onClick={() => setShowFolderTree(!showFolderTree)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border transition-colors min-h-[44px]',
+                showFolderTree
+                  ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
+                  : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              )}
+            >
+              {showFolderTree ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+              <span className="hidden sm:inline">Folders</span>
+            </button>
+          </Tooltip>
           {/* Sort dropdown */}
           <div className="relative">
             <button
