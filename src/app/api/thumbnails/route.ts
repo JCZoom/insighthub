@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, unlink, access } from 'fs/promises';
 import { join } from 'path';
+import { getCurrentUser } from '@/lib/auth/session';
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { dashboardId, thumbnail } = await request.json();
 
     if (!dashboardId || !thumbnail) {
@@ -58,6 +64,11 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const dashboardId = searchParams.get('dashboardId');
 
@@ -107,6 +118,11 @@ export async function DELETE(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const dashboardId = searchParams.get('dashboardId');
 

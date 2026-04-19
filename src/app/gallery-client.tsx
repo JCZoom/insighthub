@@ -536,7 +536,8 @@ export function GalleryPage() {
 
   const filtered = sortDashboards(dashboards.filter(d => {
     // Folder filtering - only show dashboards in the current folder
-    if (d.folderId !== currentFolderId) return false;
+    // Normalize undefined to null so templates (no folderId) appear at root
+    if ((d.folderId ?? null) !== currentFolderId) return false;
 
     if (activeTab === 'templates' && !d.isTemplate) return false;
     if (activeTab === 'company') return matchesSearch(d) && matchesFilters(d);

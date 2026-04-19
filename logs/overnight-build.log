@@ -897,3 +897,27 @@
 [2026-04-18 21:28:22] 📌 Task: Dashboard sharing system
 [2026-04-18 21:28:22]    Section: 📁 Gallery & Sharing | Priority: Normal
 [2026-04-18 21:28:22]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-18 21:41:24]   ⏱️  Claude Code finished in 782s (exit code: 0)
+[2026-04-18 21:41:24]   💰 Task cost: $3.2982 | Running total: $26.28 / $25.00
+[2026-04-18 21:41:24]   📊 Tokens: 655 in + 38,245 out | cache: 7,644,534 read + 113,890 create
+[2026-04-18 21:41:24] 
+💸 Budget cap reached ($26.28 >= $25.00). Stopping.
+[2026-04-18 21:41:24]   🔨 Running build check...
+[2026-04-18 21:41:36]   ✅ Build passed
+[2026-04-18 21:41:36]   ✅ Task completed successfully
+[2026-04-18 21:41:37]   ✅ Subtask → completed: Share modal — search and select users
+[2026-04-18 21:41:38]   ✅ Subtask → completed: "Shared with Me" gallery section
+[2026-04-18 21:41:39]   ✅ Subtask → completed: Publish to gallery (make public to all authenticated users)
+[2026-04-18 21:41:40]   ✅ Subtask → completed: Email notification on share (optional)
+[2026-04-18 21:41:40]   📋 Marked 4 subtask(s) complete in Asana
+[2026-04-18 21:41:41]   ✅ Asana task 1214122597285598 → completed
+[2026-04-18 21:41:41] 
+============================================================
+[2026-04-18 21:41:41] 🌅 Overnight builder finished
+[2026-04-18 21:41:41]    Tasks attempted: 10
+[2026-04-18 21:41:41]    Succeeded: 10
+[2026-04-18 21:41:41]    Failed: 0
+[2026-04-18 21:41:41]    Total spent: $26.28
+[2026-04-18 21:41:41]    Total tokens: 5,491 in + 309,569 out
+[2026-04-18 21:41:41] ============================================================
+[2026-04-18 21:41:41] 📝 Morning summary written to docs/overnight-build-summary-2026-04-18-5.md
