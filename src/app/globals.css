@@ -48,6 +48,29 @@ body {
   color: var(--text-primary);
   font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
   transition: background 0.3s, color 0.3s;
+
+  /* Cross-platform font rendering improvements */
+  -webkit-font-smoothing: antialiased; /* Mac: smoother text rendering */
+  -moz-osx-font-smoothing: grayscale; /* Mac Firefox: crisp text rendering */
+  text-rendering: optimizeLegibility; /* Better kerning and ligatures */
+  font-feature-settings: 'kern' 1; /* Enable kerning for better letter spacing */
+}
+
+/* Windows-specific font rendering optimizations */
+@media screen and (-ms-high-contrast: active), screen and (-ms-high-contrast: none) {
+  /* Target IE11 and older Edge for Windows-specific adjustments */
+  body {
+    text-rendering: auto; /* IE11 doesn't support optimizeLegibility well */
+  }
+}
+
+/* Modern Windows font rendering (Edge, Chrome on Windows) */
+@supports (-webkit-appearance: none) and (not (-webkit-text-stroke: initial)) {
+  /* Target Blink-based browsers on Windows */
+  body {
+    font-variant-ligatures: common-ligatures; /* Better ligature support */
+    font-feature-settings: 'kern' 1, 'liga' 1; /* Enable kerning and ligatures */
+  }
 }
 
 html.light body,
@@ -209,21 +232,66 @@ select:focus-visible,
   opacity: 1;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #484f58; }
-.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
-.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* WebKit scrollbar styling (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+  /* Smooth transitions for better UX */
+  transition: background-color 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+::-webkit-scrollbar-thumb:active {
+  background: #484f58;
+}
+/* Corner where horizontal and vertical scrollbars meet */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
 
-/* Firefox scrollbar styling */
+/* Light mode WebKit scrollbar */
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.light ::-webkit-scrollbar-thumb:active {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar styling - improved cross-browser consistency */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: #30363d transparent;
+  scrollbar-width: thin; /* Match 6px webkit width */
+  scrollbar-color: #30363d transparent; /* thumb track */
+  scrollbar-gutter: stable; /* Reserve space for scrollbar to prevent layout shifts */
 }
 .light * {
   scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Experimental: Firefox hover support (Firefox 108+) */
+@supports (scrollbar-color: color-mix(in srgb, transparent, black)) {
+  * {
+    scrollbar-color: #30363d transparent;
+  }
+  *:hover {
+    scrollbar-color: #484f58 transparent;
+  }
+  .light * {
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .light *:hover {
+    scrollbar-color: #94a3b8 transparent;
+  }
 }
 
 /* Hide scrollbar utility */

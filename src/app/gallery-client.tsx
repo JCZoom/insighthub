@@ -180,7 +180,8 @@ export function GalleryPage() {
       // j / ArrowDown: next card
       if (e.key === 'j' || e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedCardIndex(prev => Math.min(prev + 1, filteredRef.current.length - 1));
+        // Max index is filteredRef.current.length (includes "Create New Dashboard" at index 0)
+        setSelectedCardIndex(prev => Math.min(prev + 1, filteredRef.current.length));
         return;
       }
 
@@ -192,9 +193,18 @@ export function GalleryPage() {
       }
 
       // Enter: open selected card
-      if (e.key === 'Enter' && selectedCardIndex >= 0 && selectedCardIndex < filteredRef.current.length) {
+      if (e.key === 'Enter' && selectedCardIndex >= 0) {
         e.preventDefault();
-        galleryRouter.push(`/dashboard/${filteredRef.current[selectedCardIndex].id}`);
+        if (selectedCardIndex === 0) {
+          // "Create New Dashboard" card selected
+          galleryRouter.push('/dashboard/new');
+        } else if (selectedCardIndex <= filteredRef.current.length) {
+          // Dashboard card selected (adjust index by -1 since "Create New Dashboard" is at index 0)
+          const dashboardIndex = selectedCardIndex - 1;
+          if (dashboardIndex < filteredRef.current.length) {
+            galleryRouter.push(`/dashboard/${filteredRef.current[dashboardIndex].id}`);
+          }
+        }
         return;
       }
 
@@ -635,6 +645,7 @@ export function GalleryPage() {
               href="/dashboard/new"
               className={cn(
                 'group rounded-xl border-2 border-dashed border-[var(--border-color)] hover:border-accent-blue/50 bg-[var(--bg-card)]/50 hover:bg-accent-blue/5 transition-all',
+                selectedCardIndex === 0 ? 'ring-2 ring-accent-blue' : '',
                 viewMode === 'grid'
                   ? 'flex flex-col items-center justify-center gap-3 min-h-[200px]'
                   : 'flex items-center gap-3 px-4 py-3'
@@ -649,7 +660,7 @@ export function GalleryPage() {
               </div>
             </Link>
             {filtered.map((d, i) => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i + 1 === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
             ))}
           </div>
         )}

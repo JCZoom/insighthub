@@ -31,18 +31,18 @@ interface AuditLogsResponse {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  'user.login': 'bg-green-100 text-green-800 border-green-200',
-  'user.role_change': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  'glossary.create': 'bg-blue-100 text-blue-800 border-blue-200',
-  'glossary.update': 'bg-amber-100 text-amber-800 border-amber-200',
-  'glossary.delete': 'bg-red-100 text-red-800 border-red-200',
-  'dashboard.create': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  'dashboard.update': 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  'dashboard.delete': 'bg-red-100 text-red-800 border-red-200',
-  'dashboard.share': 'bg-purple-100 text-purple-800 border-purple-200',
-  'dashboard.duplicate': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  'version.save': 'bg-teal-100 text-teal-800 border-teal-200',
-  'version.revert': 'bg-orange-100 text-orange-800 border-orange-200',
+  'user.login': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800',
+  'user.role_change': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
+  'glossary.create': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  'glossary.update': 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+  'glossary.delete': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
+  'dashboard.create': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+  'dashboard.update': 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
+  'dashboard.delete': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
+  'dashboard.share': 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+  'dashboard.duplicate': 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+  'version.save': 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+  'version.revert': 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800',
 };
 
 const RESOURCE_ICONS: Record<string, typeof User> = {

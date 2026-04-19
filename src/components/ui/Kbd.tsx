@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { usePlatform } from '@/hooks/usePlatform';
 
 interface KbdProps {
   /** Keyboard keys, using 'mod' as placeholder for platform-specific modifier */
@@ -12,15 +13,6 @@ interface KbdProps {
   variant?: 'default' | 'inline' | 'large';
   /** Join keys with this separator */
   separator?: string;
-}
-
-/** Platform detection hook */
-function useIsMac(): boolean {
-  return useMemo(() => {
-    if (typeof navigator === 'undefined') return false;
-    return /Mac|iPod|iPhone|iPad/.test(navigator.platform || '') ||
-      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS';
-  }, []);
 }
 
 /** Resolve platform-specific key labels */
@@ -88,7 +80,7 @@ const variantStyles = {
  * <Kbd keys="?" variant="inline" />
  */
 export function Kbd({ keys, className, variant = 'default', separator = '+' }: KbdProps) {
-  const isMac = useIsMac();
+  const { isMac } = usePlatform();
 
   const keyArray = useMemo(() => {
     const rawKeys = typeof keys === 'string' ? keys.split(/[\s+]/) : keys;
@@ -123,7 +115,9 @@ export function Kbd({ keys, className, variant = 'default', separator = '+' }: K
 export function formatShortcut(keys: string | string[], separator = '+'): string {
   if (typeof navigator === 'undefined') return ''; // SSR safety
 
-  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform || '') ||
+  // Use the same platform detection logic as usePlatform but inline for performance
+  const platform = navigator.platform || '';
+  const isMac = /Mac|iPod|iPhone|iPad/.test(platform) ||
     (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS';
 
   const keyArray = typeof keys === 'string' ? keys.split(/[\s+]/) : keys;

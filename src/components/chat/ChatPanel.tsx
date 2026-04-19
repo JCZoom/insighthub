@@ -73,6 +73,21 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Auto-collapse chat panel on narrow screens (below 1024px) for better UX
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 1024) {
+        setIsCollapsed(true);
+      }
+    }
+
+    // Set initial state
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [streamingState, setStreamingState] = useState<StreamingState>({
     isStreaming: false,
     progress: 0,

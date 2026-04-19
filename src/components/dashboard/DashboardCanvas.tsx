@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { createTouchDragHandler } from '@/hooks/useTouchDrag';
@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG, exportToSVG } from '@/lib/export-utils';
+import { WidgetQueryPanel } from './WidgetQueryPanel';
+import { DataFreshness } from './DataFreshness';
 
 interface DashboardCanvasProps {
   onToggleLibrary?: () => void;
@@ -73,6 +75,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [previewMode, setPreviewMode] = useState<'responsive' | 'desktop' | 'tablet' | 'mobile'>('responsive');
+  const [queryPanelWidget, setQueryPanelWidget] = useState<WidgetConfig | null>(null);
   const [marqueeState, setMarqueeState] = useState<{
     startX: number; startY: number;
     currentX: number; currentY: number;
@@ -1044,6 +1047,19 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     onResizeStart={(e, direction) => handleResizeStart(widget, direction)(e)}
                   />
                 )}
+                {/* Data transparency footer: freshness badge + query icon (always on hover) */}
+                {widget.type !== 'text_block' && widget.type !== 'divider' && (
+                  <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-[var(--bg-card)]/90 to-transparent rounded-b-xl">
+                    <DataFreshness widgetId={widget.id} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setQueryPanelWidget(widget); }}
+                      className="p-1 rounded-md hover:bg-accent-cyan/20 transition-all"
+                      title="View query & data"
+                    >
+                      <Code2 size={11} className="text-[var(--text-muted)] hover:text-accent-cyan transition-colors" />
+                    </button>
+                  </div>
+                )}
                 <WidgetErrorBoundary
                   key={`err-${widget.id}-${widget.type}-${widget.dataConfig?.source || ''}`}
                   widgetTitle={widget.title}
@@ -1123,6 +1139,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         <MetricExplanationModal
           widget={explainWidget}
           onClose={() => setExplainWidget(null)}
+        />
+      )}
+      {queryPanelWidget && (
+        <WidgetQueryPanel
+          widget={queryPanelWidget}
+          onClose={() => setQueryPanelWidget(null)}
         />
       )}
       </div>
