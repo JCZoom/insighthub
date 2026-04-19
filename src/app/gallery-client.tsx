@@ -283,7 +283,10 @@ export function GalleryPage() {
           // Total cards = 1 "Create New Dashboard" card + filtered dashboards
           const totalCards = 1 + filteredRef.current.length;
           // Ensure we have at least the "Create New Dashboard" card
-          if (totalCards === 0) return 0;
+          if (totalCards <= 1) {
+            // Only "Create New Dashboard" card exists, always select it
+            return 0;
+          }
           // If no selection yet, start with "Create New Dashboard" card
           if (prev < 0) {
             return 0;
@@ -301,7 +304,10 @@ export function GalleryPage() {
           // Total cards = 1 "Create New Dashboard" card + filtered dashboards
           const totalCards = 1 + filteredRef.current.length;
           // Ensure we have at least the "Create New Dashboard" card
-          if (totalCards === 0) return 0;
+          if (totalCards <= 1) {
+            // Only "Create New Dashboard" card exists, always select it
+            return 0;
+          }
           // If no selection yet, start with last dashboard card
           if (prev < 0) {
             return Math.max(0, totalCards - 1);
@@ -377,7 +383,7 @@ export function GalleryPage() {
             widgetCount: d._count?.versions || 0,
             isTemplate: d.isTemplate || false,
             isPublic: d.isPublic || false,
-            isShared: userId ? d.owner?.id !== userId : false,
+            isShared: d.shares && d.shares.length > 0, // Explicitly shared with the current user
             isFavorite: false,
             folderId: d.folderId,
             folder: d.folder ? { id: d.folder.id, name: d.folder.name } : null,
@@ -469,6 +475,35 @@ export function GalleryPage() {
       }
     } catch {
       toast({ type: 'error', title: 'Rename failed' });
+    }
+  }, [toast]);
+
+  const handleTogglePublic = useCallback(async (id: string, isPublic: boolean) => {
+    try {
+      const res = await fetch(`/api/dashboards/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic }),
+      });
+      if (res.ok) {
+        setDashboards(prev => prev.map(d => d.id === id ? { ...d, isPublic } : d));
+        toast({
+          type: 'success',
+          title: isPublic ? 'Published to gallery' : 'Unpublished from gallery',
+          description: isPublic
+            ? 'Dashboard is now visible to all authenticated users.'
+            : 'Dashboard is now private to you and shared users only.',
+        });
+      } else {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update dashboard');
+      }
+    } catch (error) {
+      toast({
+        type: 'error',
+        title: 'Update failed',
+        description: error instanceof Error ? error.message : 'Could not update dashboard visibility.',
+      });
     }
   }, [toast]);
 
@@ -754,7 +789,7 @@ export function GalleryPage() {
                 : 'flex flex-col gap-2'
             )}>
               {recentlyViewed.map(d => (
-                <DashboardCard key={`recent-${d.id}`} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+                <DashboardCard key={`recent-${d.id}`} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} onTogglePublic={handleTogglePublic} />
               ))}
             </div>
           )}
@@ -779,7 +814,7 @@ export function GalleryPage() {
                 : 'flex flex-col gap-2'
             )}>
               {favorites.map(d => (
-                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} onTogglePublic={handleTogglePublic} />
               ))}
             </div>
           )}
@@ -828,8 +863,10 @@ export function GalleryPage() {
             <Link
               href="/dashboard/new"
               className={cn(
-                'group rounded-xl border-2 border-dashed border-[var(--border-color)] hover:border-accent-blue/50 bg-[var(--bg-card)]/50 hover:bg-accent-blue/5 transition-all',
-                selectedCardIndex === 0 ? 'ring-2 ring-accent-blue' : '',
+                'group rounded-xl border-2 border-dashed transition-all',
+                selectedCardIndex === 0
+                  ? 'border-accent-blue bg-accent-blue/10 ring-2 ring-accent-blue ring-offset-2 ring-offset-[var(--bg-primary)]'
+                  : 'border-[var(--border-color)] hover:border-accent-blue/50 bg-[var(--bg-card)]/50 hover:bg-accent-blue/5',
                 viewMode === 'grid'
                   ? 'flex flex-col items-center justify-center gap-3 min-h-[200px]'
                   : 'flex items-center gap-3 px-4 py-3'
@@ -844,7 +881,7 @@ export function GalleryPage() {
               </div>
             </Link>
             {filtered.map((d, i) => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i + 1 === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} />
+              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i + 1 === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} onTogglePublic={handleTogglePublic} />
             ))}
           </div>
         )}

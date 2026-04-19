@@ -41,6 +41,11 @@ export async function GET(request: NextRequest) {
           where,
           include: {
             owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            folder: { select: { id: true, name: true } },
+            shares: {
+              where: { userId: user.id },
+              select: { id: true, permission: true, userId: true }
+            },
             _count: { select: { versions: true, shares: true } },
           },
           orderBy: sortBy === 'title' ? { title: 'asc' } : { updatedAt: 'desc' },

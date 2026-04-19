@@ -17,7 +17,9 @@
   --font-sans: var(--font-inter);
 }
 
-:root {
+:root,
+html.dark,
+.dark {
   --bg-primary: #0a0e14;
   --bg-card: rgba(22, 27, 34, 0.85);
   --bg-card-hover: rgba(28, 35, 51, 0.9);

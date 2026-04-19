@@ -12,10 +12,12 @@ export function ThemeToggle() {
     const saved = localStorage.getItem('insighthub-theme');
     const prefersDark = saved ? saved !== 'light' : true;
     setIsDark(prefersDark);
-    if (!prefersDark) {
-      document.documentElement.classList.add('light');
-    } else {
+    if (prefersDark) {
+      document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
@@ -23,10 +25,12 @@ export function ThemeToggle() {
     setIsDark(prev => {
       const next = !prev;
       if (next) {
+        document.documentElement.classList.add('dark');
         document.documentElement.classList.remove('light');
         localStorage.setItem('insighthub-theme', 'dark');
       } else {
         document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
         localStorage.setItem('insighthub-theme', 'light');
       }
       return next;

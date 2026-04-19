@@ -55,14 +55,21 @@ function pushRecent(id: string) {
 
 function toggleTheme() {
   const html = document.documentElement;
-  const current = html.getAttribute('data-theme');
-  html.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
-  localStorage.setItem('theme', current === 'light' ? 'dark' : 'light');
+  const isCurrentlyLight = html.classList.contains('light');
+  if (isCurrentlyLight) {
+    html.classList.add('dark');
+    html.classList.remove('light');
+    localStorage.setItem('insighthub-theme', 'dark');
+  } else {
+    html.classList.add('light');
+    html.classList.remove('dark');
+    localStorage.setItem('insighthub-theme', 'light');
+  }
 }
 
 function isDarkTheme(): boolean {
   if (typeof document === 'undefined') return true;
-  return document.documentElement.getAttribute('data-theme') !== 'light';
+  return document.documentElement.classList.contains('dark') || !document.documentElement.classList.contains('light');
 }
 
 // --- Component ---

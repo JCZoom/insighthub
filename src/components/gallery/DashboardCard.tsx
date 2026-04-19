@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Clock, Users, Star, Trash2, ExternalLink, Pencil, Copy, Share2 } from 'lucide-react';
+import { BarChart3, Clock, Users, Star, Trash2, ExternalLink, Pencil, Copy, Share2, UserPlus, Globe, Lock } from 'lucide-react';
 import { relativeTime } from '@/lib/utils';
 import { DashboardThumbnail } from './DashboardThumbnail';
+import { ShareModal } from './ShareModal';
 
 export interface DashboardCardData {
   id: string;
@@ -35,6 +36,8 @@ interface DashboardCardProps {
   onDelete?: (id: string) => void;
   onRename?: (id: string, currentTitle: string) => void;
   onDuplicate?: (id: string) => void;
+  onShare?: (id: string, title: string) => void;
+  onTogglePublic?: (id: string, isPublic: boolean) => void;
 }
 
 interface CtxMenu {
@@ -42,10 +45,11 @@ interface CtxMenu {
   y: number;
 }
 
-export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onToggleFavorite, onDelete, onRename, onDuplicate }: DashboardCardProps) {
+export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onToggleFavorite, onDelete, onRename, onDuplicate, onShare, onTogglePublic }: DashboardCardProps) {
   const router = useRouter();
   const [timeLabel, setTimeLabel] = useState('');
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -274,6 +278,30 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
       >
         <Share2 size={12} /> Copy link
       </button>
+      {isOwned && (
+        <button
+          onClick={() => ctxAction(() => setShowShareModal(true))}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+        >
+          <UserPlus size={12} /> Share with users
+        </button>
+      )}
+      {isOwned && onTogglePublic && (
+        <button
+          onClick={() => ctxAction(() => onTogglePublic(dashboard.id, !dashboard.isPublic))}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+        >
+          {dashboard.isPublic ? (
+            <>
+              <Lock size={12} /> Unpublish from gallery
+            </>
+          ) : (
+            <>
+              <Globe size={12} /> Publish to gallery
+            </>
+          )}
+        </button>
+      )}
       {isOwned && onDelete && (
         <>
           <div className="my-1 border-t border-[var(--border-color)]" />
@@ -292,6 +320,13 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
     <>
       {viewMode === 'list' ? listRow : gridCard}
       {contextMenuEl}
+      {showShareModal && (
+        <ShareModal
+          dashboardId={dashboard.id}
+          dashboardTitle={dashboard.title}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </>
   );
 }
