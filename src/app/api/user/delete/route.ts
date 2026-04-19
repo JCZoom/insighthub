@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Audit before deletion (the audit log itself is retained for compliance)
     await createAuditLog({
       userId: user.id,
-      action: AuditAction.USER_LOGIN, // Closest existing action
+      action: AuditAction.USER_ACCOUNT_DELETION,
       resourceType: ResourceType.USER,
       resourceId: user.id,
       metadata: { action: 'gdpr_account_deletion', email: user.email },

@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { WidgetConfig } from '@/types';
 import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
 import { getCurrentUser } from '@/lib/auth/session';
+import { getSystemSettings } from '@/lib/settings';
 
 export async function POST(request: NextRequest) {
   return withRateLimit(request, chatRateLimiter, 'explain', async () => {
@@ -33,6 +34,10 @@ export async function POST(request: NextRequest) {
 
       const anthropic = new Anthropic({ apiKey });
 
+      // Read configured model from system settings
+      const settings = await getSystemSettings();
+      const explainModel = settings.ai.explainModel;
+
       // Build a concise explanation prompt (Haiku for speed)
       const prompt = `Briefly explain this dashboard widget for a business user. Be concise — 3-4 short bullet points max.
 
@@ -45,7 +50,7 @@ Reply with:
 • **Why it matters** (one sentence)`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-20250414',
+        model: explainModel,
         max_tokens: 250,
         messages: [{ role: 'user', content: prompt }],
       });

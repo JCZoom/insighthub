@@ -5,6 +5,8 @@ export enum AuditAction {
   // User actions
   USER_LOGIN = 'user.login',
   USER_ROLE_CHANGE = 'user.role_change',
+  USER_DATA_EXPORT = 'user.data_export',
+  USER_ACCOUNT_DELETION = 'user.account_deletion',
 
   // Glossary actions
   GLOSSARY_CREATE = 'glossary.create',
@@ -24,6 +26,9 @@ export enum AuditAction {
   FOLDER_UPDATE = 'folder.update',
   FOLDER_DELETE = 'folder.delete',
 
+  // Settings actions
+  SETTINGS_UPDATE = 'settings.update',
+
   // Version actions
   VERSION_SAVE = 'version.save',
   VERSION_REVERT = 'version.revert',
@@ -36,6 +41,7 @@ export enum ResourceType {
   DASHBOARD = 'dashboard',
   VERSION = 'version',
   FOLDER = 'folder',
+  SETTINGS = 'settings',
 }
 
 interface AuditLogData {

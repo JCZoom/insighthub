@@ -245,7 +245,7 @@ export default function Home() {
           {/* Input */}
           <div className="fade-up stagger-3 relative w-full mb-8">
             {/* Mobile: stacked layout, Desktop: inline layout */}
-            <div className="hero-glow bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-lg shadow-black/5 focus-within:border-accent-blue/40 transition-colors">
+            <div className="hero-glow bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-lg shadow-black/5 transition-colors">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -253,7 +253,7 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 placeholder="e.g. Show me monthly churn rate by region for the past year..."
                 rows={1}
-                className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[24px] max-h-64 overflow-y-auto px-4 py-3"
+                className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none outline-none ring-0 focus:outline-none focus:ring-0 min-h-[24px] max-h-64 overflow-y-auto px-4 py-3"
               />
               <div className="flex items-center justify-end gap-2 px-4 pb-3 sm:hidden">
                 {micSupported && (

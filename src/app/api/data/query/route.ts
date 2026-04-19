@@ -153,11 +153,9 @@ export async function POST(request: NextRequest) {
       applySecurity: true
     });
 
-    // Legacy compatibility - also apply the existing PII stripping if using sample data
-    if (result.dataSource === 'sample') {
-      result.data = await applyFilteredAccess(result.data, source, user);
-      result.data = await stripPiiFields(result.data, user);
-    }
+    // Apply PII stripping and FILTERED access enforcement to ALL data sources
+    result.data = await applyFilteredAccess(result.data, source, user);
+    result.data = await stripPiiFields(result.data, user);
 
     // Include access level information in response for frontend awareness
     const response = {

@@ -79,8 +79,8 @@ function sanitizeParameters(parameters: Record<string, any> = {}): Record<string
 
     // Sanitize value based on type
     if (typeof value === 'string') {
-      // Basic string sanitization
-      sanitized[key] = value.replace(/['\";]/g, ''); // Remove quotes and semicolons
+      // Pass string values through — parameterized queries handle escaping
+      sanitized[key] = value;
     } else if (typeof value === 'number' || typeof value === 'boolean') {
       sanitized[key] = value;
     } else if (value instanceof Date) {
@@ -317,26 +317,40 @@ export async function executeUserQuery<T = any>(
  */
 export class SnowflakeQueryBuilder {
   /**
+   * Validate and quote a SQL identifier (table/column name)
+   */
+  private static escapeIdentifier(name: string): string {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(name)) {
+      throw new Error(`Invalid SQL identifier: "${name}". Only letters, numbers, underscores, and dots are allowed.`);
+    }
+    // Quote each part separately for schema.table references
+    return name.split('.').map(part => `"${part}"`).join('.');
+  }
+
+  /**
    * Build a safe SELECT query with parameters
    */
   static select(table: string, columns: string[] = ['*'], where?: Record<string, any>, limit = 1000): {
     sql: string;
     parameters: Record<string, any>;
   } {
-    const columnsStr = columns.join(', ');
-    let sql = `SELECT ${columnsStr} FROM ${table}`;
+    const safeTable = this.escapeIdentifier(table);
+    const safeColumns = columns.map(c => c === '*' ? '*' : this.escapeIdentifier(c));
+    const columnsStr = safeColumns.join(', ');
+    let sql = `SELECT ${columnsStr} FROM ${safeTable}`;
     const parameters: Record<string, any> = {};
 
     if (where && Object.keys(where).length > 0) {
       const whereConditions = Object.keys(where).map((key, index) => {
         const paramKey = `param_${index}`;
         parameters[paramKey] = where[key];
-        return `${key} = :${paramKey}`;
+        return `${this.escapeIdentifier(key)} = :${paramKey}`;
       });
       sql += ` WHERE ${whereConditions.join(' AND ')}`;
     }
 
-    sql += ` LIMIT ${limit}`;
+    const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100000);
+    sql += ` LIMIT ${safeLimit}`;
 
     return { sql, parameters };
   }
@@ -348,14 +362,15 @@ export class SnowflakeQueryBuilder {
     sql: string;
     parameters: Record<string, any>;
   } {
-    let sql = `SELECT COUNT(*) as total FROM ${table}`;
+    const safeTable = this.escapeIdentifier(table);
+    let sql = `SELECT COUNT(*) as total FROM ${safeTable}`;
     const parameters: Record<string, any> = {};
 
     if (where && Object.keys(where).length > 0) {
       const whereConditions = Object.keys(where).map((key, index) => {
         const paramKey = `param_${index}`;
         parameters[paramKey] = where[key];
-        return `${key} = :${paramKey}`;
+        return `${this.escapeIdentifier(key)} = :${paramKey}`;
       });
       sql += ` WHERE ${whereConditions.join(' AND ')}`;
     }
@@ -365,14 +380,18 @@ export class SnowflakeQueryBuilder {
 
   /**
    * Build a schema introspection query
+   * Note: DESCRIBE TABLE requires identifier quoting, not bind parameters
    */
   static describeTable(database: string, schema: string, table: string): {
     sql: string;
     parameters: Record<string, any>;
   } {
+    const safeDb = this.escapeIdentifier(database);
+    const safeSchema = this.escapeIdentifier(schema);
+    const safeTable = this.escapeIdentifier(table);
     return {
-      sql: 'DESCRIBE TABLE :database.:schema.:table',
-      parameters: { database, schema, table }
+      sql: `DESCRIBE TABLE ${safeDb}.${safeSchema}.${safeTable}`,
+      parameters: {}
     };
   }
 }

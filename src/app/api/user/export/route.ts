@@ -94,7 +94,7 @@ export async function GET() {
     // Audit this export
     await createAuditLog({
       userId: user.id,
-      action: AuditAction.USER_LOGIN, // Closest existing action; could add EXPORT action
+      action: AuditAction.USER_DATA_EXPORT,
       resourceType: ResourceType.USER,
       resourceId: user.id,
       metadata: { action: 'gdpr_data_export' },

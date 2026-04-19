@@ -751,35 +751,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               </>
             )}
           </div>
-          {/* Responsive preview toggle */}
-          {viewport.layoutMode !== 'mobile' && (
-            <>
-              <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
-              <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--bg-card)]/50 border border-[var(--border-color)]">
-                <button
-                  onClick={() => setPreviewMode(prev => prev === 'desktop' ? 'responsive' : 'desktop')}
-                  className={cn("p-1.5 rounded transition-colors", previewMode === 'desktop' ? "bg-accent-blue/15 text-accent-blue" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
-                  title={previewMode === 'desktop' ? 'Back to responsive layout' : 'Preview: Desktop (12 columns)'}
-                >
-                  <Monitor size={14} />
-                </button>
-                <button
-                  onClick={() => setPreviewMode(prev => prev === 'tablet' ? 'responsive' : 'tablet')}
-                  className={cn("p-1.5 rounded transition-colors", previewMode === 'tablet' ? "bg-accent-blue/15 text-accent-blue" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
-                  title={previewMode === 'tablet' ? 'Back to responsive layout' : 'Preview: Tablet (768px, 6 columns)'}
-                >
-                  <Tablet size={14} />
-                </button>
-                <button
-                  onClick={() => setPreviewMode(prev => prev === 'mobile' ? 'responsive' : 'mobile')}
-                  className={cn("p-1.5 rounded transition-colors", previewMode === 'mobile' ? "bg-accent-blue/15 text-accent-blue" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
-                  title={previewMode === 'mobile' ? 'Back to responsive layout' : 'Preview: Mobile (375px, 1 column)'}
-                >
-                  <Smartphone size={13} />
-                </button>
-              </div>
-            </>
-          )}
+          {/* Responsive preview toggle — tablet/phone previews deferred, keeping desktop-only for now */}
           <button
             onClick={() => setShowHelp(true)}
             className="p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors"

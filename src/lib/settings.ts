@@ -119,6 +119,8 @@ export async function isFeatureEnabled(feature: keyof SystemSettings['features']
 function deepMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
   const result = { ...target };
   for (const key of Object.keys(source)) {
+    // Prototype pollution guard
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
     if (
       source[key] &&
       typeof source[key] === 'object' &&

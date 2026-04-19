@@ -157,14 +157,24 @@ export class SnowflakeDataProvider {
       // Add more mappings as needed
     };
 
-    const tableName = tableMapping[source] || source;
-    const limit = options.limit || 10000;
+    const tableName = tableMapping[source];
+    if (!tableName) {
+      throw new Error(`Unknown data source: "${source}". Allowed sources: ${Object.keys(tableMapping).join(', ')}`);
+    }
+
+    const limit = Math.min(Math.max(1, Math.floor(options.limit || 10000)), 100000);
 
     let sql = `SELECT * FROM ${tableName}`;
 
     if (groupBy && groupBy.length > 0) {
-      // Add GROUP BY clause if specified
-      const groupColumns = groupBy.join(', ');
+      // Validate each groupBy column: only allow alphanumeric, underscore, dot (for schema.column)
+      const IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_.]*$/;
+      for (const col of groupBy) {
+        if (!IDENTIFIER_RE.test(col)) {
+          throw new Error(`Invalid groupBy column name: "${col}"`);
+        }
+      }
+      const groupColumns = groupBy.map(col => `"${col.replace(/"/g, '')}"`).join(', ');
       sql = `SELECT ${groupColumns}, COUNT(*) as count FROM ${tableName} GROUP BY ${groupColumns}`;
     }
 

@@ -233,14 +233,15 @@ select:focus-visible,
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(88,166,255,0.15), rgba(188,140,255,0.1), transparent 60%);
+  background: linear-gradient(135deg, rgba(88,166,255,0.25), rgba(188,140,255,0.15), transparent 60%);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
-  padding: 1px;
+  padding: 1.5px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s ease;
+  z-index: 1;
 }
 .hero-glow:focus-within::after {
   opacity: 1;

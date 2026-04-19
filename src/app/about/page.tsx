@@ -171,15 +171,15 @@ export default function AboutPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
           {/* Hero */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-xs font-medium mb-4">
-              <Sparkles size={12} />
+          <div className="text-center mb-16 pt-4 sm:pt-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-xs font-medium mb-6">
+              <Sparkles size={14} />
               AI-Powered Dashboard Builder
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-3">
+            <h1 className="text-4xl sm:text-5xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">
               Welcome to InsightHub
             </h1>
-            <p className="text-[var(--text-secondary)] text-base max-w-xl mx-auto leading-relaxed">
+            <p className="text-[var(--text-secondary)] text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
               InsightHub turns natural language into live, interactive dashboards.
               Describe what you want to see, and AI builds it in seconds — no code required.
             </p>

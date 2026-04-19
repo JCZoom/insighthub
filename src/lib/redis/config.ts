@@ -37,8 +37,8 @@ export function getRedisConfig(): RedisConfig {
  * Check if Redis is configured
  */
 export function isRedisConfigured(): boolean {
-  const config = getRedisConfig();
-  return !!config.url || (!!config.host && !!config.port);
+  // Check for explicit env var presence — not the default fallback value
+  return !!(process.env.REDIS_URL || (process.env.REDIS_HOST && process.env.REDIS_PORT));
 }
 
 /**

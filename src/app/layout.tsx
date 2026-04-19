@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import { GlobalShortcuts } from "@/components/layout/GlobalShortcuts";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { MobileNotice } from "@/components/layout/MobileNotice";
 import "./globals.css";
 
 const inter = Inter({
@@ -51,7 +52,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <SessionProvider>
           <GlobalShortcuts>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <MobileNotice />
+              {children}
+            </ToastProvider>
           </GlobalShortcuts>
         </SessionProvider>
       </body>

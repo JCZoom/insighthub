@@ -86,10 +86,11 @@ function buildSelectClause(config: VisualQueryConfig, prettyFormat: boolean): st
     selectItems.push(`${agg.function.toUpperCase()}(${columnRef}) AS ${escapeIdentifier(alias)}`);
   });
 
-  // Add formulas
+  // Add formulas (validated against safe function/operator allowlist)
   config.formulas.forEach(formula => {
     const alias = formula.alias || formula.name;
-    selectItems.push(`${formula.expression} AS ${escapeIdentifier(alias)}`);
+    const safeExpression = validateFormulaExpression(formula.expression);
+    selectItems.push(`${safeExpression} AS ${escapeIdentifier(alias)}`);
   });
 
   // Fallback to * if no columns selected
@@ -230,6 +231,69 @@ function formatValue(value: unknown, type: string): string {
     default:
       return `'${String(value).replace(/'/g, "''")}'`;
   }
+}
+
+// Safe SQL functions allowed in formula expressions
+const SAFE_SQL_FUNCTIONS = new Set([
+  'SUM', 'COUNT', 'AVG', 'MIN', 'MAX', 'COALESCE', 'NULLIF',
+  'ABS', 'CEIL', 'CEILING', 'FLOOR', 'ROUND', 'TRUNC', 'TRUNCATE',
+  'UPPER', 'LOWER', 'TRIM', 'LTRIM', 'RTRIM', 'LENGTH', 'LEN',
+  'CONCAT', 'SUBSTRING', 'SUBSTR', 'REPLACE', 'LEFT', 'RIGHT',
+  'CAST', 'CONVERT', 'TO_DATE', 'TO_CHAR', 'TO_NUMBER',
+  'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'IF', 'IFF',
+  'DATEADD', 'DATEDIFF', 'DATE_TRUNC', 'EXTRACT', 'YEAR', 'MONTH', 'DAY',
+  'CURRENT_DATE', 'CURRENT_TIMESTAMP', 'NOW',
+  'COUNTIF', 'SUMIF', 'AVGIF',
+  'DISTINCT', 'AS', 'AND', 'OR', 'NOT', 'IN', 'BETWEEN', 'IS', 'NULL', 'LIKE',
+  'POWER', 'SQRT', 'LOG', 'LN', 'EXP', 'MOD',
+  'ZEROIFNULL', 'NVL', 'IFNULL',
+]);
+
+// Dangerous patterns that should never appear in formulas
+const DANGEROUS_PATTERNS = [
+  /;\s*/,                     // Statement separator
+  /--/,                       // SQL line comment
+  /\/\*/,                     // SQL block comment
+  /\bDROP\b/i,
+  /\bDELETE\b/i,
+  /\bINSERT\b/i,
+  /\bUPDATE\b/i,
+  /\bALTER\b/i,
+  /\bCREATE\b/i,
+  /\bEXEC\b/i,
+  /\bEXECUTE\b/i,
+  /\bGRANT\b/i,
+  /\bREVOKE\b/i,
+  /\bUNION\b/i,
+  /\bINTO\b/i,
+];
+
+/**
+ * Validate a formula expression against a safe subset of SQL functions and operators.
+ * Rejects expressions containing dangerous SQL keywords or patterns.
+ */
+function validateFormulaExpression(expression: string): string {
+  if (!expression || expression.length > 1000) {
+    throw new Error('Formula expression is empty or too long (max 1000 chars)');
+  }
+
+  // Check for dangerous patterns
+  for (const pattern of DANGEROUS_PATTERNS) {
+    if (pattern.test(expression)) {
+      throw new Error(`Formula contains disallowed SQL pattern: ${pattern}`);
+    }
+  }
+
+  // Extract function names and validate against allowlist
+  const functionCalls = expression.match(/\b([A-Z_][A-Z_0-9]*)\s*\(/gi) || [];
+  for (const call of functionCalls) {
+    const funcName = call.replace(/\s*\($/, '').toUpperCase();
+    if (!SAFE_SQL_FUNCTIONS.has(funcName)) {
+      throw new Error(`Formula uses disallowed function: ${funcName}`);
+    }
+  }
+
+  return expression;
 }
 
 function escapeIdentifier(identifier: string): string {
