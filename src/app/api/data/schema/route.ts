@@ -24,6 +24,8 @@ function generateSchemaFromSampleData(): Record<string, { columns: Record<string
         'arr': 'integer',
         'churn_rate': 'number',
         'nrr': 'number',
+        'grr': 'number',
+        'gross_revenue_retention': 'number',
         'avg_csat': 'number',
         'open_tickets': 'integer',
         'avg_frt_minutes': 'integer',

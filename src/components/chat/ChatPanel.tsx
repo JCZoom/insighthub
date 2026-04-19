@@ -12,13 +12,10 @@ import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummary } from '@/lib/ai/change-summarizer';
 import { Tooltip } from '@/components/ui/Tooltip';
 
-// --- Rotating status messages while AI is working ---
+// --- Fallback status messages (only shown before server sends real progress) ---
 const AI_PHASES = [
-  'Understanding your request…',
-  'Analyzing available data sources…',
-  'Designing widget layout…',
-  'Selecting the right visualizations…',
-  'Building your dashboard…',
+  'Sending request to AI…',
+  'Waiting for response…',
 ];
 
 /**
@@ -35,23 +32,25 @@ function renderMarkdown(text: string): React.ReactNode[] {
   });
 }
 
-function AiStatusText({ patchCount }: { patchCount: number }) {
+function AiStatusText({ patchCount, serverMessage }: { patchCount: number; serverMessage?: string }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    if (patchCount > 0) return; // stop cycling once patches arrive
+    if (patchCount > 0 || serverMessage) return;
     const interval = setInterval(() => {
       setPhase(p => (p + 1) % AI_PHASES.length);
     }, 2400);
     return () => clearInterval(interval);
-  }, [patchCount]);
+  }, [patchCount, serverMessage]);
 
   if (patchCount > 0) {
-    return <span>Placing widgets on canvas…</span>;
+    return <span>Placing widgets on canvas… ({patchCount} added)</span>;
   }
 
+  const display = serverMessage || AI_PHASES[phase];
+
   return (
-    <span className="transition-opacity duration-300">{AI_PHASES[phase]}</span>
+    <span className="transition-opacity duration-300">{display}</span>
   );
 }
 
@@ -590,7 +589,7 @@ export function ChatPanel({ initialPrompt }: ChatPanelProps) {
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-3 w-full max-w-[90%]">
               <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <Loader2 size={14} className="animate-spin shrink-0" />
-                <AiStatusText patchCount={streamingState.currentPatches.length} />
+                <AiStatusText patchCount={streamingState.currentPatches.length} serverMessage={streamingState.message} />
               </div>
               {/* Indeterminate shimmer bar */}
               <div className="w-full bg-[var(--bg-primary)] rounded-full h-1 overflow-hidden mt-2">

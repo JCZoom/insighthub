@@ -179,7 +179,7 @@ ${smartSuggestions}
 ALWAYS use these pre-computed sources and their EXACT field names. Do NOT invent field names.
 
 ### kpi_summary (for kpi_card widgets — single-row aggregate)
-Fields: total_customers, active_customers, mrr, arr, churn_rate, nrr, avg_csat, open_tickets, avg_frt_minutes, pipeline_value, win_rate, avg_deal_size
+Fields: total_customers, active_customers, mrr, arr, churn_rate, nrr, grr, gross_revenue_retention, avg_csat, open_tickets, avg_frt_minutes, pipeline_value, win_rate, avg_deal_size
 Example: \`{ "source": "kpi_summary", "aggregation": { "function": "avg", "field": "churn_rate" } }\`
 
 ### churn_by_month (monthly churn series)

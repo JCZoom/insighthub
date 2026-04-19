@@ -692,12 +692,7 @@ export function GalleryPage() {
           <Tooltip content={showFolderTree ? 'Hide folders' : 'Show folders'} side="bottom">
             <button
               onClick={() => setShowFolderTree(!showFolderTree)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border transition-colors min-h-[44px]',
-                showFolderTree
-                  ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
-                  : 'border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              )}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors min-h-[44px]"
             >
               {showFolderTree ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
               <span className="hidden sm:inline">Folders</span>

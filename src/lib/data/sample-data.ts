@@ -200,6 +200,8 @@ function generateKpiSummary(): Record<string, unknown>[] {
     arr: randInt(58000000, 62000000),
     churn_rate: +(randBetween(4.5, 5.5)).toFixed(1),
     nrr: +(randBetween(94, 100)).toFixed(1),
+    grr: +(randBetween(85, 92)).toFixed(1),
+    gross_revenue_retention: +(randBetween(85, 92)).toFixed(1),
     avg_csat: +(randBetween(4.1, 4.6)).toFixed(1),
     open_tickets: randInt(3000, 5000),
     avg_frt_minutes: randInt(12, 30),
