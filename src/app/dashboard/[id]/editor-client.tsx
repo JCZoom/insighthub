@@ -13,7 +13,7 @@ import { ResizableDivider } from '@/components/layout/ResizableDivider';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { TEMPLATE_SCHEMAS } from '@/lib/data/templates';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useAutoSave } from '@/hooks/useAutoSave';
+import { useAutoSaveWithThumbnails } from '@/hooks/useAutoSaveWithThumbnails';
 import { useToast } from '@/components/ui/toast';
 import { useViewport } from '@/hooks/useViewport';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
@@ -40,16 +40,25 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   });
   const handleChatWidthChange = useCallback((w: number) => setChatWidth(w), []);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  const dashboardGridRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const viewport = useViewport();
   const router = useRouter();
 
-  const { save } = useAutoSave();
+  const { save, getIsGeneratingThumbnail } = useAutoSaveWithThumbnails({
+    getDashboardElement: () => dashboardGridRef.current,
+    enableThumbnails: true
+  });
 
   useKeyboardShortcuts({
     onSave: async () => {
       await save();
-      toast({ type: 'success', title: 'Dashboard saved' });
+      const isGenerating = getIsGeneratingThumbnail();
+      toast({
+        type: 'success',
+        title: 'Dashboard saved',
+        description: isGenerating ? 'Generating thumbnail...' : undefined
+      });
     },
     onSaveAs: async () => {
       // Save current work first
@@ -132,6 +141,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
                 isLibraryOpen={isLibraryOpen}
                 onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
                 isGlossaryOpen={isGlossaryOpen}
+                dashboardRef={dashboardGridRef}
               />
             ) : (
               <div className="flex-1 flex flex-col">
@@ -154,6 +164,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
               isGlossaryOpen={isGlossaryOpen}
               onToggleChatDrawer={() => setIsChatDrawerOpen(prev => !prev)}
               isChatDrawerOpen={isChatDrawerOpen}
+              dashboardRef={dashboardGridRef}
             />
             <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
             <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
@@ -188,6 +199,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
               isLibraryOpen={isLibraryOpen}
               onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
               isGlossaryOpen={isGlossaryOpen}
+              dashboardRef={dashboardGridRef}
             />
             <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
             <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />

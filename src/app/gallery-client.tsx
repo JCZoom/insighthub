@@ -183,10 +183,12 @@ export function GalleryPage() {
         setSelectedCardIndex(prev => {
           // Total cards = 1 "Create New Dashboard" card + filtered dashboards
           const totalCards = 1 + filteredRef.current.length;
-          if (prev >= totalCards - 1) {
-            return 0; // Cycle back to "Create New Dashboard" card
+          // If no selection yet, start with "Create New Dashboard" card
+          if (prev < 0) {
+            return 0;
           }
-          return prev + 1;
+          // Cycle through all cards including "Create New Dashboard"
+          return (prev + 1) % totalCards;
         });
         return;
       }
@@ -197,10 +199,12 @@ export function GalleryPage() {
         setSelectedCardIndex(prev => {
           // Total cards = 1 "Create New Dashboard" card + filtered dashboards
           const totalCards = 1 + filteredRef.current.length;
-          if (prev <= 0) {
-            return totalCards - 1; // Cycle back to last dashboard card
+          // If no selection yet, start with last dashboard card
+          if (prev < 0) {
+            return Math.max(0, totalCards - 1);
           }
-          return prev - 1;
+          // Cycle through all cards including "Create New Dashboard"
+          return prev === 0 ? totalCards - 1 : prev - 1;
         });
         return;
       }

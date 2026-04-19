@@ -34,9 +34,11 @@ interface DashboardCanvasProps {
   isGlossaryOpen?: boolean;
   onToggleChatDrawer?: () => void;
   isChatDrawerOpen?: boolean;
+  /** Ref to the dashboard grid element for external access (e.g., thumbnail generation) */
+  dashboardRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen }: DashboardCanvasProps) {
+export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen, dashboardRef }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
     undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
@@ -66,7 +68,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     previewX: number;
     previewY: number;
   } | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
+  const gridRef = dashboardRef || useRef<HTMLDivElement>(null);
   const [detailWidget, setDetailWidget] = useState<WidgetConfig | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showShare, setShowShare] = useState(false);

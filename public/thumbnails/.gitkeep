@@ -1,0 +1,2 @@
+# This file ensures the thumbnails directory exists in git
+# Thumbnail images will be stored here as dashboardId.png

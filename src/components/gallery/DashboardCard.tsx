@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BarChart3, Clock, Users, Star, Trash2, ExternalLink, Pencil, Copy, Share2 } from 'lucide-react';
 import { relativeTime } from '@/lib/utils';
+import { DashboardThumbnail } from './DashboardThumbnail';
 
 export interface DashboardCardData {
   id: string;
@@ -155,14 +156,20 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
       onContextMenu={handleContextMenu}
     >
       <div className="card p-0 overflow-hidden h-full flex flex-col">
-        {/* Thumbnail placeholder */}
+        {/* Dashboard thumbnail */}
         <div className="h-28 bg-gradient-to-br from-accent-blue/10 via-accent-purple/5 to-accent-cyan/10 flex items-center justify-center relative shrink-0">
-          <BarChart3 size={32} className="text-accent-blue/30" />
+          <DashboardThumbnail
+            dashboardId={dashboard.id}
+            title={dashboard.title}
+            widgetCount={dashboard.widgetCount}
+            isTemplate={dashboard.isTemplate}
+            className="absolute inset-0"
+          />
           {/* Favorite button */}
           <button
             onClick={handleFavoriteClick}
             tabIndex={-1}
-            className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 transition-colors"
+            className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 transition-colors z-10"
             title={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
             <Star
@@ -179,14 +186,11 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, onTogg
             <button
               onClick={handleDeleteClick}
               tabIndex={-1}
-              className="absolute top-2 right-8 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all"
+              className="absolute top-2 right-8 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 transition-all z-10"
               title="Delete dashboard"
             >
               <Trash2 size={14} className="text-[var(--text-muted)] hover:text-accent-red transition-colors" />
             </button>
-          )}
-          {dashboard.isTemplate && (
-            <span className="absolute top-2 left-2 pill pill-purple text-[10px]">Template</span>
           )}
         </div>
 

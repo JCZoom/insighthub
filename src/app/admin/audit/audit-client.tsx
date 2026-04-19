@@ -132,7 +132,7 @@ export function AuditLogClient() {
   const uniqueUsers = [...new Map(logs.map(log => [log.userId, { id: log.userId, name: log.user.name, email: log.user.email }])).values()];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--bg-primary)]">
       <div className="px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -276,7 +276,7 @@ export function AuditLogClient() {
           {loading ? (
             <div className="px-6 py-12 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading audit logs...</p>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">Loading audit logs...</p>
             </div>
           ) : error ? (
             <div className="px-6 py-12 text-center">
@@ -290,7 +290,7 @@ export function AuditLogClient() {
             </div>
           ) : logs.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <p className="text-gray-500 dark:text-gray-400">No audit logs found matching your criteria.</p>
+              <p className="text-[var(--text-muted)]">No audit logs found matching your criteria.</p>
             </div>
           ) : (
             <>
