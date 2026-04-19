@@ -56,7 +56,7 @@ export function PieChartWidget({ config, data, onChartClick }: PieChartWidgetPro
               outerRadius={outerRadius}
               dataKey={valueKey}
               nameKey={nameKey}
-              paddingAngle={isMobile ? 1 : 2}
+              paddingAngle={isMobile ? 0.5 : 1}
               animationDuration={animDuration}
               onClick={onChartClick ? (data: any, index: number) => {
                 // When clicking a pie slice, filter by the name key
@@ -70,7 +70,7 @@ export function PieChartWidget({ config, data, onChartClick }: PieChartWidgetPro
               style={onChartClick ? { cursor: 'pointer' } : undefined}
             >
               {data.map((_, index) => (
-                <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                <Cell key={index} fill={COLORS[index % COLORS.length]} stroke="var(--bg-card)" strokeWidth={1} />
               ))}
             </Pie>
             <Tooltip {...tooltipConfig} />
