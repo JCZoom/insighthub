@@ -293,13 +293,43 @@ model DataAccessRule {
   id                 String           @id @default(cuid())
   permissionGroupId  String
   permissionGroup    PermissionGroup  @relation(fields: [permissionGroupId], references: [id], onDelete: Cascade)
-  dataCategory       String           // "Revenue", "Support", "CustomerPII", etc
+  dataCategory       String           // "Revenue", "Support", "CustomerPII", "Financial" etc
   accessLevel        String           @default("NONE") // "FULL", "NONE", "FILTERED"
   filterCriteria     String?          // JSON: conditions for FILTERED access
+  metricAccessRules  MetricAccessRule[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   @@unique([permissionGroupId, dataCategory])
   @@index([permissionGroupId])
   @@index([dataCategory])
+}
+
+// Granular metric-level access control within data categories
+model MetricAccessRule {
+  id                String         @id @default(cuid())
+  dataAccessRuleId  String
+  dataAccessRule    DataAccessRule @relation(fields: [dataAccessRuleId], references: [id], onDelete: Cascade)
+  metricName        String         // Specific metric/data source name (e.g. "mrr_by_month", "total_revenue")
+  accessLevel       String         @default("NONE") // "FULL", "NONE", "FILTERED"
+  filterCriteria    String?        // JSON: specific conditions for this metric
+  deniedReason      String?        // Custom message explaining why access is denied
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([dataAccessRuleId, metricName])
+  @@index([dataAccessRuleId])
+  @@index([metricName])
+}
+
+// Meta-categories that group related data categories for easier management
+model DataMetaCategory {
+  id               String   @id @default(cuid())
+  name             String   @unique // "Financial", "Customer Operations", etc
+  description      String?
+  includedCategories String // JSON array: ["Revenue", "Sales", "Operations"]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([name])
 }

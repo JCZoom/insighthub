@@ -38,6 +38,9 @@ interface UsersClientProps {
   currentUser: SessionUser;
 }
 
+const VALID_ROLES = ['VIEWER', 'CREATOR', 'POWER_USER', 'ADMIN'] as const;
+type Role = typeof VALID_ROLES[number];
+
 export default function UsersClient({ currentUser }: UsersClientProps) {
   const [users, setUsers] = useState<UserWithPermissions[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([]);
@@ -45,6 +48,7 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserWithPermissions | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [roleChangeLoading, setRoleChangeLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -93,6 +97,40 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
       setShowAssignModal(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const changeUserRole = async (userId: string, newRole: Role) => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    if (userId === currentUser.id) {
+      setError('Cannot change your own role.');
+      return;
+    }
+
+    if (!confirm(`Change ${targetUser.name}'s role from ${targetUser.role} to ${newRole}?`)) {
+      return;
+    }
+
+    try {
+      setRoleChangeLoading(userId);
+      const response = await fetch(`/api/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to change role');
+      }
+
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setRoleChangeLoading(null);
     }
   };
 
@@ -196,9 +234,24 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-accent-blue/10 text-accent-blue">
-                      {user.role}
-                    </span>
+                    {user.id === currentUser.id ? (
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-accent-blue/10 text-accent-blue">
+                        {user.role}
+                      </span>
+                    ) : (
+                      <select
+                        value={user.role}
+                        onChange={(e) => changeUserRole(user.id, e.target.value as Role)}
+                        disabled={roleChangeLoading === user.id}
+                        className="text-xs font-semibold rounded-full px-2 py-1 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer hover:border-accent-blue focus:ring-2 focus:ring-accent-blue/50 disabled:opacity-50 disabled:cursor-wait"
+                      >
+                        {VALID_ROLES.map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-primary)]">
                     <div className="space-y-1">

@@ -149,6 +149,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
       { id: 'admin:audit', label: 'Audit Log', icon: FileText, category: 'admin', keywords: ['audit', 'log', 'activity', 'history', 'compliance'], action: nav('/admin/audit') },
       { id: 'admin:permissions', label: 'Permission Groups', icon: Shield, category: 'admin', keywords: ['permissions', 'rbac', 'roles', 'access', 'security'], action: nav('/admin/permissions') },
       { id: 'admin:users', label: 'User Management', icon: Users, category: 'admin', keywords: ['users', 'team', 'people', 'manage', 'accounts'], action: nav('/admin/users') },
+      { id: 'admin:settings', label: 'System Settings', icon: Settings, category: 'admin', keywords: ['settings', 'config', 'flags', 'features', 'maintenance', 'ai model'], action: nav('/admin/settings') },
     ];
 
     return commands;

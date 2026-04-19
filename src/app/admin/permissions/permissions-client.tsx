@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SessionUser } from '@/lib/auth/session';
-import { DATA_CATEGORIES, type DataCategory, type FeaturePermissions, type DataPermissions } from '@/lib/auth/permissions';
+import { DATA_CATEGORIES, DATA_META_CATEGORIES, type DataCategory, type FeaturePermissions, type DataPermissions } from '@/lib/auth/permissions';
 
 interface PermissionGroup {
   id: string;
@@ -222,7 +222,11 @@ function PermissionGroupCard({
 
   const dataAccess = Object.entries(dataPerms)
     .filter(([, level]) => level !== 'NONE')
-    .map(([category, level]) => `${category}: ${level}`);
+    .map(([category, level]) => {
+      // Mark meta-categories with special indicator
+      const isMetaCategory = category === 'Financial';
+      return `${category}: ${level}${isMetaCategory ? ' (Meta)' : ''}`;
+    });
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-6 shadow-sm">
@@ -314,9 +318,12 @@ function CreateGroupModal({
     featurePermissions: Object.fromEntries(
       Object.keys(FEATURE_PERMISSION_LABELS).map(key => [key, false])
     ) as unknown as FeaturePermissions,
-    dataPermissions: Object.fromEntries(
-      Object.keys(DATA_CATEGORIES).map(key => [key, 'NONE'])
-    ) as unknown as DataPermissions,
+    dataPermissions: {
+      ...Object.fromEntries(
+        Object.keys(DATA_CATEGORIES).map(key => [key, 'NONE'])
+      ),
+      Financial: 'NONE'
+    } as unknown as DataPermissions,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -383,29 +390,70 @@ function CreateGroupModal({
 
             <div>
               <h3 className="text-lg font-medium text-[var(--text-primary)] mb-3">Data Permissions</h3>
-              <div className="space-y-2">
-                {Object.keys(DATA_CATEGORIES).map((category) => (
-                  <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{category}</span>
-                    <select
-                      value={formData.dataPermissions[category as DataCategory]}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          dataPermissions: {
-                            ...formData.dataPermissions,
-                            [category]: e.target.value as 'FULL' | 'NONE' | 'FILTERED',
-                          },
-                        })
-                      }
-                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm"
-                    >
-                      <option value="NONE">None</option>
-                      <option value="FILTERED">Filtered</option>
-                      <option value="FULL">Full</option>
-                    </select>
+              <div className="space-y-4">
+                {/* Meta-categories */}
+                <div>
+                  <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Meta-Categories</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">Financial</span>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                          {DATA_META_CATEGORIES.Financial.description}
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Includes: {DATA_META_CATEGORIES.Financial.includedCategories.join(', ')}
+                        </p>
+                      </div>
+                      <select
+                        value={formData.dataPermissions.Financial}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            dataPermissions: {
+                              ...formData.dataPermissions,
+                              Financial: e.target.value as 'FULL' | 'NONE' | 'FILTERED',
+                            },
+                          })
+                        }
+                        className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm ml-3"
+                      >
+                        <option value="NONE">None</option>
+                        <option value="FILTERED">Filtered</option>
+                        <option value="FULL">Full</option>
+                      </select>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Regular categories */}
+                <div>
+                  <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Data Categories</h4>
+                  <div className="space-y-2">
+                    {Object.keys(DATA_CATEGORIES).map((category) => (
+                      <div key={category} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{category}</span>
+                        <select
+                          value={formData.dataPermissions[category as DataCategory]}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              dataPermissions: {
+                                ...formData.dataPermissions,
+                                [category]: e.target.value as 'FULL' | 'NONE' | 'FILTERED',
+                              },
+                            })
+                          }
+                          className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm"
+                        >
+                          <option value="NONE">None</option>
+                          <option value="FILTERED">Filtered</option>
+                          <option value="FULL">Full</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -511,29 +559,70 @@ function EditGroupModal({
 
             <div>
               <h3 className="text-lg font-medium text-[var(--text-primary)] mb-3">Data Permissions</h3>
-              <div className="space-y-2">
-                {Object.keys(DATA_CATEGORIES).map((category) => (
-                  <div key={category} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{category}</span>
-                    <select
-                      value={formData.dataPermissions[category as DataCategory]}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          dataPermissions: {
-                            ...formData.dataPermissions,
-                            [category]: e.target.value as 'FULL' | 'NONE' | 'FILTERED',
-                          },
-                        })
-                      }
-                      className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm"
-                    >
-                      <option value="NONE">None</option>
-                      <option value="FILTERED">Filtered</option>
-                      <option value="FULL">Full</option>
-                    </select>
+              <div className="space-y-4">
+                {/* Meta-categories */}
+                <div>
+                  <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Meta-Categories</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">Financial</span>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                          {DATA_META_CATEGORIES.Financial.description}
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Includes: {DATA_META_CATEGORIES.Financial.includedCategories.join(', ')}
+                        </p>
+                      </div>
+                      <select
+                        value={formData.dataPermissions.Financial}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            dataPermissions: {
+                              ...formData.dataPermissions,
+                              Financial: e.target.value as 'FULL' | 'NONE' | 'FILTERED',
+                            },
+                          })
+                        }
+                        className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm ml-3"
+                      >
+                        <option value="NONE">None</option>
+                        <option value="FILTERED">Filtered</option>
+                        <option value="FULL">Full</option>
+                      </select>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Regular categories */}
+                <div>
+                  <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2">Data Categories</h4>
+                  <div className="space-y-2">
+                    {Object.keys(DATA_CATEGORIES).map((category) => (
+                      <div key={category} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{category}</span>
+                        <select
+                          value={formData.dataPermissions[category as DataCategory]}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              dataPermissions: {
+                                ...formData.dataPermissions,
+                                [category]: e.target.value as 'FULL' | 'NONE' | 'FILTERED',
+                              },
+                            })
+                          }
+                          className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[var(--text-primary)] rounded px-2 py-1 text-sm"
+                        >
+                          <option value="NONE">None</option>
+                          <option value="FILTERED">Filtered</option>
+                          <option value="FULL">Full</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

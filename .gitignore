@@ -45,6 +45,9 @@ prisma/dev.db-journal
 # Database backups
 /backups/
 
+# Runtime data (system settings)
+/data/
+
 # vercel
 .vercel
 

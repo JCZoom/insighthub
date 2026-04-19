@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Settings2, Database, Palette, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { X, Settings2, Database, Palette, ChevronDown, Plus, Trash2, Lock, Shield, AlertTriangle } from 'lucide-react';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { getAvailableSources } from '@/lib/data/sample-data';
+import { useDataSourcePermissions, useDataSourceAccess } from '@/hooks/useDataSourcePermissions';
+import { validateWidgetDataAccess, getDataSourceRestrictionExplanation } from '@/lib/auth/permissions';
 import type { WidgetConfig, WidgetType, ThresholdConfig } from '@/types';
+import { useSession } from 'next-auth/react';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -322,10 +325,27 @@ function DataTab({
   update: (changes: Partial<WidgetConfig>) => void;
   dataSources: string[];
 }) {
-  const sourceOptions = dataSources.map((s) => ({
-    value: s,
-    label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-  }));
+  const { allowedSources, sourcesWithAccess, loading, error } = useDataSourcePermissions();
+  const currentSourceAccess = useDataSourceAccess(widget.dataConfig.source);
+
+  // Filter data sources to only show allowed ones, but keep current selection even if restricted
+  const availableSources = loading ? dataSources : allowedSources;
+  const allSources = dataSources.filter(s =>
+    availableSources.includes(s) || s === widget.dataConfig.source
+  );
+
+  const sourceOptions = allSources.map((s) => {
+    const sourceAccess = sourcesWithAccess.find(sa => sa.name === s);
+    const isRestricted = !allowedSources.includes(s);
+
+    return {
+      value: s,
+      label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      isRestricted,
+      accessLevel: sourceAccess?.accessLevel || 'NONE',
+      category: sourceAccess?.category,
+    };
+  });
 
   const aggField = widget.dataConfig.aggregation?.field || '';
   const aggFunction = widget.dataConfig.aggregation?.function || 'sum';
@@ -334,18 +354,92 @@ function DataTab({
     <>
       <div>
         <FieldLabel>Data Source</FieldLabel>
-        <SelectInput
-          value={widget.dataConfig.source}
-          onChange={(v) =>
-            update({
-              dataConfig: { ...widget.dataConfig, source: v },
-            })
-          }
-          options={[{ value: '', label: '— Select source —' }, ...sourceOptions]}
-        />
-        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-          Sample data source for this widget
-        </p>
+
+        {/* Data source selection with permission indicators */}
+        <div className="relative">
+          <select
+            value={widget.dataConfig.source}
+            onChange={(e) => {
+              const selectedSource = e.target.value;
+              const selectedOption = sourceOptions.find(opt => opt.value === selectedSource);
+
+              // Block selection of completely restricted sources
+              if (selectedOption?.isRestricted && selectedOption.accessLevel === 'NONE') {
+                alert(`Access denied to this data source. Contact your administrator to request access to ${selectedOption.category ? selectedOption.category + ' data' : 'this data source'}.`);
+                return;
+              }
+
+              // Warn if selecting a filtered source
+              if (selectedOption?.accessLevel === 'FILTERED' && selectedSource !== '') {
+                if (!confirm(`This data source has filtered access - only aggregate data will be available. Continue?`)) {
+                  return;
+                }
+              }
+
+              update({
+                dataConfig: { ...widget.dataConfig, source: selectedSource },
+              });
+            }}
+            className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 transition-colors appearance-none pr-8"
+          >
+            <option value="">— Select source —</option>
+            {sourceOptions.map((opt) => (
+              <option key={opt.value} value={opt.value} disabled={opt.isRestricted && opt.value !== widget.dataConfig.source}>
+                {opt.label} {opt.isRestricted ? `(${opt.accessLevel})` : ''}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
+        </div>
+
+        {/* Permission status indicator */}
+        <div className="mt-2 space-y-1">
+          {widget.dataConfig.source && (
+            <>
+              <DataSourcePermissionIndicator
+                source={widget.dataConfig.source}
+                accessLevel={currentSourceAccess.accessLevel}
+                category={currentSourceAccess.category}
+                isRestricted={currentSourceAccess.isRestricted}
+              />
+              <WidgetDataValidator dataSource={widget.dataConfig.source} />
+            </>
+          )}
+
+          {error && (
+            <p className="text-[10px] text-red-500 flex items-center gap-1">
+              <AlertTriangle size={10} />
+              Error loading permissions: {error}
+            </p>
+          )}
+
+          {!error && !widget.dataConfig.source && (
+            <p className="text-[10px] text-[var(--text-muted)]">
+              Select a data source for this widget
+            </p>
+          )}
+        </div>
+
+        {/* Available sources summary */}
+        {!loading && (
+          <div className="mt-3 p-2 rounded-md bg-[var(--bg-card)]/50">
+            <p className="text-[10px] text-[var(--text-muted)] mb-1">Data Access Summary:</p>
+            <div className="flex items-center gap-3 text-[10px]">
+              <span className="flex items-center gap-1 text-green-600">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                {allowedSources.length} available
+              </span>
+              <span className="flex items-center gap-1 text-blue-600">
+                <Shield size={8} />
+                {sourcesWithAccess.filter(s => s.accessLevel === 'FILTERED').length} filtered
+              </span>
+              <span className="flex items-center gap-1 text-red-600">
+                <Lock size={8} />
+                {dataSources.length - allowedSources.length} restricted
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>
@@ -837,6 +931,158 @@ function ThresholdEditor({ threshold, index, onUpdate, onRemove }: ThresholdEdit
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Data Source Permission Indicator ──────────────────────────────────────────
+
+interface DataSourcePermissionIndicatorProps {
+  source: string;
+  accessLevel: 'FULL' | 'FILTERED' | 'NONE';
+  category?: string;
+  isRestricted: boolean;
+}
+
+function DataSourcePermissionIndicator({
+  source,
+  accessLevel,
+  category,
+  isRestricted,
+}: DataSourcePermissionIndicatorProps) {
+  if (accessLevel === 'NONE') {
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+        <Lock size={12} className="text-red-600 dark:text-red-400" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-medium text-red-700 dark:text-red-300">
+            Access Denied
+          </p>
+          <p className="text-[9px] text-red-600 dark:text-red-400">
+            Contact your administrator to request access to {category ? `${category} data` : 'this data source'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessLevel === 'FILTERED') {
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+        <Shield size={12} className="text-blue-600 dark:text-blue-400" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-medium text-blue-700 dark:text-blue-300">
+            Filtered Access
+          </p>
+          <p className="text-[9px] text-blue-600 dark:text-blue-400">
+            Aggregate data only - no customer-level details available
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessLevel === 'FULL') {
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-medium text-green-700 dark:text-green-300">
+            Full Access
+          </p>
+          <p className="text-[9px] text-green-600 dark:text-green-400">
+            {category ? `${category} data` : 'Data source'} - complete access available
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ── Widget Data Validation Component ────────────────────────────────────────
+
+interface WidgetDataValidatorProps {
+  dataSource: string;
+  onValidationChange?: (isValid: boolean, errors: string[], warnings: string[]) => void;
+}
+
+function WidgetDataValidator({ dataSource, onValidationChange }: WidgetDataValidatorProps) {
+  const { data: session } = useSession();
+  const [validationResult, setValidationResult] = useState<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    loading: boolean;
+  }>({
+    isValid: true,
+    errors: [],
+    warnings: [],
+    loading: false
+  });
+
+  useEffect(() => {
+    const validateWidget = async () => {
+      if (!session?.user || !dataSource) {
+        setValidationResult({ isValid: true, errors: [], warnings: [], loading: false });
+        onValidationChange?.(true, [], []);
+        return;
+      }
+
+      setValidationResult(prev => ({ ...prev, loading: true }));
+
+      try {
+        const result = await validateWidgetDataAccess(session.user as any, dataSource);
+        setValidationResult({
+          isValid: result.isValid,
+          errors: result.errors,
+          warnings: result.warnings,
+          loading: false
+        });
+        onValidationChange?.(result.isValid, result.errors, result.warnings);
+      } catch (error) {
+        const errorMsg = 'Failed to validate widget data access';
+        setValidationResult({
+          isValid: false,
+          errors: [errorMsg],
+          warnings: [],
+          loading: false
+        });
+        onValidationChange?.(false, [errorMsg], []);
+      }
+    };
+
+    validateWidget();
+  }, [dataSource, session?.user, onValidationChange]);
+
+  if (validationResult.loading) {
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md bg-gray-50 dark:bg-gray-900/20">
+        <div className="w-3 h-3 border border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+        <span className="text-[10px] text-gray-600 dark:text-gray-400">Validating access...</span>
+      </div>
+    );
+  }
+
+  if (validationResult.errors.length === 0 && validationResult.warnings.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1">
+      {validationResult.errors.map((error, index) => (
+        <div key={`error-${index}`} className="flex items-start gap-2 p-2 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <AlertTriangle size={12} className="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+          <span className="text-[10px] text-red-700 dark:text-red-300">{error}</span>
+        </div>
+      ))}
+      {validationResult.warnings.map((warning, index) => (
+        <div key={`warning-${index}`} className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <AlertTriangle size={12} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+          <span className="text-[10px] text-amber-700 dark:text-amber-300">{warning}</span>
+        </div>
+      ))}
     </div>
   );
 }
