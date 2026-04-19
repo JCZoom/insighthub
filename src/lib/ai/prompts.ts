@@ -373,7 +373,7 @@ text_block widgets support rich styling via \`visualConfig.customStyles\`. Use t
 ### Variants (set \`customStyles.variant\`)
 - **"plain"** — default, no background, simple title + body text
 - **"banner"** — colored background, centered text, great for dashboard title banners (w=12, h=1 or h=2)
-- **"callout"** — left border accent, light background tint, for insights and warnings (w=6, h=2)
+- **"callout"** — left border accent, light background tint, for insights and warnings. Use w=12, h=1 for full-width compact callouts, or w=6, h=1 for half-width
 - **"header"** — section header with large title and bottom gradient line, no background (w=12, h=1)
 - **"quote"** — purple-tinted left border, for quotes or key takeaways
 
@@ -402,31 +402,54 @@ Dashboard title banner with blue TEXT (full-width):
 \`\`\`json
 { "type": "text_block", "title": "iPostal1", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "banner", "titleColor": "blue", "textColor": "blue" } } }
 \`\`\`
-Insight callout:
+Insight callout (compact, full-width):
 \`\`\`json
-{ "type": "text_block", "title": "Churn spiked 3× in APAC", "subtitle": "Investigate Enterprise plan cancellations in Q1.", "position": { "x": 0, "y": 0, "w": 6, "h": 2 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "callout", "borderAccent": "red", "backgroundColor": "red", "icon": "warning" } } }
+{ "type": "text_block", "title": "Churn spiked 3x in APAC", "subtitle": "Investigate Enterprise plan cancellations in Q1.", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "callout", "borderAccent": "red", "backgroundColor": "red", "icon": "warning" } } }
 \`\`\`
 Section header with blue title:
 \`\`\`json
 { "type": "text_block", "title": "Revenue Metrics", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "header", "titleColor": "blue" } } }
 \`\`\`
 
-When building dashboards, consider adding:
+When building dashboards, ALWAYS include:
 - A **banner** (w=12, h=1) at the top with the dashboard title for a polished look
 - **Section headers** (w=12, h=1) between widget groups (e.g. between KPIs and charts)
-- **Callouts** (w=6, h=2) to highlight key insights or anomalies
+- **Key Insight callout** (w=12, h=1) at the very bottom with a lightbulb icon
 
 ## Dashboard Layout Order (TOP to BOTTOM)
 Place widgets in this exact vertical order. BANNER AND HEADER text_blocks GO AT THE TOP, not the bottom:
 1. **Banner text_block** (w=12, h=1) — dashboard title banner, ALWAYS at the very top
-2. **KPI cards** — summary metrics at a glance
+2. **KPI cards** — summary metrics at a glance (fill the full row: 4 KPIs at w=3, 3 at w=4, 2 at w=6)
 3. **Gauges** — after KPIs if used
 4. **Section header text_block** (w=12, h=1) — between widget groups to separate sections
-5. **Charts** (line, bar, area, stacked) — the analytical middle
-6. **Callout text_blocks** (w=6, h=2) — alongside charts for insights
-7. **Circular charts** (pie, donut, funnel) — supplementary breakdowns
-8. **Full-width visuals** (heatmap, map) — detailed views
-9. **Tables** — always at the bottom (detail data)
+5. **Charts** (line, bar, area, stacked) — the analytical middle, ALWAYS in pairs (2 x w=6) to fill each row
+6. **Circular charts** (pie, donut, funnel) — supplementary breakdowns, in triples (3 x w=4) or pairs (2 x w=6)
+7. **Full-width visuals** (heatmap, map) — detailed views
+8. **Tables** — detail data, full width
+9. **Key Insight callout** (w=12, h=1) — ALWAYS at the very bottom, compact
+
+## ZERO DEAD SPACE — Grid Density Rules (CRITICAL)
+Dashboards MUST look fully fleshed out with no empty gaps. Follow these rules:
+1. **Every row must be fully filled** — widget widths in each row must sum to exactly 12. Never leave a partial row.
+2. **KPI row**: Always use enough KPI cards to fill w=12 (e.g. 4 x w=3, or 3 x w=4, or 2 x w=6).
+3. **Chart rows**: Always pair charts so they fill the row (2 x w=6, or 3 x w=4 for pie/donut). If the user asks for 1 chart, add a complementary related chart to fill the row.
+4. **If there is a gap, add a widget** — if your layout would leave an empty w=6 or w=4 space next to a chart, add a related metric: a pie chart breakdown, a funnel, another trend chart, or a data table.
+5. **Minimum dashboard density**: A "replace_all" new dashboard MUST have at least: 1 banner + 4 KPI cards + 1 section header + 4 charts + 1 Key Insight callout = 11 widgets minimum.
+6. **Callouts are compact** — Key Insight callouts use h=1 (not h=2). They are concise: title + one-line subtitle.
+
+## Golden Layout Template (One-Shot Example)
+When creating a new dashboard via "replace_all", follow this exact structure as a reference. This is the ideal, polished layout with zero dead space:
+
+Row 0: \`[banner w=12 h=1]\` — Dashboard title
+Row 1-2: \`[kpi w=3 h=2] [kpi w=3 h=2] [kpi w=3 h=2] [kpi w=3 h=2]\` — 4 hero KPIs filling full width
+Row 3: \`[header w=12 h=1]\` — Section title (e.g. "Trends & Analysis")
+Row 4-7: \`[line_chart w=6 h=4] [bar_chart w=6 h=4]\` — Two charts side-by-side, no gap
+Row 8-11: \`[area_chart w=6 h=4] [pie_chart w=6 h=4]\` — Two more charts, different types for visual variety
+Row 12: \`[callout w=12 h=1]\` — Key Insight with lightbulb icon
+
+Total: 12 widgets, 13 rows, zero dead space. Every row sums to w=12. The dashboard has a clear banner-to-insight narrative arc.
+
+For larger dashboards, repeat the pattern: add another section header + chart pair row. For smaller requests (2-3 widgets), still fill rows completely — add complementary metrics to avoid gaps.
 
 ## Post-Generation Suggestions
 
@@ -467,7 +490,8 @@ After adding metrics to a dashboard, suggest related metrics that provide additi
 13. NEVER drop or remove existing text_block widgets when reorganizing or resizing a dashboard. Text blocks are intentionally placed by the user. When reorganizing, preserve ALL existing widgets — just reposition and resize them.
 14. When a user says "add at the top" for a text_block, use variant "banner" or "header" with w=12 (FULL WIDTH) and position it with the lowest y value so it appears at the top of the dashboard.
 15. When using "replace_all" to reorganize, copy over ALL existing widgets from the current schema — do not omit any. Reorganize means reposition, not delete.
-16. **MANDATORY Key Insight callouts**: Every new dashboard (replace_all) MUST include at least one text_block with variant "callout" and icon "lightbulb" containing a **Key Insight** — a plain-English, actionable observation about the metrics shown (e.g. "Monitor NRR above 100% to ensure expansion revenue exceeds churn losses. GRR shows pure retention strength."). When adding 2 or more widgets in a single response, also include a Key Insight callout summarizing what the new metrics reveal together. Place insight callouts near the bottom of the dashboard, after the charts they reference. Use w=6, h=2 so two can sit side-by-side.`;
+16. **MANDATORY Key Insight callouts**: Every new dashboard (replace_all) MUST include at least one text_block with variant "callout", icon "lightbulb", w=12, h=1 containing a **Key Insight** — a concise, actionable observation about the metrics shown (e.g. title: "Key Insight", subtitle: "Monitor NRR above 100% to ensure expansion revenue exceeds churn losses. GRR shows pure retention strength."). When adding 2 or more widgets in a single response, also include a Key Insight callout. Place insight callouts at the very bottom of the dashboard.
+17. **ZERO DEAD SPACE**: Every row of widgets must sum to exactly w=12. Never leave a partial row with empty space. If your layout creates a gap, add another relevant widget to fill it. Dashboards must look fully fleshed out and beautiful — banner at top, dense metrics in the middle, Key Insight at the bottom.`;
 }
 
 function buildWidgetLibrarySection(library: WidgetTemplate[]): string {
