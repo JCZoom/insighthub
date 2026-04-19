@@ -33,10 +33,10 @@ const ChatRequestSchema = z.object({
     .optional()
     .default([]),
   sessionId: z.string()
-    .uuid('Session ID must be a valid UUID')
+    .min(1, 'Session ID cannot be empty')
     .optional(),
   dashboardId: z.string()
-    .uuid('Dashboard ID must be a valid UUID')
+    .min(1, 'Dashboard ID cannot be empty')
     .optional(),
   stream: z.boolean()
     .optional()
