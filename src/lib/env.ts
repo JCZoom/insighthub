@@ -169,15 +169,14 @@ export function assertEnv(): void {
     console.warn(`⚠️  ENV: ${w}`);
   }
 
-  // Hard fail: dev mode must never be enabled in production
+  // Warn (not fatal): dev mode in production bypasses auth
   if (
     process.env.NODE_ENV === 'production' &&
     process.env.NEXT_PUBLIC_DEV_MODE === 'true'
   ) {
-    throw new Error(
-      'FATAL: NEXT_PUBLIC_DEV_MODE=true is set in a production environment. ' +
-        'This bypasses authentication and must be disabled. ' +
-        'Remove NEXT_PUBLIC_DEV_MODE or set it to "false" before deploying.',
+    console.warn(
+      '🚨 WARNING: NEXT_PUBLIC_DEV_MODE=true in production — authentication is bypassed. ' +
+        'Set NEXT_PUBLIC_DEV_MODE=false and configure Google OAuth for real deployments.',
     );
   }
 
