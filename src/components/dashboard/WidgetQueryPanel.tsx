@@ -316,20 +316,7 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
           {/* Query Actions */}
           <div className="px-5 py-4 border-b border-[var(--border-color)]">
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={handleOpenInEditor}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-blue hover:bg-accent-blue/10 transition-colors border border-[var(--border-color)] hover:border-accent-blue/20"
-              >
-                <Code2 size={12} />
-                Open in SQL Editor
-              </button>
-              <button
-                onClick={handleOpenInPlayground}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-purple hover:bg-accent-purple/10 transition-colors border border-[var(--border-color)] hover:border-accent-purple/20"
-              >
-                <Database size={12} />
-                Open in Playground
-              </button>
+              {/* SQL Editor and Playground buttons deferred — uncomment when data tools are re-enabled */}
               <button
                 onClick={handleExportJSON}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-green hover:bg-accent-green/10 transition-colors border border-[var(--border-color)] hover:border-accent-green/20"

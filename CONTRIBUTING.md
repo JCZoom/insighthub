@@ -131,7 +131,7 @@ src/
 ## Common Gotchas
 
 - **SQLite, not PostgreSQL** — No `Json` columns, no `enum`, no `String[]`
-- **Dev mode** bypasses auth — never deploy with `NEXT_PUBLIC_DEV_MODE=true`
+- **Dev mode** bypasses auth — the demo deployment uses `NEXT_PUBLIC_DEV_MODE=true`; for a real multi-user production deployment, set it to `false` and configure Google OAuth
 - **Dashboard schema** is a stringified JSON blob, not relational tables
 - **Glossary terms** canonical source is `glossary/terms.yaml`, synced to DB
 - **Widget library** is static (extracted from template schemas), not yet DB-backed

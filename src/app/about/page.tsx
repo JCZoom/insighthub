@@ -17,6 +17,11 @@ import {
   Mic,
   MousePointerClick,
   Layers,
+  Download,
+  HelpCircle,
+  Settings,
+  Save,
+  FolderOpen,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Kbd } from '@/components/ui/Kbd';
@@ -120,6 +125,46 @@ const FEATURES: FeatureCardProps[] = [
     color: 'from-accent-red/15 to-accent-red/5 border-accent-red/20',
     iconColor: 'text-accent-red',
   },
+  {
+    icon: Download,
+    title: 'Export Anywhere',
+    description:
+      'Export dashboards as PNG images, SVG vector graphics, or CSV data. Share charts in presentations, reports, or Slack.',
+    color: 'from-accent-cyan/15 to-accent-cyan/5 border-accent-cyan/20',
+    iconColor: 'text-accent-cyan',
+  },
+  {
+    icon: HelpCircle,
+    title: 'Explain This Metric',
+    description:
+      'Click any widget and ask AI to explain what it shows, how it\'s calculated, and why it matters — in plain English.',
+    color: 'from-accent-purple/15 to-accent-purple/5 border-accent-purple/20',
+    iconColor: 'text-accent-purple',
+  },
+  {
+    icon: FolderOpen,
+    title: 'Folders & Organization',
+    description:
+      'Organize dashboards into folders. Drag dashboards between folders, create nested hierarchies, and keep things tidy.',
+    color: 'from-accent-amber/15 to-accent-amber/5 border-accent-amber/20',
+    iconColor: 'text-accent-amber',
+  },
+  {
+    icon: Save,
+    title: 'Auto-Save & Thumbnails',
+    description:
+      'Dashboards auto-save as you work, with automatic thumbnail generation. Never lose progress — version history lets you revert anytime.',
+    color: 'from-accent-green/15 to-accent-green/5 border-accent-green/20',
+    iconColor: 'text-accent-green',
+  },
+  {
+    icon: Settings,
+    title: 'Admin Panel',
+    description:
+      'Full admin controls: manage users and roles, configure AI models, view audit logs, adjust system settings — all from a dedicated panel.',
+    color: 'from-accent-blue/15 to-accent-blue/5 border-accent-blue/20',
+    iconColor: 'text-accent-blue',
+  },
 ];
 
 const POWER_USER_FEATURES = [
@@ -150,6 +195,7 @@ const POWER_USER_FEATURES = [
 ];
 
 const SHORTCUTS = [
+  { keys: ['mod', 'K'], description: 'Open command palette' },
   { keys: ['mod', '1'], description: 'Go to Home' },
   { keys: ['mod', '2'], description: 'Go to My Dashboards' },
   { keys: ['mod', '3'], description: 'Go to Glossary' },
@@ -159,6 +205,8 @@ const SHORTCUTS = [
   { keys: ['mod', 'shift', 'S'], description: 'Save as (duplicate)' },
   { keys: ['mod', 'Z'], description: 'Undo' },
   { keys: ['mod', 'shift', 'Z'], description: 'Redo' },
+  { keys: ['mod', 'D'], description: 'Duplicate selected widget' },
+  { keys: ['Tab'], description: 'Cycle widget selection' },
   { keys: ['/'], description: 'Focus search or chat input' },
   { keys: ['?'], description: 'Toggle keyboard shortcut sheet' },
   { keys: ['mod', 'shift', 'M'], description: 'Toggle voice input' },

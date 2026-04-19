@@ -32,12 +32,23 @@ Open [http://localhost:3000](http://localhost:3000). Dev mode auto-logs you in a
 
 - **AI Chat → Dashboard** — Describe what you want in plain English, Claude builds it
 - **Widget System** — KPI cards, line/bar/area/pie charts, data tables, gauges, text blocks
-- **Drag-and-Drop** — Move and resize widgets on a 12-column grid
+- **Drag-and-Drop** — Move and resize widgets on a 12-column grid with arrow key nudging
 - **Undo/Redo** — Full version history with instant revert
+- **Auto-Save & Thumbnails** — Dashboards save automatically with generated preview thumbnails
 - **Widget Library** — Searchable library of reusable widget templates
+- **"Explain This Metric"** — AI-powered explanations for any widget (what it shows, how it's calculated, why it matters)
+- **Export** — PNG, SVG, and CSV export for dashboards and individual widgets
 - **Glossary** — Company-defined metric terminology that the AI enforces
 - **Dark/Light Theme** — Glassmorphism design system
 - **Template Gallery** — Pre-built Executive, Support, Churn, Sales dashboards
+- **Folders** — Organize dashboards into folders with drag-and-drop
+- **Dashboard Sharing** — Share via link with configurable permissions
+- **Dashboard Cloning** — Save As to duplicate and fork dashboards
+- **Command Palette** — ⌘K to quickly navigate anywhere or run actions
+- **Keyboard Shortcuts** — Full shortcut system with contextual ? overlay
+- **Voice Input** — Speech-to-text via OpenAI Whisper for hands-free prompting
+- **Admin Panel** — User management, role assignment, AI model config, system settings, audit log viewer
+- **Role-Based Access** — Category-level data permissions with permission groups
 - **Sample Data** — 18 months of realistic demo data (Snowflake connector in Phase 3)
 - **Audit Logging** — GDPR/SOC2-ready action logging
 
@@ -67,22 +78,29 @@ src/
 │   ├── api/glossary/       # Glossary terms CRUD + search
 │   ├── api/health/         # Health check (DB, memory, uptime)
 │   ├── api/widgets/        # Widget library search + fork + publish
-│   ├── admin/              # Audit log viewer
+│   ├── admin/              # Admin panel (users, settings, audit, permissions)
 │   ├── dashboard/[id]/     # Dashboard editor
 │   ├── dashboard/new/      # New blank dashboard
 │   └── gallery/            # Dashboard gallery (My, Shared, Company, Templates)
 ├── components/
-│   ├── chat/               # AI chat panel
-│   ├── dashboard/          # Canvas, context menu, drag-and-drop
-│   ├── gallery/            # Dashboard card grid
-│   ├── layout/             # Navbar, theme toggle
+│   ├── chat/               # AI chat panel + streaming
+│   ├── dashboard/          # Canvas, toolbar, context menu, drag-and-drop, config panel
+│   ├── data/               # SQL editor, visual query builder, schema explorer (deferred)
+│   ├── gallery/            # Dashboard card grid, thumbnails, folders
+│   ├── glossary/           # Glossary panel, widget linking
+│   ├── layout/             # Navbar, theme toggle, command palette, mobile notice
 │   ├── versioning/         # Version timeline
-│   └── widgets/            # KPI, Bar, Line, Area, Pie, Table, Gauge, Text
-├── hooks/                  # useAutoSave, useKeyboardShortcuts, useSpeechToText
+│   ├── ui/                 # Toast, Kbd, shared UI primitives
+│   └── widgets/            # KPI, Bar, Line, Area, Pie, Table, Gauge, Text, Library
+├── hooks/                  # useAutoSave, useKeyboardShortcuts, useSpeechToText, useViewport
 ├── lib/
-│   ├── ai/                 # Claude prompts + schema patcher
-│   ├── auth/               # Auth config + session helpers
-│   ├── data/               # Sample data generators + templates + widget library
+│   ├── ai/                 # Claude prompts + schema patcher + change summarizer
+│   ├── auth/               # Auth config + session helpers + permissions
+│   ├── data/               # Sample data, templates, widget library, Snowflake provider
+│   ├── snowflake/          # Snowflake connector, query executor, schema, security (Phase 3)
+│   ├── redis/              # Redis caching layer (Phase 3)
+│   ├── settings.ts         # System settings (AI models, feature flags)
+│   ├── export-utils.ts     # PNG/SVG/CSV export
 │   ├── logger.ts           # Structured logging (JSON in prod, human in dev)
 │   ├── audit.ts            # Audit logging helpers
 │   ├── rate-limiter.ts     # Sliding window rate limiter
@@ -92,12 +110,15 @@ src/
 e2e/                        # Playwright E2E tests
 glossary/
 └── terms.yaml              # Canonical company glossary (synced to DB)
+deploy.sh                     # Quick deploy via Tailscale SSH (backup + health check + auto-rollback)
 scripts/
-├── ec2-deploy.sh           # Full EC2 deployment script
+├── ec2-deploy.sh           # Full EC2 deployment script (first-time setup)
 ├── backup-db.sh            # SQLite backup (local + remote)
 ├── restore-db.sh           # Database restore with rollback
 ├── monitor-health.sh       # Production health monitor
-└── sync-glossary.ts        # YAML → DB glossary sync
+├── sync-glossary.ts        # YAML → DB glossary sync
+├── sync_asana_state.py     # Sync Asana project state
+└── create_asana_project.py # Initialize Asana project structure
 ```
 
 ## Environment Variables
@@ -123,6 +144,8 @@ npm run db:studio        # Open Prisma Studio
 npm run glossary:sync    # Sync terms.yaml → database
 npm run test:e2e         # Run Playwright E2E tests
 npm run test:e2e:prod    # Run health checks against production
+./deploy.sh              # Deploy to production (with auto-rollback)
+./deploy.sh --rollback   # Instant rollback to previous build
 ```
 
 ## Deployment
