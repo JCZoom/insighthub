@@ -245,7 +245,7 @@ export default function Home() {
           {/* Input */}
           <div className="fade-up stagger-3 relative w-full mb-8">
             {/* Mobile: stacked layout, Desktop: inline layout */}
-            <div className="hero-glow bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-lg shadow-black/5 transition-colors">
+            <div className="hero-glow bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-lg shadow-black/5 transition-colors outline-none">
               <textarea
                 ref={inputRef}
                 value={input}

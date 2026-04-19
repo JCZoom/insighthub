@@ -226,8 +226,8 @@ export default function AboutPage() {
               <Sparkles size={14} />
               AI-Powered Dashboard Builder
             </div>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[var(--text-primary)] mb-6 tracking-tight leading-[1.1]">
-              Welcome to<br />
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[var(--text-primary)] mb-6 tracking-tight leading-[1.1] whitespace-nowrap">
+              Welcome to{' '}
               <span className="bg-gradient-to-r from-accent-blue via-accent-purple to-accent-cyan bg-clip-text text-transparent">
                 InsightHub
               </span>
