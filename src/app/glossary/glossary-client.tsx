@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Search, BookOpen, Hash, Calculator, Database, Users2, ChevronDown, Briefcase, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { RelatedWidgets } from '@/components/glossary/RelatedWidgets';
 
 export interface GlossaryEntry {
   term: string;
@@ -204,6 +205,9 @@ export function GlossaryClient({ initialTerms }: GlossaryClientProps) {
                         Approved by {term.approved_by} {term.last_reviewed && `— ${term.last_reviewed}`}
                       </div>
                     )}
+
+                    {/* Related Widgets */}
+                    <RelatedWidgets glossaryTerm={term} />
                   </div>
                 </div>
               )}
