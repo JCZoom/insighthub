@@ -254,11 +254,20 @@ export function MetricExplanationModal({ widget, onClose }: MetricExplanationMod
                     <Lightbulb size={16} className="text-accent-amber" />
                     <h3 className="font-semibold text-[var(--text-primary)]">AI Analysis</h3>
                   </div>
-                  <div className="prose prose-sm max-w-none text-[var(--text-primary)]">
-                    <div className="whitespace-pre-wrap leading-relaxed text-sm">
-                      {explanation}
-                    </div>
-                  </div>
+                  <div
+                    className="prose prose-sm max-w-none text-[var(--text-primary)] leading-relaxed
+                      [&_strong]:text-[var(--text-primary)] [&_strong]:font-semibold
+                      [&_em]:text-[var(--text-secondary)]
+                      [&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-[var(--text-primary)] [&_h1]:mt-4 [&_h1]:mb-2
+                      [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-2
+                      [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-[var(--text-primary)] [&_h3]:mt-3 [&_h3]:mb-1
+                      [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_ul]:my-2
+                      [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1.5 [&_ol]:my-2
+                      [&_li]:text-sm [&_li]:text-[var(--text-secondary)]
+                      [&_code]:text-xs [&_code]:bg-[var(--bg-hover)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-accent-cyan
+                      [&_p]:text-sm [&_p]:text-[var(--text-secondary)] [&_p]:my-2"
+                    dangerouslySetInnerHTML={{ __html: parseExplanationMarkdown(explanation) }}
+                  />
                 </div>
               )}
             </>
@@ -277,4 +286,65 @@ export function MetricExplanationModal({ widget, onClose }: MetricExplanationMod
       </div>
     </div>
   );
+}
+
+// Parse markdown-like text from AI responses into HTML
+function parseExplanationMarkdown(text: string): string {
+  // Normalize line endings and trim
+  const lines = text.trim().split('\n');
+  const html: string[] = [];
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Skip empty lines (they just create paragraph breaks)
+    if (line.trim() === '') {
+      if (inList) {
+        html.push('</ul>');
+        inList = false;
+      }
+      continue;
+    }
+
+    // Headings
+    const h3 = line.match(/^###\s+(.*)/);
+    if (h3) { if (inList) { html.push('</ul>'); inList = false; } html.push(`<h3>${inlineFmt(h3[1])}</h3>`); continue; }
+    const h2 = line.match(/^##\s+(.*)/);
+    if (h2) { if (inList) { html.push('</ul>'); inList = false; } html.push(`<h2>${inlineFmt(h2[1])}</h2>`); continue; }
+    const h1 = line.match(/^#\s+(.*)/);
+    if (h1) { if (inList) { html.push('</ul>'); inList = false; } html.push(`<h1>${inlineFmt(h1[1])}</h1>`); continue; }
+
+    // Unordered list items (• or - or * at start)
+    const ul = line.match(/^[•\-*]\s+(.*)/);
+    if (ul) {
+      if (!inList) { html.push('<ul>'); inList = true; }
+      html.push(`<li>${inlineFmt(ul[1])}</li>`);
+      continue;
+    }
+
+    // Ordered list items (1. 2. etc.)
+    const ol = line.match(/^\d+\.\s+(.*)/);
+    if (ol) {
+      if (!inList) { html.push('<ul>'); inList = true; }
+      html.push(`<li>${inlineFmt(ol[1])}</li>`);
+      continue;
+    }
+
+    // Regular paragraph line
+    if (inList) { html.push('</ul>'); inList = false; }
+    html.push(`<p>${inlineFmt(line)}</p>`);
+  }
+
+  if (inList) html.push('</ul>');
+  return html.join('');
+}
+
+// Inline formatting: bold, italic, code
+function inlineFmt(text: string): string {
+  return text
+    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>');
 }

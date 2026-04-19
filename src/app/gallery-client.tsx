@@ -249,7 +249,8 @@ export function GalleryPage() {
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       // Ctrl+Option+F (Mac) / Ctrl+Alt+F (Win) — toggle folder panel
-      if (e.altKey && (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f') {
+      // Use e.code because Option+F on Mac produces "ƒ" instead of "f"
+      if (e.altKey && e.ctrlKey && !e.shiftKey && e.code === 'KeyF') {
         e.preventDefault();
         setShowFolderTree(prev => !prev);
         return;

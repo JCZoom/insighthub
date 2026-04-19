@@ -24,7 +24,9 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
   triggerDownload(blob, `${filename}.csv`);
 }
 
-// --- PNG Export (html2canvas) ---
+// --- PNG Export (html-to-image) ---
+// Uses the browser's native rendering engine via SVG foreignObject → canvas,
+// so it handles ALL modern CSS (oklab, oklch, color-mix, etc.) without issues.
 
 export async function exportToPNG(elementId: string, filename: string): Promise<void> {
   try {
@@ -35,144 +37,29 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       return;
     }
 
-    // Resolve CSS custom property to an actual color value html2canvas can use
+    const { toPng } = await import('html-to-image');
+
+    // Resolve background color for the export
     const root = document.documentElement;
-    const computedBg = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
-    const bgColor = computedBg && computedBg !== '' ? computedBg : '#0a0e14';
+    const bgRaw = getComputedStyle(root).getPropertyValue('--bg-primary').trim();
+    const bgColor = bgRaw || '#0a0e14';
 
-    // Collect all CSS custom properties before cloning
-    const rootStyles = getComputedStyle(root);
-    const cssVars: Record<string, string> = {};
-    const varsToCopy = [
-      '--bg-primary', '--bg-secondary', '--bg-card', '--bg-card-hover', '--bg-hover',
-      '--border-color', '--text-primary', '--text-secondary', '--text-muted',
-      '--accent-blue', '--accent-purple', '--accent-green', '--accent-red',
-      '--accent-cyan', '--accent-amber',
-    ];
-    varsToCopy.forEach(v => {
-      const val = rootStyles.getPropertyValue(v).trim();
-      if (val) cssVars[v] = val;
-    });
-
-    // html2canvas v1.x may export as .default or as the module itself
-    const mod = await import('html2canvas');
-    const html2canvas = (typeof mod.default === 'function' ? mod.default : mod) as (
-      element: HTMLElement,
-      options?: Record<string, unknown>
-    ) => Promise<HTMLCanvasElement>;
-
-    // html2canvas cannot parse oklab()/oklch() color functions used by Tailwind v4.
-    // Convert all computed colors to rgb() before cloning.
-    function resolveToRgb(value: string): string {
-      if (!value || (!value.includes('oklab') && !value.includes('oklch') && !value.includes('color('))) return value;
-      // Use a temp element to let the browser resolve the color
-      const temp = document.createElement('div');
-      temp.style.color = value;
-      temp.style.display = 'none';
-      document.body.appendChild(temp);
-      const resolved = getComputedStyle(temp).color; // always returns rgb()/rgba()
-      document.body.removeChild(temp);
-      return resolved || value;
-    }
-
-    // Strip modern CSS color functions from a CSS text block so html2canvas's parser doesn't choke.
-    // Replaces oklab(), oklch(), color-mix(), color() with rgba(0,0,0,0). The real colors
-    // are inlined on each element in the onclone walk below, so this is safe.
-    function neutralizeModernColors(css: string): string {
-      const fns = ['color-mix', 'oklab', 'oklch'];
-      for (const fn of fns) {
-        let result = '';
-        let searchFrom = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const idx = css.indexOf(fn + '(', searchFrom);
-          if (idx === -1) { result += css.slice(searchFrom); break; }
-          result += css.slice(searchFrom, idx) + 'rgba(0,0,0,0)';
-          // Skip past balanced parentheses
-          let depth = 0;
-          let j = idx + fn.length;
-          for (; j < css.length; j++) {
-            if (css[j] === '(') depth++;
-            if (css[j] === ')') { depth--; if (depth === 0) { j++; break; } }
-          }
-          searchFrom = j;
-        }
-        css = result;
-      }
-      // Also handle standalone color() function (e.g. color(display-p3 ...))
-      // but avoid matching 'background-color' or 'border-color' property names.
-      css = css.replace(/(?<![\w-])color\([^)]+\)/g, 'rgba(0,0,0,0)');
-      return css;
-    }
-
-    // Resolve the bgColor in case it's an oklab value
-    const resolvedBg = resolveToRgb(bgColor);
-
-    const canvas = await html2canvas(element, {
-      backgroundColor: resolvedBg,
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      removeContainer: true,
-      onclone: (clonedDoc: Document) => {
-        const clonedRoot = clonedDoc.documentElement;
-
-        // --- Step 1: Neutralize modern color functions in all <style> tags ---
-        clonedDoc.querySelectorAll('style').forEach(style => {
-          const text = style.textContent || '';
-          if (text.includes('oklab') || text.includes('oklch') || text.includes('color-mix') || text.includes('color(')) {
-            style.textContent = neutralizeModernColors(text);
-          }
-        });
-
-        // Remove <link> stylesheets that may also contain oklab —
-        // computed styles are inlined on elements below so they're not needed.
-        clonedDoc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-          link.remove();
-        });
-
-        // --- Step 2: Copy CSS custom properties, resolving oklab→rgb ---
-        Object.entries(cssVars).forEach(([key, val]) => {
-          clonedRoot.style.setProperty(key, resolveToRgb(val));
-        });
-        clonedDoc.body.style.setProperty('background-color', resolvedBg);
-
-        // --- Step 3: Inline all color-related computed styles on every element ---
-        clonedDoc.querySelectorAll('*').forEach(node => {
-          const el = node as HTMLElement;
-          const cs = clonedDoc.defaultView?.getComputedStyle(el);
-          if (!cs) return;
-          // Fix color, background-color, border-color
-          const colorProps = ['color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor'] as const;
-          colorProps.forEach(prop => {
-            const v = cs[prop as keyof CSSStyleDeclaration] as string;
-            if (v && typeof v === 'string') {
-              if (v.includes('oklab') || v.includes('oklch') || v.includes('color(')) {
-                el.style[prop as 'color'] = resolveToRgb(v);
-              } else {
-                // Inline ALL color values so the cloned doc doesn't depend on external sheets
-                el.style[prop as 'color'] = v;
-              }
-            }
-          });
-          // Strip backdrop-filter (unsupported by html2canvas)
-          if (cs.backdropFilter && cs.backdropFilter !== 'none') {
-            el.style.backdropFilter = 'none';
-            el.style.setProperty('-webkit-backdrop-filter', 'none');
-          }
-        });
+    const dataUrl = await toPng(element, {
+      pixelRatio: 2,
+      backgroundColor: bgColor,
+      // Skip elements that shouldn't be in the export
+      filter: (node: HTMLElement) => {
+        // Skip hidden elements and export buttons themselves
+        if (node.dataset?.exportIgnore === 'true') return false;
+        return true;
       },
     });
 
-    canvas.toBlob((blob) => {
-      if (blob) {
-        triggerDownload(blob, `${filename}.png`);
-      } else {
-        console.error('PNG export: canvas.toBlob returned null');
-        alert('PNG export failed: could not generate image. Try a smaller dashboard or fewer widgets.');
-      }
-    }, 'image/png');
+    // Convert data URL to blob and trigger download
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    triggerDownload(blob, `${filename}.png`);
+
   } catch (error) {
     console.error('PNG export failed:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -219,6 +106,17 @@ export function exportToSVG(containerId: string, filename: string): void {
   bgRect.setAttribute('height', '100%');
   bgRect.setAttribute('fill', bgColor);
   svg.appendChild(bgRect);
+
+  // Embed a system font fallback so SVGs render with a clean sans-serif
+  // (Next.js font-optimized names like __Inter_aabb won't exist outside the app)
+  // Also ensure no-wrap on metric change indicators to prevent overflow
+  const svgStyle = document.createElementNS(ns, 'style');
+  svgStyle.textContent = `
+    foreignObject * {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+  `;
+  svg.appendChild(svgStyle);
 
   // Also try to extract native Recharts SVGs and render them directly for vector quality
   const chartSvgs = Array.from(
@@ -269,8 +167,13 @@ export function exportToSVG(containerId: string, filename: string): void {
       if (origEls[j]) {
         const computed = getComputedStyle(origEls[j]);
         ['fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'font-size', 'font-family', 'font-weight', 'opacity', 'text-anchor', 'dominant-baseline', 'color'].forEach(prop => {
-          const val = computed.getPropertyValue(prop);
-          if (val) (el as SVGElement).style.setProperty(prop, val);
+          let val = computed.getPropertyValue(prop);
+          if (!val) return;
+          // Normalize Next.js obfuscated font names
+          if (prop === 'font-family' && val.includes('__Inter')) {
+            val = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          }
+          (el as SVGElement).style.setProperty(prop, val);
         });
       }
     });
@@ -309,21 +212,33 @@ function inlineComputedStyles(original: HTMLElement, clone: HTMLElement): void {
 function inlineElementStyles(orig: HTMLElement, clone: HTMLElement): void {
   try {
     const cs = getComputedStyle(orig);
-    // Key visual properties to inline
+    // Comprehensive visual properties to inline for SVG foreignObject fidelity
     const props = [
       'color', 'background-color', 'background-image', 'background',
       'border', 'border-color', 'border-radius', 'border-width', 'border-style',
+      'border-top-color', 'border-bottom-color', 'border-left-color', 'border-right-color',
+      'border-top-width', 'border-bottom-width', 'border-left-width', 'border-right-width',
       'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
-      'text-align', 'text-decoration', 'text-transform',
-      'padding', 'margin', 'display', 'flex-direction', 'align-items', 'justify-content', 'gap',
+      'text-align', 'text-decoration', 'text-transform', 'text-overflow', 'white-space',
+      'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+      'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+      'display', 'flex-direction', 'flex-wrap', 'flex-grow', 'flex-shrink',
+      'align-items', 'justify-content', 'gap', 'row-gap', 'column-gap',
       'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-      'overflow', 'opacity', 'box-shadow',
-      'position', 'top', 'left', 'right', 'bottom',
+      'overflow', 'overflow-x', 'overflow-y', 'opacity', 'box-shadow', 'outline',
+      'position', 'top', 'left', 'right', 'bottom', 'z-index',
       'grid-template-columns', 'grid-template-rows', 'grid-column', 'grid-row',
+      'grid-gap', 'grid-auto-flow', 'grid-auto-rows', 'grid-auto-columns',
+      'transform', 'visibility', 'vertical-align', 'box-sizing',
+      'border-collapse', 'table-layout', 'word-break', 'overflow-wrap',
     ];
     props.forEach(prop => {
-      const val = cs.getPropertyValue(prop);
+      let val = cs.getPropertyValue(prop);
       if (val && val !== 'none' && val !== 'normal' && val !== '0px' && val !== 'auto' && val !== 'rgba(0, 0, 0, 0)') {
+        // Normalize Next.js obfuscated font names back to Inter
+        if (prop === 'font-family' && val.includes('__Inter')) {
+          val = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        }
         clone.style.setProperty(prop, val);
       }
     });

@@ -205,6 +205,17 @@ export function FolderTree({
               <Plus size={12} className="text-[var(--text-muted)]" />
             </button>
           </Tooltip>
+          <Tooltip content="Delete folder" side="right">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteFolder?.(folder.id);
+              }}
+              className="p-1 opacity-0 group-hover:opacity-100 hover:bg-accent-red/10 rounded transition-opacity shrink-0"
+            >
+              <Trash2 size={12} className="text-[var(--text-muted)] hover:text-accent-red" />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Render children and dashboards when expanded */}
@@ -246,20 +257,11 @@ export function FolderTree({
               </div>
             ))}
 
-            {/* Empty folder indicator */}
-            {!hasChildren && !hasDashboards && (
-              <div
-                className="text-[10px] text-[var(--text-muted)] italic py-1"
-                style={{ paddingLeft: `${24 + (depth + 1) * 16}px` }}
-              >
-                Empty folder
-              </div>
-            )}
           </div>
         )}
       </div>
     );
-  }, [expandedFolders, selectedFolderId, onFolderSelect, onCreateFolder, onMoveDashboard, handleContextMenu, showDashboards, toggleFolder, expandFolder, dragOverFolderId, handleDragOver, handleDragLeave, handleDrop]);
+  }, [expandedFolders, selectedFolderId, onFolderSelect, onCreateFolder, onDeleteFolder, onMoveDashboard, handleContextMenu, showDashboards, toggleFolder, expandFolder, dragOverFolderId, handleDragOver, handleDragLeave, handleDrop]);
 
   const isRootDragOver = dragOverFolderId === '__root__';
 

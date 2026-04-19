@@ -23,7 +23,7 @@ import { isTouchDevice, getTouchTargetSize } from '@/lib/touch-utils';
 import { cn } from '@/lib/utils';
 import { formatShortcut } from '@/components/ui/Kbd';
 import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
-import { exportToPNG, exportToSVG } from '@/lib/export-utils';
+import { exportToPNG } from '@/lib/export-utils';
 import { WidgetQueryPanel } from './WidgetQueryPanel';
 import { DataFreshness } from './DataFreshness';
 
@@ -741,12 +741,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                   >
                     <Camera size={12} /> Export Dashboard as PNG
                   </button>
-                  <button
-                    onClick={() => { exportToSVG('dashboard-grid', `${title.replace(/[^a-zA-Z0-9]/g, '_')}_dashboard`); setShowExportMenu(false); }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <ImageIcon size={12} /> Export Dashboard as SVG
-                  </button>
+                  {/* SVG export hidden — font fidelity issues with foreignObject approach. Code kept in export-utils.ts for future use. */}
                 </div>
               </>
             )}
@@ -771,7 +766,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             </button>
             <button
               onClick={() => setShowSaveMenu(prev => !prev)}
-              className="flex items-center px-2 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
+              className="flex items-center justify-center px-3 py-1.5 rounded-r-lg bg-accent-green/10 text-accent-green hover:bg-accent-green/20 transition-colors border-l border-accent-green/20"
               title="Save options"
             >
               <ChevronDown size={12} />
@@ -941,6 +936,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 {/* Drag handle - larger and more accessible for touch (hidden in view-only mode) */}
                 {!isEffectivelyViewOnly && (
                   <div
+                    data-export-ignore="true"
                     {...createDragHandler(widget)}
                     {...createLongPressHandler((e: PointerEvent) => {
                       handleWidgetContextMenu(
@@ -969,6 +965,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 {/* Glossary terms badge */}
                 {widget.glossaryTermIds && widget.glossaryTermIds.length > 0 && (
                   <div
+                    data-export-ignore="true"
                     className="absolute bottom-1 left-1 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent-purple/10 border border-accent-purple/20 opacity-0 group-hover:opacity-100 transition-opacity"
                     title={`${widget.glossaryTermIds.length} glossary term${widget.glossaryTermIds.length !== 1 ? 's' : ''} linked`}
                   >
@@ -981,6 +978,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                   <>
                     {/* Download/export button (top-right, fourth) */}
                     <button
+                      data-export-ignore="true"
                       onClick={(e) => { e.stopPropagation(); exportToPNG(`widget-${widget.id}`, `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`); }}
                       className="absolute top-1 right-[6.5rem] z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-green/20 hover:border-accent-green/40 transition-all"
                       title="Export widget as PNG"
@@ -989,6 +987,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     </button>
                     {/* Info/Explain button (top-right, third) */}
                     <button
+                      data-export-ignore="true"
                       onClick={(e) => { e.stopPropagation(); handleExplainMetric(widget); }}
                       className="absolute top-1 right-17 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-purple/20 hover:border-accent-purple/40 transition-all"
                       title="Explain this metric"
@@ -997,6 +996,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     </button>
                     {/* Edit config button (top-right, second) */}
                     <button
+                      data-export-ignore="true"
                       onClick={(e) => { e.stopPropagation(); selectWidget(widget.id); setConfigWidgetId(widget.id); }}
                       className="absolute top-1 right-9 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-cyan/20 hover:border-accent-cyan/40 transition-all"
                       title="Edit widget config"
@@ -1005,6 +1005,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                     </button>
                     {/* Delete button (top-right) */}
                     <button
+                      data-export-ignore="true"
                       onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
                       className="absolute top-1 right-1 z-10 p-1.5 rounded-md bg-[var(--bg-card)]/80 border border-[var(--border-color)] opacity-0 group-hover:opacity-100 hover:bg-accent-red/20 hover:border-accent-red/40 transition-all"
                       title={`Delete ${widget.title} (Del)`}
@@ -1023,7 +1024,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 )}
                 {/* Data transparency footer: freshness badge + query icon (always on hover) */}
                 {widget.type !== 'text_block' && widget.type !== 'divider' && (
-                  <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-[var(--bg-card)]/90 to-transparent rounded-b-xl">
+                  <div data-export-ignore="true" className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-[var(--bg-card)]/90 to-transparent rounded-b-xl">
                     <DataFreshness widgetId={widget.id} />
                     <button
                       onClick={(e) => { e.stopPropagation(); setQueryPanelWidget(widget); }}

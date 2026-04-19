@@ -14,9 +14,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parentId');
 
+    // When no parentId filter, return ALL folders so the client can build the full tree.
+    // When parentId is specified, filter to only that parent's children.
     const where = {
       ownerId: user.id,
-      ...(parentId ? { parentId } : { parentId: null })
+      ...(parentId ? { parentId } : {}),
     };
 
     const folders = await prisma.folder.findMany({

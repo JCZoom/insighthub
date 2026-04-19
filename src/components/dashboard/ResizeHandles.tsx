@@ -22,6 +22,7 @@ interface ResizeHandleProps {
 function ResizeHandle({ direction, className, onPointerDown, cursor }: ResizeHandleProps) {
   return (
     <div
+      data-export-ignore="true"
       className={`absolute z-20 transition-opacity hover:opacity-100 ${className}`}
       onPointerDown={onPointerDown}
       style={{ cursor }}

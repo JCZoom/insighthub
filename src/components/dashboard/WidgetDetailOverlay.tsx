@@ -9,7 +9,7 @@ import {
 import type { WidgetConfig } from '@/types';
 import { queryDataSync } from '@/lib/data/sample-data';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
-import { exportToCSV, exportToPNG, exportToSVG } from '@/lib/export-utils';
+import { exportToCSV, exportToPNG } from '@/lib/export-utils';
 
 interface WidgetDetailOverlayProps {
   config: WidgetConfig;
@@ -402,7 +402,7 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
                 {config.subtitle || `${config.type.replace(/_/g, ' ')} · ${primaryData.length} records · Source: ${source}`}
               </p>
             </div>
-            <div className="flex items-center gap-1">
+            <div data-export-ignore="true" className="flex items-center gap-1">
               <button
                 onClick={() => exportToCSV(primaryData, `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_data`)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
@@ -419,15 +419,9 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
                 <Camera size={14} />
                 PNG
               </button>
+              {/* SVG export hidden — font fidelity issues. Code kept in export-utils.ts for future use. */}
               <button
-                onClick={() => exportToSVG('widget-detail-overlay', `${config.title.replace(/[^a-zA-Z0-9]/g, '_')}_widget`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
-                title="Export chart as SVG (vector — scales to any size)"
-              >
-                <Image size={14} />
-                SVG
-              </button>
-              <button
+                data-export-ignore="true"
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >

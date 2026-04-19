@@ -160,7 +160,7 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
       style={{ minHeight: `${minHeight}px` }}
     >
       {widget}
-      <div className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 flex flex-col items-end gap-1 transition-all">
+      <div data-export-ignore="true" className="absolute bottom-2 right-3 z-10 opacity-0 group-hover/detail:opacity-100 flex flex-col items-end gap-1 transition-all">
         <button
           onClick={(e) => { e.stopPropagation(); onDetailClick(config); }}
           className="text-[10px] text-accent-cyan hover:text-accent-cyan/80 transition-colors flex items-center gap-0.5 cursor-pointer"
