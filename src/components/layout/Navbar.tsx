@@ -7,6 +7,7 @@ import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
 import { useViewport } from '@/hooks/useViewport';
+import { usePlatform } from '@/hooks/usePlatform';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -19,6 +20,7 @@ export function Navbar() {
   const pathname = usePathname();
   const isSubPage = pathname !== '/';
   const viewport = useViewport();
+  const { modKey } = usePlatform();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -121,7 +123,7 @@ export function Navbar() {
                       href="/"
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] transition-colors border-t border-[var(--border-color)] mt-1 pt-2"
-                      title="Back to Home (g h)"
+                      title={`Back to Home (${modKey}1 or g h)`}
                     >
                       <Home size={15} />
                       Home
@@ -135,7 +137,7 @@ export function Navbar() {
               <Link
                 href="/"
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors"
-                title="Back to Home (g h)"
+                title={`Back to Home (${modKey}1 or g h)`}
               >
                 <Home size={15} />
                 <span className="hidden sm:inline">Home</span>
@@ -151,7 +153,7 @@ export function Navbar() {
             <button
               onClick={() => setShowShortcuts(true)}
               className="p-3 rounded-lg hover:bg-[var(--bg-card)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-              title="Keyboard shortcuts (?) • ⌘K palette"
+              title={`Keyboard shortcuts (?) • ${modKey}K palette`}
             >
               <Keyboard size={14} className="text-[var(--text-muted)]" />
             </button>

@@ -54,6 +54,17 @@ body {
   -moz-osx-font-smoothing: grayscale; /* Mac Firefox: crisp text rendering */
   text-rendering: optimizeLegibility; /* Better kerning and ligatures */
   font-feature-settings: 'kern' 1; /* Enable kerning for better letter spacing */
+
+  /* Touch optimization for mobile devices */
+  touch-action: manipulation; /* Improve touch responsiveness, prevent double-tap zoom */
+  -webkit-tap-highlight-color: rgba(88, 166, 255, 0.1); /* Custom tap highlight color */
+}
+
+/* Optimize background for mobile (disable fixed attachment on touch devices) */
+@media (hover: none) and (pointer: coarse) {
+  body {
+    background-attachment: scroll; /* Fixed attachment can cause performance issues on mobile */
+  }
 }
 
 /* Windows-specific font rendering optimizations */
@@ -278,10 +289,11 @@ select:focus-visible,
   scrollbar-color: #cbd5e1 transparent;
 }
 
-/* Experimental: Firefox hover support (Firefox 108+) */
+/* Enhanced Firefox hover support (Firefox 108+) with fallbacks */
 @supports (scrollbar-color: color-mix(in srgb, transparent, black)) {
   * {
     scrollbar-color: #30363d transparent;
+    transition: scrollbar-color 0.2s ease;
   }
   *:hover {
     scrollbar-color: #484f58 transparent;
@@ -294,6 +306,24 @@ select:focus-visible,
   }
 }
 
+/* Legacy Edge (pre-Chromium) scrollbar support */
+@supports (-ms-overflow-style: none) {
+  * {
+    -ms-overflow-style: auto;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+  }
+}
+
+/* Modern scrollbar customization for Chromium-based Edge */
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide {
   scrollbar-width: none; /* Firefox */
@@ -301,4 +331,46 @@ select:focus-visible,
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Cross-platform touch and interaction improvements */
+
+/* Improve button and interactive element touch targets for mobile */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  .interactive {
+    min-height: 44px; /* Apple HIG minimum touch target */
+    min-width: 44px;
+  }
+}
+
+/* Reduce motion for users who prefer it (accessibility & performance) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimize for retina displays */
+  body {
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+}
+
+/* Windows-specific optimizations */
+@media screen and (min-width: 1024px) {
+  /* Desktop-only optimizations */
+  body {
+    font-variant-ligatures: common-ligatures discretionary-ligatures;
+  }
 }

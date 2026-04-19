@@ -29,7 +29,15 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const [phoneMode, setPhoneMode] = useState<'canvas' | 'chat'>('canvas');
-  const [chatWidth, setChatWidth] = useState(340);
+  // Responsive chat width based on screen size for desktop excellence
+  const [chatWidth, setChatWidth] = useState(() => {
+    if (typeof window === 'undefined') return 340;
+    const screenWidth = window.innerWidth;
+    if (screenWidth >= 1920) return 420; // Larger chat panel for ultrawide monitors
+    if (screenWidth >= 1440) return 380; // Medium-large screens
+    if (screenWidth >= 1200) return 340; // Standard desktop
+    return 300; // Smaller desktops
+  });
   const handleChatWidthChange = useCallback((w: number) => setChatWidth(w), []);
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -63,6 +71,25 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   });
 
   const [loadError, setLoadError] = useState(false);
+
+  // Responsive chat width adjustment on window resize for desktop excellence
+  useEffect(() => {
+    if (viewport.layoutMode !== 'desktop') return;
+
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      let newWidth = 340;
+      if (screenWidth >= 1920) newWidth = 420;
+      else if (screenWidth >= 1440) newWidth = 380;
+      else if (screenWidth >= 1200) newWidth = 340;
+      else newWidth = Math.max(280, Math.min(340, screenWidth * 0.25));
+
+      setChatWidth(newWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [viewport.layoutMode]);
 
   useEffect(() => {
     // Track this dashboard in recently viewed
@@ -140,7 +167,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
             )}
 
             <div className={`
-              fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-[var(--bg-primary)]
+              fixed right-0 top-0 h-full w-80 max-w-[min(85vw,400px)] bg-[var(--bg-primary)]
               border-l border-[var(--border-color)] shadow-xl z-40
               transform transition-transform duration-300 ease-in-out
               ${isChatDrawerOpen ? 'translate-x-0' : 'translate-x-full'}

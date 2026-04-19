@@ -8,7 +8,11 @@ export function MobileNotice() {
 
   useEffect(() => {
     const dismissed = sessionStorage.getItem('mobile-notice-dismissed');
-    if (!dismissed && window.innerWidth < 768) {
+    // Show notice for small screens and touch-only devices (tablets in portrait mode)
+    const isSmallScreen = window.innerWidth < 768;
+    const isTouchDevice = 'ontouchstart' in window && window.innerWidth < 1024;
+
+    if (!dismissed && (isSmallScreen || isTouchDevice)) {
       setShow(true);
     }
   }, []);
@@ -28,7 +32,7 @@ export function MobileNotice() {
       </button>
       <div className="flex items-center justify-center gap-2">
         <Monitor size={16} />
-        <span>Best experienced on desktop — the editor needs screen space!</span>
+        <span>For the best editing experience, use a desktop browser — you can still view and chat on mobile!</span>
       </div>
     </div>
   );

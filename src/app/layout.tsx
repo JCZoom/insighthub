@@ -14,6 +14,14 @@ export const metadata: Metadata = {
   title: "InsightHub — AI-Powered Dashboard Builder",
   description: "Build, customize, and share rich data dashboards using natural language. Describe what you need and watch AI build it in seconds.",
   metadataBase: new URL("https://dashboards.jeffcoy.net"),
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    minimumScale: 1,
+    userScalable: true,
+    viewportFit: "cover", // Support for iPhone X+ notch
+  },
   openGraph: {
     title: "InsightHub — AI-Powered Dashboard Builder",
     description: "Describe your data in plain English. Watch AI build the dashboard in seconds.",

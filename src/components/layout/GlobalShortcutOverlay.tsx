@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { X, Keyboard } from 'lucide-react';
+import { usePlatform } from '@/hooks/usePlatform';
 
 interface ShortcutItem {
   /** Use 'Mod' as a placeholder — resolved to ⌘ (Mac) or Ctrl (Win/Linux) at render time. */
@@ -81,11 +82,6 @@ const GALLERY_SHORTCUTS: ShortcutGroup = {
   ],
 };
 
-function isMacOS(): boolean {
-  if (typeof navigator === 'undefined') return true;
-  return /Mac|iPod|iPhone|iPad/.test(navigator.platform || '') ||
-    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS';
-}
 
 /** Resolve 'Mod' and 'Shift' to OS-specific symbols */
 function resolveKey(key: string, mac: boolean): string {
@@ -126,8 +122,8 @@ interface GlobalShortcutOverlayProps {
 
 export function GlobalShortcutOverlay({ onClose }: GlobalShortcutOverlayProps) {
   const pathname = usePathname();
-  const [mac] = useState(() => isMacOS());
-  const groups = getContextualGroups(pathname, mac);
+  const { isMac } = usePlatform();
+  const groups = getContextualGroups(pathname, isMac);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' || e.key === '?') {

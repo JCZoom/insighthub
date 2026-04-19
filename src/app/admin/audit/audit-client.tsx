@@ -136,8 +136,8 @@ export function AuditLogClient() {
       <div className="px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Audit Logs</h1>
-          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Audit Logs</h1>
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
             Monitor all system activities for GDPR/SOC2 compliance
           </p>
         </div>
@@ -145,7 +145,7 @@ export function AuditLogClient() {
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
               <Filter className="w-5 h-5 mr-2" />
               Filters
             </h2>
@@ -264,7 +264,7 @@ export function AuditLogClient() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                 Audit Log Entries
               </h2>
               <span className="text-sm text-gray-500 dark:text-gray-400">
