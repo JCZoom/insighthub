@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Database, Sparkles, Plus, Home, Settings, LogOut, User, Keyboard, Info, Menu, X } from 'lucide-react';
 import { GlobalShortcutOverlay } from './GlobalShortcutOverlay';
 import { ThemeToggle } from './ThemeToggle';
 import { useViewport } from '@/hooks/useViewport';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard },
+  { href: '/data/playground', label: 'Query Playground', icon: Database },
   { href: '/glossary', label: 'Glossary', icon: BookOpen },
   { href: '/about', label: 'About', icon: Info },
 ];

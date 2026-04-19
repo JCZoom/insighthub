@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { WidgetConfig } from '@/types';
 import { queryDataSync } from '@/lib/data/sample-data';
 import { X, Copy, Check, Code2, Database, Table2, Clock, ChevronDown, ChevronUp, Download, BookOpen, ExternalLink } from 'lucide-react';
@@ -108,6 +109,7 @@ function formatTimeAgo(date: Date): string {
 }
 
 export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showRawData, setShowRawData] = useState(false);
   const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>([]);
@@ -191,9 +193,22 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
   };
 
   const handleOpenInPlayground = () => {
-    // Future: Open new playground tab with this query
-    // For now, show a helpful message
-    alert(`Query Playground integration coming soon!\n\nQuery:\n${sql}`);
+    // Create a temporary session data to pass to playground
+    const playgroundData = {
+      fromWidget: {
+        widgetId: widget.id,
+        widgetTitle: widget.title,
+        sql: sql,
+        dataSource: widget.dataConfig.source,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    // Store in sessionStorage for pickup by playground
+    sessionStorage.setItem('playground_import_data', JSON.stringify(playgroundData));
+
+    // Navigate to playground
+    router.push('/data/playground?import=widget');
   };
 
   const freshnessColor = getFreshnessColor(lastRefreshed);
