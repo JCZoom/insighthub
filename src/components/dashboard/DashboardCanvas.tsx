@@ -27,6 +27,7 @@ import { generateChangeSummaryFromHistory } from '@/lib/ai/change-summarizer';
 import { exportToPNG } from '@/lib/export-utils';
 import { WidgetQueryPanel } from './WidgetQueryPanel';
 import { DataFreshness } from './DataFreshness';
+import { AddToDashboardModal } from './AddToDashboardModal';
 
 
 interface DashboardCanvasProps {
@@ -80,6 +81,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [previewMode, setPreviewMode] = useState<'responsive' | 'desktop' | 'tablet' | 'mobile'>('responsive');
   const [queryPanelWidget, setQueryPanelWidget] = useState<WidgetConfig | null>(null);
+  const [addToDashboardWidget, setAddToDashboardWidget] = useState<WidgetConfig | null>(null);
   const [marqueeState, setMarqueeState] = useState<{
     startX: number; startY: number;
     currentX: number; currentY: number;
@@ -278,6 +280,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
       actions: getWidgetActions({
         editConfig: () => { selectWidget(widget.id); setConfigWidgetId(widget.id); },
         duplicate: () => duplicateWidget(widget.id),
+        addToDashboard: () => setAddToDashboardWidget(widget),
         delete: () => removeWidget(widget.id),
         widen: () => {
           const newW = Math.min(widget.position.w + 3, effectiveGridColumns - widget.position.x);
@@ -1182,6 +1185,15 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         <WidgetQueryPanel
           widget={queryPanelWidget}
           onClose={() => setQueryPanelWidget(null)}
+        />
+      )}
+      {addToDashboardWidget && (
+        <AddToDashboardModal
+          widget={addToDashboardWidget}
+          onClose={() => setAddToDashboardWidget(null)}
+          onSuccess={(targetId, targetTitle) => {
+            toast({ type: 'success', title: 'Widget copied!', description: `"${addToDashboardWidget.title}" added to "${targetTitle}"` });
+          }}
         />
       )}
       </div>
