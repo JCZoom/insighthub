@@ -1,13 +1,24 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { WidgetConfig } from '@/types';
 import { queryDataSync } from '@/lib/data/sample-data';
-import { X, Copy, Check, Code2, Database, Table2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Copy, Check, Code2, Database, Table2, Clock, ChevronDown, ChevronUp, Download, BookOpen, ExternalLink } from 'lucide-react';
 
 interface WidgetQueryPanelProps {
   widget: WidgetConfig;
   onClose: () => void;
+}
+
+interface GlossaryTerm {
+  id: string;
+  term: string;
+  definition: string;
+  formula: string | null;
+  category: string;
+  examples: string | null;
+  relatedTerms: string;
+  dataSource: string | null;
 }
 
 /** Generate a representative SQL query from a widget's dataConfig */
@@ -99,6 +110,8 @@ function formatTimeAgo(date: Date): string {
 export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
   const [copied, setCopied] = useState(false);
   const [showRawData, setShowRawData] = useState(false);
+  const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>([]);
+  const [showGlossary, setShowGlossary] = useState(false);
 
   const sql = useMemo(() => generateSQL(widget), [widget]);
   const lastRefreshed = useMemo(() => getLastRefreshed(widget.id), [widget.id]);
@@ -114,6 +127,35 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
   const { data, columns } = dataResult;
   const previewRows = data.slice(0, 10);
 
+  // Fetch glossary terms if widget references them
+  useEffect(() => {
+    const fetchGlossaryTerms = async () => {
+      if (!widget.glossaryTermIds || widget.glossaryTermIds.length === 0) {
+        setGlossaryTerms([]);
+        return;
+      }
+
+      try {
+        const promises = widget.glossaryTermIds.map(async (termId) => {
+          const response = await fetch(`/api/glossary/${termId}`);
+          if (response.ok) {
+            return await response.json();
+          }
+          return null;
+        });
+
+        const results = await Promise.all(promises);
+        const validTerms = results.filter(Boolean);
+        setGlossaryTerms(validTerms);
+      } catch (error) {
+        console.error('Failed to fetch glossary terms:', error);
+        setGlossaryTerms([]);
+      }
+    };
+
+    fetchGlossaryTerms();
+  }, [widget.glossaryTermIds]);
+
   const handleCopySQL = () => {
     navigator.clipboard.writeText(sql);
     setCopied(true);
@@ -126,6 +168,32 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
     const header = cols.join('\t');
     const rows = data.map(row => cols.map(c => String(row[c] ?? '')).join('\t'));
     navigator.clipboard.writeText([header, ...rows].join('\n'));
+  };
+
+  const handleExportJSON = () => {
+    if (data.length === 0) return;
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${widget.title.replace(/[^a-zA-Z0-9]/g, '_')}_data.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenInEditor = () => {
+    // Future: Navigate to SQL Editor with pre-loaded query
+    // For now, show a helpful message
+    alert(`SQL Editor integration coming soon!\n\nQuery:\n${sql}`);
+  };
+
+  const handleOpenInPlayground = () => {
+    // Future: Open new playground tab with this query
+    // For now, show a helpful message
+    alert(`Query Playground integration coming soon!\n\nQuery:\n${sql}`);
   };
 
   const freshnessColor = getFreshnessColor(lastRefreshed);
@@ -229,6 +297,93 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
               </p>
             )}
           </div>
+
+          {/* Query Actions */}
+          <div className="px-5 py-4 border-b border-[var(--border-color)]">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleOpenInEditor}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-blue hover:bg-accent-blue/10 transition-colors border border-[var(--border-color)] hover:border-accent-blue/20"
+              >
+                <Code2 size={12} />
+                Open in SQL Editor
+              </button>
+              <button
+                onClick={handleOpenInPlayground}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-purple hover:bg-accent-purple/10 transition-colors border border-[var(--border-color)] hover:border-accent-purple/20"
+              >
+                <Database size={12} />
+                Open in Playground
+              </button>
+              <button
+                onClick={handleExportJSON}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-accent-green hover:bg-accent-green/10 transition-colors border border-[var(--border-color)] hover:border-accent-green/20"
+                disabled={data.length === 0}
+                title="Export data as JSON"
+              >
+                <Download size={12} />
+                Export JSON
+              </button>
+            </div>
+          </div>
+
+          {/* Glossary Terms */}
+          {glossaryTerms.length > 0 && (
+            <div className="px-5 py-4 border-b border-[var(--border-color)]">
+              <button
+                onClick={() => setShowGlossary(!showGlossary)}
+                className="flex items-center justify-between w-full mb-3"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen size={12} className="text-accent-green" />
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                    Glossary Terms ({glossaryTerms.length})
+                  </span>
+                </div>
+                {showGlossary ? <ChevronUp size={12} className="text-[var(--text-muted)]" /> : <ChevronDown size={12} className="text-[var(--text-muted)]" />}
+              </button>
+
+              {showGlossary && (
+                <div className="space-y-3">
+                  {glossaryTerms.map(term => (
+                    <div key={term.id} className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)] p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-semibold text-[var(--text-primary)]">{term.term}</h4>
+                        <div className="flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-medium text-accent-green bg-accent-green/10">
+                            {term.category}
+                          </span>
+                          {term.dataSource && (
+                            <button
+                              title={`View in glossary: ${term.dataSource}`}
+                              className="p-1 rounded hover:bg-[var(--bg-card-hover)] transition-colors"
+                            >
+                              <ExternalLink size={10} className="text-[var(--text-muted)]" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)] mb-2">
+                        {term.definition}
+                      </p>
+                      {term.formula && (
+                        <div className="mt-2 p-2 rounded bg-[var(--bg-hover)] border border-[var(--border-color)]">
+                          <p className="text-[10px] text-[var(--text-muted)] mb-1">FORMULA</p>
+                          <code className="text-xs font-mono text-accent-purple">{term.formula}</code>
+                        </div>
+                      )}
+                      {term.examples && (
+                        <div className="mt-2">
+                          <p className="text-[10px] text-[var(--text-muted)] mb-1">EXAMPLES</p>
+                          <p className="text-xs text-[var(--text-secondary)]">{term.examples}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Raw Data Preview */}
           <div className="px-5 py-4">
