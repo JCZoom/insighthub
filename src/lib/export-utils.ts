@@ -24,6 +24,36 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
   triggerDownload(blob, `${filename}.csv`);
 }
 
+// --- Chunk-resilient dynamic import helper ---
+// After a deployment, cached pages may reference old chunk hashes that no
+// longer exist on the server. This helper retries the import once; if it
+// still fails it flags the error as a stale-chunk issue.
+
+function isChunkLoadError(err: unknown): boolean {
+  if (err instanceof Error) {
+    const msg = err.message || '';
+    return (
+      msg.includes('Failed to load chunk') ||
+      msg.includes('Loading chunk') ||
+      msg.includes('ChunkLoadError') ||
+      err.name === 'ChunkLoadError'
+    );
+  }
+  return false;
+}
+
+async function importWithRetry<T>(loader: () => Promise<T>): Promise<T> {
+  try {
+    return await loader();
+  } catch (err) {
+    if (isChunkLoadError(err)) {
+      // One retry — gives the browser a chance to fetch the new manifest
+      return await loader();
+    }
+    throw err;
+  }
+}
+
 // --- PNG Export (html-to-image) ---
 // Uses the browser's native rendering engine via SVG foreignObject → canvas,
 // so it handles ALL modern CSS (oklab, oklch, color-mix, etc.) without issues.
@@ -37,7 +67,7 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
       return;
     }
 
-    const { toPng } = await import('html-to-image');
+    const { toPng } = await importWithRetry(() => import('html-to-image'));
 
     // Resolve background color for the export
     const root = document.documentElement;
@@ -103,8 +133,16 @@ export async function exportToPNG(elementId: string, filename: string): Promise<
 
   } catch (error) {
     console.error('PNG export failed:', error);
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    alert(`PNG export failed: ${msg}`);
+    if (isChunkLoadError(error)) {
+      const reload = confirm(
+        'PNG export failed because the app has been updated since you last refreshed.\n\n' +
+        'Click OK to reload the page, then try the export again.'
+      );
+      if (reload) window.location.reload();
+    } else {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      alert(`PNG export failed: ${msg}`);
+    }
   }
 }
 

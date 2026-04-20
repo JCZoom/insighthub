@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { GlobalShortcuts } from "@/components/layout/GlobalShortcuts";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { MobileNotice } from "@/components/layout/MobileNotice";
+import { ChunkErrorHandler } from "@/components/providers/ChunkErrorHandler";
 import "./globals.css";
 
 const inter = Inter({
@@ -51,6 +52,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SessionProvider>
+          <ChunkErrorHandler />
           <GlobalShortcuts>
             <ToastProvider>
               <MobileNotice />
