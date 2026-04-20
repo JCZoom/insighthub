@@ -160,6 +160,149 @@ export function autoLayoutWidgets(widgets: WidgetConfig[], columns = 12): Widget
 }
 
 /* ------------------------------------------------------------------ */
+/*  Incremental append (add_widget / use_widget)                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Append new widgets below the existing layout without disturbing current
+ * positions.  If a trailing Key-Insight callout exists it is kept at the
+ * very bottom — new widgets are inserted between the data content and the
+ * callout.
+ *
+ * New widgets are **smart-sized** to fill complete rows (sum to 12 columns)
+ * so there is never leftover white space.
+ */
+export function appendWidgetsToLayout(
+  existingWidgets: WidgetConfig[],
+  newWidgets: WidgetConfig[],
+  columns = 12,
+): WidgetConfig[] {
+  if (newWidgets.length === 0) return existingWidgets;
+
+  // ── Separate trailing callout(s) from the bottom ─────────────
+  const byBottom = [...existingWidgets].sort(
+    (a, b) => (b.position.y + b.position.h) - (a.position.y + a.position.h),
+  );
+  const trailingCallouts: WidgetConfig[] = [];
+  const mainIds = new Set(existingWidgets.map(w => w.id));
+
+  for (const w of byBottom) {
+    if (
+      w.type === 'text_block' &&
+      w.visualConfig?.customStyles?.variant === 'callout'
+    ) {
+      trailingCallouts.unshift(w);
+      mainIds.delete(w.id);
+    } else {
+      break; // stop as soon as we hit a non-callout
+    }
+  }
+
+  const mainWidgets = existingWidgets.filter(w => mainIds.has(w.id));
+
+  // ── Bottom edge of the real content ──────────────────────────
+  const bottomY = mainWidgets.reduce(
+    (max, w) => Math.max(max, w.position.y + w.position.h),
+    0,
+  );
+
+  // ── Smart-size new widgets to fill rows ──────────────────────
+  const sized = smartSizeForAppend(newWidgets, columns);
+
+  // ── Pack into rows starting at bottomY ───────────────────────
+  const placed: WidgetConfig[] = [];
+  let cursorX = 0;
+  let cursorY = bottomY;
+  let rowMaxH = 0;
+
+  for (const { widget, w, h } of sized) {
+    if (cursorX + w > columns) {
+      cursorY += rowMaxH;
+      cursorX = 0;
+      rowMaxH = 0;
+    }
+    placed.push({
+      ...widget,
+      position: { x: cursorX, y: cursorY, w, h },
+    });
+    cursorX += w;
+    rowMaxH = Math.max(rowMaxH, h);
+  }
+  cursorY += rowMaxH;
+
+  // ── Reassemble: existing + new + trailing callouts ───────────
+  const result = [...mainWidgets, ...placed];
+  for (const callout of trailingCallouts) {
+    result.push({
+      ...callout,
+      position: { ...callout.position, x: 0, y: cursorY, w: columns, h: callout.position.h },
+    });
+    cursorY += callout.position.h;
+  }
+
+  return result;
+}
+
+/**
+ * Determine the width of each new widget so that every row sums to
+ * exactly `columns` — no white-space gaps.
+ */
+function smartSizeForAppend(
+  widgets: WidgetConfig[],
+  columns: number,
+): { widget: WidgetConfig; w: number; h: number }[] {
+  if (widgets.length === 0) return [];
+
+  const items = widgets.map(w => {
+    const profile = profileFor(w.type, w);
+    return {
+      widget: w,
+      idealW: w.position?.w || profile.w,
+      h: w.position?.h || profile.h,
+    };
+  });
+
+  const result: { widget: WidgetConfig; w: number; h: number }[] = [];
+  let remaining = [...items];
+
+  while (remaining.length > 0) {
+    // Single remaining item → full width
+    if (remaining.length === 1) {
+      result.push({ widget: remaining[0].widget, w: columns, h: remaining[0].h });
+      remaining = [];
+      continue;
+    }
+
+    // Try to fit as many items as possible into one row
+    const row: typeof items = [];
+    let usedW = 0;
+
+    while (remaining.length > 0 && usedW + remaining[0].idealW <= columns) {
+      const item = remaining.shift()!;
+      row.push(item);
+      usedW += item.idealW;
+    }
+
+    // Expand proportionally to fill the row
+    if (usedW < columns && row.length > 0) {
+      const gap = columns - usedW;
+      const extra = Math.floor(gap / row.length);
+      let leftover = gap - extra * row.length;
+      for (const r of row) {
+        r.idealW += extra;
+        if (leftover > 0) { r.idealW += 1; leftover--; }
+      }
+    }
+
+    for (const r of row) {
+      result.push({ widget: r.widget, w: r.idealW, h: r.h });
+    }
+  }
+
+  return result;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Detection heuristic                                               */
 /* ------------------------------------------------------------------ */
 

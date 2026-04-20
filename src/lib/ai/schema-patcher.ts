@@ -1,6 +1,6 @@
 import type { DashboardSchema, SchemaPatch, WidgetConfig } from '@/types';
 import { getWidgetTemplate, cloneWidgetFromLibrary } from '@/lib/data/widget-library';
-import { autoLayoutWidgets, needsAutoLayout } from './auto-layout';
+import { autoLayoutWidgets, appendWidgetsToLayout, needsAutoLayout } from './auto-layout';
 
 /**
  * Ensure a widget config coming from the AI has all required fields with
@@ -49,14 +49,40 @@ export function applyPatches(
     result = applySinglePatch(result, patch);
   }
 
-  // Always auto-arrange after AI patches — the layout engine is type-aware
-  // and will produce a clean, prioritised grid regardless of what the AI emits.
-  // needsAutoLayout is kept as a secondary check for edge-case manual additions.
-  const hasStructuralChange = patches.some(p =>
-    p.type === 'add_widget' || p.type === 'use_widget' || p.type === 'replace_all'
-  );
+  // Decide between full re-layout vs incremental append.
+  // replace_all → full re-layout (new dashboard, everything gets arranged).
+  // add_widget / use_widget → append only (preserve existing positions,
+  //   pack new widgets tightly below current content, no white-space gaps).
+  const isFullReplace = patches.some(p => p.type === 'replace_all');
+  const addedWidgetIds = new Set<string>();
 
-  if (hasStructuralChange || needsAutoLayout(result.widgets)) {
+  for (const p of patches) {
+    if (p.type === 'add_widget' && p.widget?.id) addedWidgetIds.add(p.widget.id);
+    if (p.type === 'use_widget' && p.widgetTemplateId) {
+      // use_widget clones get a generated ID — find the newest widget not in the original schema
+      const origIds = new Set(schema.widgets.map(w => w.id));
+      for (const w of result.widgets) {
+        if (!origIds.has(w.id)) addedWidgetIds.add(w.id);
+      }
+    }
+  }
+
+  if (isFullReplace) {
+    // Full re-layout for new dashboards
+    result = {
+      ...result,
+      widgets: autoLayoutWidgets(result.widgets, result.layout.columns),
+    };
+  } else if (addedWidgetIds.size > 0) {
+    // Incremental append — keep existing layout, pack new widgets below
+    const existing = result.widgets.filter(w => !addedWidgetIds.has(w.id));
+    const added = result.widgets.filter(w => addedWidgetIds.has(w.id));
+    result = {
+      ...result,
+      widgets: appendWidgetsToLayout(existing, added, result.layout.columns),
+    };
+  } else if (needsAutoLayout(result.widgets)) {
+    // Fallback: fix badly-positioned widgets
     result = {
       ...result,
       widgets: autoLayoutWidgets(result.widgets, result.layout.columns),

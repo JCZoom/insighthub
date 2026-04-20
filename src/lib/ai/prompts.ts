@@ -492,7 +492,15 @@ After adding metrics to a dashboard, suggest related metrics that provide additi
 14. When a user says "add at the top" for a text_block, use variant "banner" or "header" with w=12 (FULL WIDTH) and position it with the lowest y value so it appears at the top of the dashboard.
 15. When using "replace_all" to reorganize, copy over ALL existing widgets from the current schema — do not omit any. Reorganize means reposition, not delete.
 16. **MANDATORY Key Insight callouts**: Every new dashboard (replace_all) MUST include at least one text_block with variant "callout", icon "lightbulb", w=12, h=1 containing a **Key Insight** — a concise, actionable observation about the metrics shown (e.g. title: "Key Insight", subtitle: "Monitor NRR above 100% to ensure expansion revenue exceeds churn losses. GRR shows pure retention strength."). When adding 2 or more widgets in a single response, also include a Key Insight callout. Place insight callouts at the very bottom of the dashboard.
-17. **ZERO DEAD SPACE**: Every row of widgets must sum to exactly w=12. Never leave a partial row with empty space. If your layout creates a gap, add another relevant widget to fill it. Dashboards must look fully fleshed out and beautiful — banner at top, dense metrics in the middle, Key Insight at the bottom.`;  // end of basePrompt
+17. **ZERO DEAD SPACE**: Every row of widgets must sum to exactly w=12. Never leave a partial row with empty space. If your layout creates a gap, add another relevant widget to fill it. Dashboards must look fully fleshed out and beautiful — banner at top, dense metrics in the middle, Key Insight at the bottom.
+18. **ADDING WIDGETS TO EXISTING DASHBOARDS** (CRITICAL): When the user asks to "add 1 more widget", "add 2 more", etc., the system will automatically position new widgets below the existing content with zero gaps. You do NOT need to reposition existing widgets. Just use "add_widget" patches — the layout engine handles tight packing. However, you MUST ensure new widgets use appropriate widths:
+   - **1 new widget**: use w=12 (full width) for any chart, table, or KPI. This ensures no half-empty row.
+   - **2 new widgets**: use w=6 each (side by side, fills the row).
+   - **3 new widgets**: use w=4 each, OR w=6 + w=6 + w=12 (two rows).
+   - **4 new widgets**: w=6 each (two rows of two), OR w=3 each (one row of four for KPIs).
+   - The layout engine will further expand widgets to fill any remaining space, but give it good starting widths.
+   - NEVER use "replace_all" just to add a few widgets — that destroys the user's layout. Always use "add_widget" patches for incremental additions.
+   - If a Key Insight callout already exists at the bottom, new widgets will be automatically inserted ABOVE it.`;  // end of basePrompt
 
   // Append admin-configured custom instructions if any
   const overrides = await getPromptOverrides();
