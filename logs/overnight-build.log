@@ -1136,3 +1136,15 @@
 [2026-04-19 12:13:03]    Total tokens: 3,480 in + 294,524 out
 [2026-04-19 12:13:03] ============================================================
 [2026-04-19 12:13:03] 📝 Morning summary written to docs/overnight-build-summary-2026-04-19.md
+[2026-04-20 00:46:39] ============================================================
+[2026-04-20 00:46:39] 🌙 Overnight Builder starting
+[2026-04-20 00:46:39]    Project: /Users/Jeffrey.Coy/CascadeProjects/InsightHub
+[2026-04-20 00:46:39]    Model: claude-sonnet-4-20250514
+[2026-04-20 00:46:39]    Max tasks: 10
+[2026-04-20 00:46:39]    Max consecutive failures: 3
+[2026-04-20 00:46:39]    Dry run: False
+[2026-04-20 00:46:39]    Budget cap: $25.00
+[2026-04-20 00:46:39]    AI triage: True
+[2026-04-20 00:46:39]    Operator notes: PRIORITY 1: Make template key insights data-driven — replace the static boilerpl...
+[2026-04-20 00:46:39] ============================================================
+[2026-04-20 00:46:39] ⚠️  Uncommitted changes detected. Committing before starting...

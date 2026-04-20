@@ -5,7 +5,7 @@
     "default_view": "board"
   },
   "custom_fields_meta": {},
-  "synced_at": "2026-04-18T22:28:40.705231",
+  "synced_at": "2026-04-20T00:46:38.829627",
   "sections": [
     {
       "gid": "1214122597260846",
@@ -1112,11 +1112,181 @@
       "name": "\ud83d\udd10 Auth & Security",
       "tasks": [
         {
+          "gid": "1214129105522706",
+          "name": "\ud83d\udd34 Red Team Security Assessment \u2014 Static Code Analysis Report",
+          "notes": "Completed red team static analysis of the entire InsightHub codebase.\n\nDeliverables:\n- docs/RED_TEAM_SECURITY_REPORT.md (full report with 27 findings)\n- ~/Desktop/RED_TEAM_SECURITY_REPORT.pdf\n\nFindings: 3 CRITICAL, 6 HIGH, 8 MEDIUM, 6 LOW, 4 INFO\nCross-referenced against existing Asana tasks to identify gaps.\nCreated parent task + 22 subtasks for remediation tracking.\n\nKey areas examined:\n- Authentication & authorization (middleware, session, RBAC, dev mode)\n- All API routes (injection, authz bypass, data leakage, unauthenticated endpoints)\n- Environment & secrets handling\n- Database schema & data access patterns\n- Client-side security (XSS, CSRF, CSP)\n- Infrastructure config (nginx, systemd, docker, deploy)\n- AI/chat pipeline (prompt injection, data exfiltration)\n- Snowflake integration readiness",
+          "completed": true,
+          "completed_at": "2026-04-20T03:10:24.216Z",
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udd10 Auth & Security"
+        },
+        {
+          "gid": "1214129426189780",
+          "name": "\ud83d\udd34 Red Team Security Hardening \u2014 Audit Findings Remediation",
+          "notes": "Red Team static analysis identified 27 findings across the InsightHub codebase.\nThis parent task tracks all remediation work for findings NOT already covered by existing Asana tasks.\n\nFull report: docs/RED_TEAM_SECURITY_REPORT.md (also PDF on Desktop)\n\nFindings already addressed by prior work:\n\u2022 [Review Fix] CSP allows 'unsafe-eval' and 'unsafe-inline' for scripts (partial \u2014 unsafe-eval removed but unsafe-inline remains)\n\u2022 [Review Fix] Chat and explain endpoints operate without authentication (partial \u2014 chat/explain fixed but other endpoints remain)\n\u2022 [Review Fix] Error messages leak internal details to clients (partial \u2014 most routes fixed but explain endpoint still leaks)\n\u2022 [Review Fix] Remove AI config status from health endpoint (partial \u2014 AI config removed but Node version, memory, git commit remain)\n\u2022 [Review Fix] In-memory rate limiter doesn't persist across serverless instances (acknowledged \u2014 Redis not yet deployed)\n\u2022 [Review Fix] CORS wildcard on SSE endpoint (fixed)\n\u2022 \ud83d\udd10 Data-at-Rest Encryption \u2014 Backup Encryption + Permission Hardening (backup encryption done)\n\nSeverity breakdown of remaining findings:\n\u2022 CRITICAL: 3 (auth bypass, XSS, unauthenticated endpoints)\n\u2022 HIGH: 5 (prompt injection, privilege escalation, health leak, Snowflake creds, CSP nonce)\n\u2022 MEDIUM: 7 (thumbnail validation, request size, IDOR, HTTPS redirect, header conflict, session invalidation, error leaks)\n\u2022 LOW: 5 (user email exposure, secret validation, prompt length, deploy safety, backup key)\n\u2022 INFO: 4 (audit failures, IP logging, CI scanning, DB naming)",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 23,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udd10 Auth & Security",
+          "subtasks": [
+            {
+              "gid": "1214129426248351",
+              "name": "\u2139\ufe0f INFO-04: Rename dev.db to insighthub.db in production",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129461589076",
+              "name": "\u2139\ufe0f INFO-02: Add IP address and User-Agent to audit log entries",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426339810",
+              "name": "\u2139\ufe0f INFO-01: Make audit log writes fail-closed for critical actions",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129105559059",
+              "name": "\ud83d\udd35 LOW-05: Pass backup encryption key via env instead of CLI argument",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129105457977",
+              "name": "\ud83d\udd35 LOW-04: Replace prisma db push --accept-data-loss with migrate deploy",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129434436858",
+              "name": "\ud83d\udd35 LOW-03: Add length/content validation to admin prompt override",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426263856",
+              "name": "\ud83d\udd35 LOW-02: Hard-fail on insecure NEXTAUTH_SECRET in production",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214133235083781",
+              "name": "\ud83d\udd35 LOW-01: Restrict user search API fields for non-admin users",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426245903",
+              "name": "\ud83d\udfe1 MED-08: Implement session invalidation on role change",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426287113",
+              "name": "\ud83d\udfe1 MED-07: Resolve X-Frame-Options header conflict between middleware and nginx",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129434348263",
+              "name": "\ud83d\udfe1 MED-06: Enable HTTPS redirect in nginx config",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129105324567",
+              "name": "\ud83d\udfe1 MED-05: Fix remaining error message leak in widgets/explain endpoint",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426328112",
+              "name": "\ud83d\udfe1 MED-04: Add Zod validation to dashboard share endpoint (IDOR prevention)",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129105494429",
+              "name": "\ud83d\udfe1 MED-03: Add total request body size limit on chat API",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129434428251",
+              "name": "\ud83d\udfe1 MED-01: Validate thumbnail upload content (image magic bytes + re-encode)",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214133235016863",
+              "name": "\ud83d\udfe0 HIGH-06: Implement nonce-based CSP to replace 'unsafe-inline'",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129461594573",
+              "name": "\ud83d\udfe0 HIGH-05: Migrate Snowflake credentials to AWS Secrets Manager",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426294406",
+              "name": "\ud83d\udfe0 HIGH-03: Split health endpoint into public (status-only) and private (diagnostics)",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426263846",
+              "name": "\ud83d\udfe0 HIGH-02: Strict Zod validation on customOverrides in permission assignments",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426228983",
+              "name": "\ud83d\udfe0 HIGH-01: AI prompt injection defenses \u2014 filter sources before prompt construction",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214133235090960",
+              "name": "\ud83d\udd34 CRIT-03: Add auth checks to unauthenticated API endpoints",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129426248325",
+              "name": "\ud83d\udd34 CRIT-02: Add DOMPurify to all dangerouslySetInnerHTML (Stored XSS)",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214129434452279",
+              "name": "\ud83d\udd34 CRIT-01: Hard-fail build when NEXT_PUBLIC_DEV_MODE=true in production",
+              "completed": false,
+              "assignee": null
+            }
+          ]
+        },
+        {
           "gid": "1214122641299988",
           "name": "\ud83d\udd10 Metric-Level RBAC \u2014 Granular Financial Data Restrictions & Builder UX",
           "notes": "## Overview\n\nThe current RBAC system enforces permissions at the **data category level** (Revenue, Sales, Support, etc.) with FULL/NONE/FILTERED access. This works for broad access control but lacks the granularity needed for real-world scenarios where:\n\n- A junior Creator should be able to build dashboards but NOT access specific financial metrics\n- Financial data spans multiple categories (Revenue, Sales, Operations KPIs) and needs a unified classification  \n- The dashboard builder should proactively show what's available vs. restricted BEFORE the user tries to use it\n- The FILTERED access level exists in the type system but has no implementation\n\n## Current State (What Works)\n- 7 data categories with per-group access levels\n- AI prompt filtering blocks restricted data in chat\n- API query enforcement returns 'Access Denied' messages\n- Creator role template already blocks Revenue/Sales by default\n\n## Gap Analysis\n1. No metric-level granularity within a category (all-or-nothing)\n2. No 'Financial' meta-category grouping all money-related data\n3. No proactive UX in dashboard builder showing available vs. restricted sources\n4. Widget config doesn't prevent adding restricted data sources at build time\n5. FILTERED access level is unimplemented (behaves as FULL)\n\n## Acceptance Criteria\n- [ ] Admins can define metric-level restrictions within a data category\n- [ ] 'Financial' meta-category groups Revenue + Sales + financial KPIs\n- [ ] Dashboard builder shows lock icons on restricted data sources\n- [ ] Widget config panel prevents selecting restricted sources with helpful messaging\n- [ ] FILTERED access level supports aggregate-only access (no customer-level breakdowns)\n- [ ] Users see clear 'Contact your administrator' messaging with specific data category names",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T02:51:27.962Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -1134,31 +1304,31 @@
             {
               "gid": "1214124670702136",
               "name": "\ud83d\udccb Define Metric-Level Restriction Rules \u2014 Admin Configuration Schema",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125706308711",
               "name": "\ud83d\udee1\ufe0f Widget Build-Time Enforcement \u2014 Block Restricted Data at Configuration",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124670678804",
               "name": "\ud83c\udfa8 Proactive Dashboard Builder UX \u2014 Data Source Availability Indicators",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125706350871",
               "name": "\ud83c\udff7\ufe0f Add Financial Meta-Category \u2014 Unified Financial Data Classification",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127961315257",
               "name": "\ud83c\udfd7\ufe0f Implement FILTERED Access Level \u2014 Aggregate-Only Data Access",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -1520,6 +1690,53 @@
       "gid": "1214127917251084",
       "name": "\ud83e\udd16 AI & Chat System",
       "tasks": [
+        {
+          "gid": "1214126974627718",
+          "name": "\ud83d\udee1\ufe0f Data Integrity Verification Pipeline \u2014 AI-Generated Dashboard Accuracy Checks",
+          "notes": "Multi-layer verification pipeline to ensure AI-generated dashboards display accurate data.\n\n## Problem\nUsers make business decisions based on AI-generated dashboards. If the AI misinterprets intent, selects wrong data sources, or applies wrong aggregations, users act on incorrect data. Currently there is ZERO verification between AI output and what users see.\n\n## Solution: 3-Layer Verification Pipeline\n- **Layer 1 (Deterministic):** 13 structural/schema checks \u2014 free, <5ms\n- **Layer 2 (AI Verify):** Semantic intent matching via Claude Haiku \u2014 ~$0.002, ~2-4s  \n- **Layer 2.5 (Escalation):** Deep review via Sonnet when confidence < 0.70 \u2014 conditional\n\n## Spec Document\ndocs/DATA_INTEGRITY_VERIFICATION_SPEC.md\n\n## Key Files\n- NEW: src/lib/ai/verify-integrity.ts (core verification logic)\n- NEW: src/lib/ai/source-field-registry.ts (data source field mappings)\n- MODIFY: src/app/api/chat/route.ts (integrate into streaming pipeline)\n- MODIFY: src/components/chat/ChatPanel.tsx (display verification badges)\n- MODIFY: src/types/index.ts (verification type definitions)\n",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 5,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83e\udd16 AI & Chat System",
+          "subtasks": [
+            {
+              "gid": "1214133222203496",
+              "name": "5\ufe0f\u20e3 Chat Route + ChatPanel Integration + UX Badges",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214126969893968",
+              "name": "4\ufe0f\u20e3 Layer 2.5 \u2014 Escalation Review + Orchestrator",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214126969981185",
+              "name": "3\ufe0f\u20e3 Layer 2 \u2014 AI Verification (Haiku semantic check)",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214126974806057",
+              "name": "2\ufe0f\u20e3 Layer 1 \u2014 Deterministic Checks (D-01 through D-13)",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214133222222895",
+              "name": "1\ufe0f\u20e3 Source-Field Registry + Type Definitions",
+              "completed": false,
+              "assignee": null
+            }
+          ]
+        },
         {
           "gid": "1214133150432884",
           "name": "\ud83e\udd16 AI-Assisted SQL & Query Explanation",
@@ -1885,11 +2102,17 @@
           "start_on": null,
           "due_on": null,
           "assignee": null,
-          "num_subtasks": 6,
+          "num_subtasks": 7,
           "custom_fields": {},
           "dependencies": [],
           "section": "\ud83d\udcca Widget System",
           "subtasks": [
+            {
+              "gid": "1214124696110715",
+              "name": "Fix markdown rendering in Metric Explanation modal",
+              "completed": true,
+              "assignee": null
+            },
             {
               "gid": "1214133174955758",
               "name": "Perf: switch metric explain from Sonnet \u2192 Haiku for ~5x faster responses",
@@ -2192,6 +2415,71 @@
       "name": "\ud83c\udfa8 Dashboard Canvas & UX",
       "tasks": [
         {
+          "gid": "1214124701597458",
+          "name": "\ud83d\udd00 Widget Duplication Enhancements \u2014 Option+Drag, Copy to Dashboard, View-Only Add",
+          "notes": "Three related features to make widget reuse across dashboards seamless:\n\n1. **Option+Drag to Duplicate** (deferred \u2014 needs drag handler rewrite)\n   - Hold \u2325 (Option) and drag a widget to duplicate it at the drop position\n   - Original stays in place, clone appears where you drop\n   - Green ghost outline with \"Duplicate here\" label during drag\n   - Requires rewriting createDragHandler to use document-level event listeners (the current createTouchDragHandler factory uses closure-based state that resets on React re-renders when setDragState triggers)\n   - The resize handler already uses the correct document.addEventListener pattern \u2014 follow that model\n   - ShortcutHelpOverlay should add \u2325+Drag entry\n\n2. **\"Copy to Dashboard\u2026\" Context Menu Action** (partially built)\n   - Right-click widget \u2192 \"Copy to Dashboard\u2026\" opens a modal to pick a target dashboard\n   - ContextMenu.tsx needs copyToDashboard callback added to getWidgetActions\n   - DashboardCanvas.tsx needs state + modal rendering wired up\n\n3. **\"Add to Dashboard\" Button in View-Only Mode** (partially built)\n   - When viewing a shared/public dashboard, each widget shows a hover button to copy it to one of your own dashboards\n   - Uses the same AddToDashboardModal\n\n**Existing code on disk (uncommitted):**\n- src/components/dashboard/AddToDashboardModal.tsx \u2014 complete modal component (search dashboards, pick target, create new)\n- src/app/api/dashboards/[id]/add-widget/route.ts \u2014 API endpoint to append a widget to another dashboard (with auth, versioning, audit logging)\n\nThese files are functional but NOT wired into DashboardCanvas/ContextMenu yet (those were reverted to preserve working drag).\n\n**Root cause of drag breakage:**\nThe createTouchDragHandler factory (src/hooks/useTouchDrag.ts) creates closure variables (startPos, dragging, hasStarted) that reset when React re-renders the component. When onDragStart calls setDragState(), React re-renders, new factory closures are created with fresh state, and subsequent pointermove events get swallowed. Fix: use document.addEventListener pattern like handleResizeStart does.",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 3,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfa8 Dashboard Canvas & UX",
+          "subtasks": [
+            {
+              "gid": "1214127987741577",
+              "name": "View-Only \"Add to Dashboard\" Button",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214125733049720",
+              "name": "Copy to Dashboard Context Menu Action",
+              "completed": false,
+              "assignee": null
+            },
+            {
+              "gid": "1214124701596069",
+              "name": "Option+Drag to Duplicate Widget",
+              "completed": false,
+              "assignee": null
+            }
+          ]
+        },
+        {
+          "gid": "1214133211225123",
+          "name": "PNG Export Overhaul \u2014 html-to-image + clean widget exports",
+          "notes": "Replaced html2canvas with html-to-image for PNG export. html2canvas v1.x could not handle modern CSS color functions (oklab, oklch, color-mix) used by Tailwind v4, causing \"unsupported color function oklab\" errors and visual artifacts (dim colors, light background flashes).\n\nhtml-to-image uses SVG foreignObject \u2192 Canvas, where the BROWSER renders all CSS natively. Result: pixel-perfect exports with zero workarounds.\n\nAlso:\n- Added data-export-ignore=\"true\" to all hover-only UI elements (drag handle, action buttons, resize handles, data footer, glossary badge) so they are excluded from widget PNG exports\n- Hidden SVG export buttons from UI (font fidelity issues with foreignObject approach). Code preserved in export-utils.ts for future re-enablement.\n- Widget detail overlay export buttons and close button also hidden from exports.\n\nFiles changed: export-utils.ts, DashboardCanvas.tsx, ResizeHandles.tsx, WidgetRenderer.tsx, WidgetDetailOverlay.tsx, package.json (added html-to-image, html2canvas still used by thumbnail-generator)",
+          "completed": true,
+          "completed_at": "2026-04-19T18:46:17.863Z",
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfa8 Dashboard Canvas & UX"
+        },
+        {
+          "gid": "1214124692739799",
+          "name": "\ud83d\udcf1 Deferred: Mobile & Tablet Support \u2014 Fix responsive views, favorites, gallery errors",
+          "notes": "Mobile and tablet views are deferred for a future sprint. Current issues:\n\n1. iPad: Favorites do not appear on the dashboards gallery page (localStorage favorites are device-specific, but the gallery layout is also broken on tablet widths)\n2. Phone: Browsing saved dashboards from main page gives an error with a \"Go Home\" button\n3. Dashboard editor tablet/phone layout modes (drawer chat, canvas/chat toggle) are buggy\n4. Preview toggle (Desktop/Tablet/Mobile) has been removed from the toolbar\n\nCurrent mitigations deployed:\n- Full-screen \"Desktop Recommended\" overlay for screens <1024px (dismissible via Continue Anyway)\n- MobileNotice added to root layout covering all pages\n- Preview toggle buttons removed from dashboard toolbar\n\nWhen ready to tackle:\n- Fix gallery page responsive layout for tablet/phone\n- Fix favorites cross-device sync (currently localStorage per-device)\n- Fix dashboard editor mobile/tablet layout modes\n- Restore preview toggle with working tablet/phone previews\n- Perform real device testing on iPhone and iPad",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83c\udfa8 Dashboard Canvas & UX"
+        },
+        {
           "gid": "1214125675457101",
           "name": "Home Page Hero Redesign + Modal Scroll Fix",
           "notes": "Redesigned landing page quick actions and fixed modal rendering:\n- Moved ShortcutHelpOverlay and ShareModal outside overflow-auto container (fixes overlay not showing on some browsers)\n- Replaced disconnected text labels with styled divider ('or start from a template')\n- Replaced plain 'Search existing dashboards' link with button-styled link with LayoutGrid icon + arrow\n\nCommit: 8aba035",
@@ -2246,10 +2534,18 @@
           "start_on": null,
           "due_on": null,
           "assignee": null,
-          "num_subtasks": 0,
+          "num_subtasks": 1,
           "custom_fields": {},
           "dependencies": [],
-          "section": "\ud83c\udfa8 Dashboard Canvas & UX"
+          "section": "\ud83c\udfa8 Dashboard Canvas & UX",
+          "subtasks": [
+            {
+              "gid": "1214133211299653",
+              "name": "Equalize Save button and dropdown button widths",
+              "completed": true,
+              "assignee": null
+            }
+          ]
         },
         {
           "gid": "1214124636389132",
@@ -2347,7 +2643,7 @@
           "start_on": null,
           "due_on": null,
           "assignee": null,
-          "num_subtasks": 11,
+          "num_subtasks": 12,
           "custom_fields": {},
           "dependencies": [
             {
@@ -2357,6 +2653,12 @@
           ],
           "section": "\ud83c\udfa8 Dashboard Canvas & UX",
           "subtasks": [
+            {
+              "gid": "1214124696076460",
+              "name": "Fix Ctrl+Option+F shortcut for toggling folder panel",
+              "completed": true,
+              "assignee": null
+            },
             {
               "gid": "1214133151157752",
               "name": "Expand useKeyboardShortcuts hook to support the full registry + context scoping",
@@ -3338,11 +3640,17 @@
           "start_on": null,
           "due_on": null,
           "assignee": null,
-          "num_subtasks": 5,
+          "num_subtasks": 6,
           "custom_fields": {},
           "dependencies": [],
           "section": "\ud83d\udcc1 Gallery & Sharing",
           "subtasks": [
+            {
+              "gid": "1214127987085687",
+              "name": "Fix subfolder display & add inline delete button",
+              "completed": true,
+              "assignee": null
+            },
             {
               "gid": "1214124626823438",
               "name": "Breadcrumb navigation",
@@ -3511,6 +3819,21 @@
       "name": "\ud83d\udcd6 Glossary System",
       "tasks": [
         {
+          "gid": "1214129722835417",
+          "name": "Make template Key Insights data-driven (replace static boilerplate)",
+          "notes": "Problem:\nAll 5 dashboard templates (exec, support, churn, sales, customer) have hard-coded static \n\"Key Insight\" text blocks at the bottom. These are generic boilerplate that don't reflect \nactual dashboard data. Example: the exec template references \"APAC\" which isn't even in \nthe glossary and may not be relevant to the user's data.\n\nGoal:\nReplace static insight text with dynamically generated insights based on actual dashboard \ndata. When a template is loaded or data refreshes, compute a real insight from the numbers.\n\nScope:\n- Analyze the data sources powering each template's widgets\n- Generate 1-2 sentence insights highlighting notable patterns (e.g., outlier metrics, \n  trends, comparisons)\n- Could use simple heuristics (e.g., \"highest churn region\" or \"NRR above/below 100%\") \n  or an AI call for richer narrative\n- Update the insight-* widget subtitle dynamically instead of hard-coding it\n- Affects all 5 templates in src/lib/data/templates.ts:\n  \u2022 insight-exec (line ~165)\n  \u2022 insight-support (line ~294)\n  \u2022 insight-churn (line ~441)\n  \u2022 insight-sales (line ~570)\n  \u2022 insight-customer (line ~699)\n\nAlso:\n- Add region abbreviations (APAC, EMEA, NA, LATAM) to glossary/terms.yaml\n- Until insights are data-driven, spell out \"Asia-Pacific (APAC)\" in the exec insight\n\nThis is a bigger lift \u2014 may want to consider as part of a broader \"smart templates\" feature.",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udcd6 Glossary System"
+        },
+        {
           "gid": "1214122597328486",
           "name": "Glossary reference panel in dashboard editor",
           "notes": "Always-available side panel to browse terms while editing.\nLink terms to widgets for tooltip display.",
@@ -3649,8 +3972,8 @@
           "gid": "1214122605158895",
           "name": "Glossary \u2192 Widget Links: Browse & Add Relevant Widgets from Glossary Terms",
           "notes": "HIGH PRIORITY IDEA\n\nWhen viewing a glossary term (expanded), show buttons linking to relevant widgets from the widget library that relate to that metric.\n\nUser flow:\n1. User opens glossary, expands a term (e.g. \"Churn Rate\")\n2. Below the term details, show \"Related Widgets\" section with cards for relevant widgets (e.g. Churn Rate KPI Card, Churn by Region chart)\n3. Each widget card has:\n   - Preview thumbnail or icon\n   - Widget title and type\n   - \"View\" button \u2192 opens a prominent preview/modal\n   - \"Add to Dashboard\" button \u2192 dropdown with:\n     a. \"Add to new dashboard\" \u2014 creates a new dashboard with that widget\n     b. \"Add to existing dashboard\" \u2014 type-ahead search to find eligible dashboards, then adds the widget\n\nImplementation notes:\n- Widget matching: Match by tags, title keywords, and data_source overlap between glossary terms and widget templates\n- Could extend WidgetTemplate model with optional glossaryTerms field\n- Preview modal should render the widget at a larger size with sample data\n- Dashboard search for \"add to existing\" should use the existing /api/dashboards?q= endpoint\n- Consider also showing this from the widget library panel in reverse (show related glossary terms per widget)\n\nDesign:\n- Keep the glassmorphism dark-first style\n- Widget cards should look like compact versions of the widget library cards\n- Animate in smoothly when term is expanded\n\nPriority: HIGH \u2014 this connects the glossary to actionable dashboard building, which is the core value prop.",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T15:02:36.972Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3667,11 +3990,41 @@
       "name": "\ud83d\udcbe Data Layer",
       "tasks": [
         {
+          "gid": "1214125728974537",
+          "name": "\ud83d\udd27 Deferred: Data Explorer \u2014 needs full QA pass before shipping",
+          "notes": "The Data Explorer (/data/explorer) has been built but deferred from the live site. The page and all underlying code (SchemaExplorer, DataProfiler, DataPreview, etc.) remain in the codebase but the nav link is commented out in Navbar.tsx.\n\nBefore shipping:\n- Full QA pass on schema browsing\n- Test data profiling functionality\n- Verify data preview renders correctly\n- Test column statistics and distributions\n- Cross-browser testing\n\nTo re-enable: uncomment the nav item in src/components/layout/Navbar.tsx",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udcbe Data Layer"
+        },
+        {
+          "gid": "1214125729047241",
+          "name": "\ud83d\udd27 Deferred: Query Playground \u2014 needs full QA pass before shipping",
+          "notes": "The Query Playground (/data/playground) has been built but deferred from the live site. The page and all underlying code (SqlEditor, PlaygroundTab, etc.) remain in the codebase but the nav link is commented out in Navbar.tsx.\n\nBefore shipping:\n- Full QA pass on the Monaco SQL editor\n- Test query execution against sample data\n- Verify query history persistence\n- Test autocomplete and syntax highlighting\n- Cross-browser testing\n- Error handling for malformed queries\n\nTo re-enable: uncomment the nav item in src/components/layout/Navbar.tsx",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udcbe Data Layer"
+        },
+        {
           "gid": "1214124635388433",
           "name": "\ud83d\udcd0 Visual Query Builder \u2014 Sigma-Style No-Code Data Exploration",
           "notes": "A drag-and-drop query builder for business analysts who know their data deeply but don't write SQL. Inspired by Sigma Computing's spreadsheet-like experience.\n\n## Target Users\nBusiness analysts, ops leads, RevOps \u2014 people who live in Sigma or Excel pivot tables. They can build complex analyses but through visual tools, not SQL.\n\n## Core Features\n\n### Column Picker\n- Drag columns from the schema sidebar into the query canvas\n- Columns auto-grouped by table, searchable\n- Shows data type icon (text, number, date, boolean)\n- Glossary-linked columns show a \u2728 badge\n\n### Visual Operations\n- **Group By**: Drag a column to the \"Group By\" zone\n- **Aggregate**: Click a numeric column \u2192 pick Sum, Avg, Count, Min, Max, Median\n- **Filter**: Click a column \u2192 visual filter builder (dropdown for categorical, slider for numeric, date picker for dates)\n- **Sort**: Click column header to toggle sort direction\n- **Limit**: Slider or input for row limit\n- **Join**: Drag a second table in \u2192 auto-suggest join condition based on FK relationships\n\n### Formula Bar (Sigma-Style)\n- Type expressions like: `Sum([monthly_revenue])`, `CountIf([status] = \"active\")`\n- Formula autocomplete with function reference\n- Calculated columns: add a new column with a formula\n- Formula reference panel: searchable list of available functions\n\n### Live Preview\n- Results update in real-time as the user builds the query\n- Performance: debounce 500ms, show loading spinner, cancel previous query\n- Row count + estimated query cost shown\n\n### Generated SQL Preview\n- \"View SQL\" toggle shows the SQL being generated under the hood\n- Users can copy the SQL and paste it into the SQL Editor for further tweaking\n- Helps SQL learners understand what their visual operations translate to\n\n### Save & Wire to Widget\n- \"Create Widget\" button: saves the visual query config and creates a dashboard widget\n- Widget stores both the visual query definition AND the generated SQL\n- Re-opening the widget in the visual builder restores the drag-and-drop state\n\n## Files\n- src/components/data/VisualQueryBuilder.tsx \u2014 main component\n- src/components/data/FormulaBar.tsx \u2014 Sigma-style formula input\n- src/components/data/ColumnPicker.tsx \u2014 draggable column list\n- src/components/data/FilterBuilder.tsx \u2014 visual filter UI\n- src/lib/data/visual-to-sql.ts \u2014 transpile visual query \u2192 SQL\n- src/types/visual-query.ts \u2014 VisualQueryConfig type definition\n\n## Depends On\n- Schema Explorer (for column metadata)\n- Query Engine (for execution)\n- RBAC (filter available columns/tables by permission)",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T16:28:59.285Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3684,55 +4037,55 @@
             {
               "gid": "1214140474263960",
               "name": "Join builder: drag second table, auto-suggest join conditions",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926138273",
               "name": "Save visual query as widget with restorable drag-and-drop state",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150432876",
               "name": "Visual-to-SQL transpiler (src/lib/data/visual-to-sql.ts)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150426290",
               "name": "\"View SQL\" toggle showing generated query",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671149880",
               "name": "Live results preview with debounced updates",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926061271",
               "name": "Formula function reference panel (searchable, categorized)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150431112",
               "name": "Formula bar with Sigma-style expressions (Sum([col]), CountIf, etc.)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635388697",
               "name": "Visual Group By, Aggregate, Filter, Sort, Limit operations",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124635379039",
               "name": "Column picker: drag columns from schema sidebar into query canvas",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3741,8 +4094,8 @@
           "gid": "1214127926091086",
           "name": "\ud83e\uddea Query Playground \u2014 Interactive Scratch Pad",
           "notes": "A dedicated space for power users to experiment with queries before wiring them to widgets. Think \"Snowflake Worksheets\" or \"Sigma Workbook\" but inside InsightHub.\n\n## Why It's Different From the SQL Editor\nThe SQL Editor is a panel within the dashboard builder. The Query Playground is a standalone page \u2014 a data workbench for exploration, not dashboard construction.\n\n## Features\n\n### Multi-Tab Workspace\n- Multiple query tabs open simultaneously (like browser tabs)\n- Each tab: editor + results + metadata\n- Tabs persist across sessions (saved to DB)\n\n### Side-by-Side Results\n- Split view: run two queries and compare results visually\n- Useful for verifying: \"Does my InsightHub sample data match my Snowflake query?\"\n- Diff mode: highlight rows/values that differ between two result sets\n\n### Query Chaining (Notebook-Style)\n- Chain queries: output of Query 1 becomes input (CTE or temp table) for Query 2\n- Add markdown cells between queries for documentation\n- Export entire notebook as a shareable artifact\n\n### Data Visualization in Playground\n- Quick chart from any result set (one-click: bar, line, scatter)\n- Not full widget rendering \u2014 just fast exploration charts\n- \"Promote to Widget\" button: takes the query + chart config and creates a proper widget\n\n### Collaboration\n- Share a playground session via link\n- Comments on specific queries\n- \"Fork this playground\" to create a copy\n\n## Route\n- /data/playground \u2014 standalone page\n- /data/playground/[id] \u2014 shared/saved playground session\n\n## Files\n- src/app/data/playground/page.tsx\n- src/components/data/PlaygroundTab.tsx\n- src/components/data/ResultDiff.tsx \u2014 side-by-side comparison\n- src/components/data/QuickChart.tsx \u2014 lightweight chart from query results",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T15:33:13.489Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3755,43 +4108,43 @@
             {
               "gid": "1214133150398881",
               "name": "Share playground sessions via link + fork capability",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150344172",
               "name": "\"Promote to Widget\" \u2014 push playground query + chart to a dashboard",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606120241",
               "name": "Quick chart from result set (one-click bar/line/scatter)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671142763",
               "name": "Markdown cells between queries (notebook-style documentation)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606073467",
               "name": "Query chaining: CTE/temp table output \u2192 next query input",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926113020",
               "name": "Side-by-side result comparison with diff highlighting",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127926113369",
               "name": "Multi-tab query workspace with persistent tabs",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3800,8 +4153,8 @@
           "gid": "1214133150414714",
           "name": "\ud83d\udd0d Data Explorer & Schema Browser",
           "notes": "Interactive data exploration tool for power users who want to understand what's available before querying.\n\n## Features\n\n### Schema Browser (sidebar panel)\n- Tree view: Data Sources \u2192 Tables \u2192 Columns\n- Each column shows: name, type, nullable, sample values\n- Click a table to see row count, last updated, description\n- Search across all schemas (fuzzy match)\n- \"Preview\" button \u2192 shows first 100 rows in a data grid\n- Glossary integration: columns linked to glossary terms show the official definition on hover\n\n### Data Profiling\n- Click any column \u2192 see distribution stats:\n  - Numeric: min, max, mean, median, p95, null count, histogram\n  - Text: unique count, top 10 values, avg length\n  - Date: range, gaps, distribution over time\n- Helps users understand data shape before writing queries\n\n### Table Relationships\n- Visual diagram showing foreign key relationships between tables\n- Click a relationship to see the join condition\n- Useful for users building JOINs in the SQL editor\n\n### Integration Points\n- Schema sidebar shared between Data Explorer and SQL Editor\n- \"Open in SQL Editor\" button pre-populates SELECT * FROM table LIMIT 100\n- \"Add Column to Widget\" shortcut for visual builder users\n- Respects RBAC: tables/columns the user can't access are hidden or show \ud83d\udd12\n\n## Phase 1 (Sample Data)\n- Schema extracted from sample data generators (column names + types)\n- Data profiling from generated sample data\n\n## Phase 3 (Snowflake)\n- Schema pulled from Snowflake INFORMATION_SCHEMA\n- Live data profiling queries\n- Caching layer for schema metadata (refreshed daily)\n\n## Files\n- src/components/data/SchemaExplorer.tsx \u2014 tree sidebar\n- src/components/data/DataProfiler.tsx \u2014 column stats panel\n- src/components/data/DataPreview.tsx \u2014 table preview grid\n- src/app/api/data/schema/route.ts \u2014 schema metadata API\n- src/app/api/data/profile/route.ts \u2014 column profiling API",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T15:47:11.638Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3814,43 +4167,43 @@
             {
               "gid": "1214133150426848",
               "name": "RBAC integration: hide or lock inaccessible tables/columns",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606118410",
               "name": "\"Open in SQL Editor\" shortcut from any table/column",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150426840",
               "name": "Glossary integration: link columns to glossary term definitions",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125671159413",
               "name": "Table relationship diagram (FK visualization)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214133150426551",
               "name": "Column profiling: distribution stats, histograms, top values",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122606078546",
               "name": "Table preview: first 100 rows in sortable/filterable data grid",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127925995586",
               "name": "Schema tree sidebar (sources \u2192 tables \u2192 columns with types)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -3859,8 +4212,8 @@
           "gid": "1214124635378881",
           "name": "\ud83d\udfe3 Power User Data Experience \u2014 SQL, Visual Query Builder & Data Verification",
           "notes": "\ud83d\udfe3 POWER USER EXPERIENCE \u2014 Data-Savvy Users Epic\n\n## Vision\nMake InsightHub a first-class experience for people who live in Snowflake, Sigma, and spreadsheets \u2014 not just the \"build me a dashboard\" AI crowd. These users want to:\n- Write or see the actual SQL behind every number\n- Verify InsightHub results against their own Snowflake queries\n- Build custom formulas and calculated fields (Sigma-style)\n- Explore table schemas, preview raw data, understand column types\n- Save and share queries like code snippets\n- Use a visual query builder when they don't want to write SQL\n\n## Two Power User Personas\n\n### 1. SQL-Native (Data Engineers, Senior Analysts)\n- Query Snowflake directly day-to-day\n- Want a proper SQL editor with syntax highlighting, autocomplete, schema awareness\n- Want to paste their existing Snowflake queries and wire them to widgets\n- Trust data only when they can see the query that produced it\n- Need: SQL Editor, Query Playground, Data Lineage, Snowflake cross-check\n\n### 2. Sigma-Style (Business Analysts, Ops Leads)\n- Comfortable with visual query builders and spreadsheet formulas\n- Don't write raw SQL but know their data deeply\n- Want: Visual Query Builder, Formula Editor, Pivot Tables, Column Explorer\n- Used to expressions like Sum([Revenue]), CountIf([Status] = \"active\")\n\n## Child Tasks\nThis epic ties together work across multiple sections:\n- \ud83d\udcbe Data Layer: Query Playground, Data Explorer, Snowflake Connector enhancements\n- \ud83d\udd2e Advanced Features: SQL Editor, Visual Query Builder, Calculated Fields\n- \ud83e\udd16 AI & Chat: AI-Assisted SQL, \"Explain This Query\" features\n- \ud83c\udfa8 Canvas & UX: Widget Data Transparency (click-to-see-query)\n- \ud83d\udcca Widget System: SQL-backed widget type, pivot table enhancements\n\n## Guiding Principles\n- Every number on screen must be traceable to a query\n- Never hide the data layer from someone who wants to see it\n- SQL and visual builder are two paths to the same result\n- Snowflake is the source of truth \u2014 InsightHub should make it easy to verify against\n- Permission system (RBAC) gates what data they can query, not the tools they can use",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T15:56:40.968Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3915,8 +4268,8 @@
           "gid": "1214125662622796",
           "name": "Snowflake connector (Phase 3)",
           "notes": "Production data source. Connection management, query execution, caching.\nRef: spec Phase 3",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T16:13:02.361Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -3929,43 +4282,43 @@
             {
               "gid": "1214125662650979",
               "name": "Row-level security for PII/financial data",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214122597426663",
               "name": "Data-level permission enforcement (sensitive data tags)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917392610",
               "name": "Data source browser \u2014 table/view/column explorer",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917413238",
               "name": "Query caching layer (Redis) to avoid hammering Snowflake",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917495986",
               "name": "Query execution with parameterized queries (no SQL injection)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917385403",
               "name": "Connection pool management",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662426076",
               "name": "Snowflake Node.js SDK integration",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -4112,7 +4465,7 @@
             {
               "gid": "1214125662617064",
               "name": "Feature flags for Phase 2/3 features",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -4124,13 +4477,13 @@
             {
               "gid": "1214124626776965",
               "name": "AI model selection (Claude model version)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662617056",
               "name": "Default user role for new signups",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -4180,8 +4533,8 @@
           "gid": "1214124626804501",
           "name": "User management page",
           "notes": "Admin-only. List users, change roles, view activity.\nRef: spec Section 8",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T16:29:00.287Z",
           "type": "default_task",
           "start_on": null,
           "due_on": null,
@@ -4194,31 +4547,31 @@
             {
               "gid": "1214122597520989",
               "name": "API: PUT /api/admin/users/[id]/role",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214127917390819",
               "name": "API: GET /api/admin/users",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662605536",
               "name": "User activity summary (dashboards created, last login)",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662604346",
               "name": "Role dropdown to change user roles",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662670315",
               "name": "/admin page with user list table",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -4364,13 +4717,13 @@
             {
               "gid": "1214125662746801",
               "name": "Test: Glossary \u2192 Add term \u2192 Verify appears in AI prompt",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214124626809429",
               "name": "Test: Admin \u2192 Change user role \u2192 Verify permissions",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
@@ -4388,13 +4741,13 @@
             {
               "gid": "1214122597386347",
               "name": "Test: Login \u2192 Gallery \u2192 New Dashboard \u2192 Chat \u2192 Save",
-              "completed": false,
+              "completed": true,
               "assignee": null
             },
             {
               "gid": "1214125662589806",
               "name": "Set up Playwright",
-              "completed": false,
+              "completed": true,
               "assignee": null
             }
           ]
@@ -4506,6 +4859,21 @@
       "name": "\ud83d\ude80 Deployment & DevOps",
       "tasks": [
         {
+          "gid": "1214129461594585",
+          "name": "\ud83d\udd12 Add automated security scanning to CI pipeline (SAST, deps, secrets)",
+          "notes": "Severity: INFO (from Red Team report INFO-03)\nLocation: .github/workflows/ci.yml\n\nThe CI pipeline has no SAST, dependency vulnerability scanning, or secret detection.\n\nRemediation:\n1. Add npm audit to CI\n2. Add eslint-plugin-security\n3. Add trufflehog or gitleaks for secret scanning\n4. Consider semgrep or CodeQL for SAST\n\nEffort: 4 hours\nReference: docs/RED_TEAM_SECURITY_REPORT.md",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\ude80 Deployment & DevOps"
+        },
+        {
           "gid": "1214127961828743",
           "name": "ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)",
           "notes": "## Summary\n\nThe CISO report (\u00a76.1) requires EBS volume encryption at rest for the InsightHub EC2 instance. We have built the full automation script but are blocked on IAM permissions. The current IAM user (jeffreycoy-lambda-cli) only has Lambda permissions and cannot perform EC2 operations.\n\n## What We've Done\n- Installed AWS CLI v2 on the EC2 instance (i-07f1bf55da9c6c7a3, us-east-2)\n- Created automation script: scripts/enable-ebs-encryption.sh\n  - Enables default EBS encryption for the region\n  - Snapshots each unencrypted volume\n  - Creates encrypted copies via snapshot-copy method\n  - Swaps volumes (requires brief ~5-10 min instance stop)\n  - Verifies all volumes are encrypted post-migration\n  - Tags old volumes for cleanup\n- Created the IAM policy document: scripts/iam-ebs-encryption-policy.json\n- Existing EBS volume (nvme0n1, 8GB gp3) is currently NOT encrypted\n\n## What the Sysadmin Needs to Do\n\nOption A - Add inline policy to existing user (quickest):\n1. AWS Console -> IAM -> Users -> jeffreycoy-lambda-cli\n2. \"Add permissions\" -> \"Attach policies directly\"\n3. \"Create policy\" -> JSON tab\n4. Paste contents of scripts/iam-ebs-encryption-policy.json (also in Sysadmin Report section 13)\n5. Name it \"InsightHubEBSEncryption\" -> Create policy\n6. Back on the user page, search for \"InsightHubEBSEncryption\" and attach it\n\nOption B - Create an EC2 instance profile (preferred long-term):\n1. Create IAM role \"InsightHubEC2Role\" with EC2 trust policy\n2. Attach the EBS encryption policy (same JSON) to the role\n3. Create instance profile, add role to it\n4. Attach instance profile to instance i-07f1bf55da9c6c7a3\n\nOnce permissions are granted, run:\n  ssh jeffreycoy@autoqa \"sudo bash /opt/insighthub/scripts/enable-ebs-encryption.sh\"\n\n## Instance Details\n- Instance ID: i-07f1bf55da9c6c7a3\n- Region: us-east-2\n- AZ: us-east-2b\n- Volume: 8GB gp3, ext4, currently NOT encrypted\n- IAM User: arn:aws:iam::734910107398:user/jeffreycoy-lambda-cli\n\n## References\n- CISO Report: docs/CISO_REPORT.md section 6.1 (Data at Rest)\n- Sysadmin Report: docs/SYSADMIN_REPORT.md section 13 (EBS Encryption)\n- Automation script: scripts/enable-ebs-encryption.sh\n- IAM policy: scripts/iam-ebs-encryption-policy.json\n- AWS docs: https://docs.aws.amazon.com/ebs/latest/userguide/EBSEncryption.html",
@@ -4524,8 +4892,8 @@
           "gid": "1214133185226751",
           "name": "\ud83d\udd12 Verify & Enable EBS Volume Encryption on EC2 (CISO \u00a76.1)",
           "notes": "CISO Report \u00a76.1 \u2014 Data at Rest\n\nAll backup encryption and file permission hardening has been implemented in code.\nThis is the one remaining manual step that must be done in the AWS Console.\n\nAction required:\n1. Run: ./scripts/check-ebs-encryption.sh (verifies current status)\n2. If unencrypted, enable default EBS encryption for the region:\n   aws ec2 enable-ebs-encryption-by-default --region us-east-2\n3. For existing volumes: create encrypted snapshot \u2192 replace volume\n   (script provides detailed steps)\n\nContext: Backups are now AES-256-CBC encrypted, DB is chmod 600,\n.env.local is chmod 600. This EBS step closes the last gap.\n\nRef: docs/CISO_REPORT.md \u00a76.1, Risk #4",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T02:36:16.413Z",
           "type": "default_task",
           "start_on": null,
           "due_on": "2026-04-19",
@@ -4987,6 +5355,21 @@
       "gid": "1214127917478801",
       "name": "\ud83d\udd2e Advanced Features (Phase 4)",
       "tasks": [
+        {
+          "gid": "1214123355431052",
+          "name": "\ud83d\udd27 Deferred: Visual Query Builder \u2014 needs full QA pass before shipping",
+          "notes": "The Visual Query Builder (/data/visual-query) has been built but deferred from the live site. The page and all underlying code (VisualQueryBuilder, ColumnPicker, FilterBuilder, FormulaBar, visual-to-sql.ts, etc.) remain in the codebase but the nav link is commented out in Navbar.tsx.\n\nBefore shipping:\n- Full QA pass on drag-and-drop query building\n- Test SQL generation from visual queries\n- Verify formula bar calculations\n- Test filter builder with various data types\n- Test \"View SQL\" toggle\n- Cross-browser testing\n\nTo re-enable: uncomment the nav item in src/components/layout/Navbar.tsx",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "\ud83d\udd2e Advanced Features (Phase 4)"
+        },
         {
           "gid": "1214124635379056",
           "name": "\ud83d\udd04 Snowflake Cross-Validation Mode",
@@ -5747,6 +6130,36 @@
             }
           ],
           "section": "TO SORT"
+        },
+        {
+          "gid": "1214127992516941",
+          "name": "Add \"Presentation\" Mode so that people can easily share their screens in a meeting and still get the interactive benefits",
+          "notes": "",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "TO SORT"
+        },
+        {
+          "gid": "1214127992516943",
+          "name": "",
+          "notes": "",
+          "completed": false,
+          "completed_at": null,
+          "type": "default_task",
+          "start_on": null,
+          "due_on": null,
+          "assignee": null,
+          "num_subtasks": 0,
+          "custom_fields": {},
+          "dependencies": [],
+          "section": "TO SORT"
         }
       ]
     },
@@ -5878,8 +6291,8 @@
           "gid": "1214133186321579",
           "name": "\ud83d\udd12 URGENT: Verify & Enable EBS Volume Encryption",
           "notes": "CISO Report \u00a76.1 requires encryption at rest for the EC2 volume.\nDue date: April 19, 2026 (tomorrow).\n\nACTION NEEDED:\n\u2022 SSH into the EC2 instance or use AWS Console\n\u2022 Run: scripts/check-ebs-encryption.sh to check current state\n\u2022 If not encrypted: create encrypted snapshot \u2192 new encrypted volume \u2192 swap\n\u2022 OR enable default EBS encryption in the AWS region and re-create the volume\n\nBLOCKS: \ud83d\udd12 Verify & Enable EBS Volume Encryption on EC2 (CISO \u00a76.1)",
-          "completed": false,
-          "completed_at": null,
+          "completed": true,
+          "completed_at": "2026-04-19T02:38:36.370Z",
           "type": "default_task",
           "start_on": null,
           "due_on": "2026-04-19",
@@ -5890,6 +6303,11 @@
           "section": "\ud83c\udfaf Jeff \u2014 Action Needed"
         }
       ]
+    },
+    {
+      "gid": "1214127992516940",
+      "name": "Untitled section",
+      "tasks": []
     }
   ]
 }

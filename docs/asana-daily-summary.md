@@ -1,771 +1,269 @@
+# InsightHub — AI Dashboard Builder: Project Status
 
----
+**Last synced:** 2026-04-20T00:46:38.829627
+**Project GID:** 1214122597260827
 
-## Quick Stats
+## Overview
+- **Tasks:** 189 (144 completed)
+- **Milestones:** 0
+- **Subtasks:** 511 (351 completed)
+- **Sections:** 17
 
-| Metric | Count |
-|--------|-------|
-| Total tasks | 189 |
-| Completed tasks | 144 |
-| Total subtasks | 511 |
-| Completed subtasks | 351 |
-| **Overall progress** | **495/700 (71%)** |
+## Sections
 
----
+### Untitled section
+43/43 tasks done | 0 milestones
 
-# InsightHub — Asana Project Summary
+- ✅ **[Review Fix] Sprint 5 — Gallery folder filter, thumbnail auth, onboarding config**
+- ✅ **[Review Fix] Auto-save captures stale schema — fix is incomplete**
+- ✅ **[Review Fix] Unused import in About page**
+- ✅ **[Review Fix] tabIndex={-1} on all interactive gallery elements hurts keyboard accessibility**
+- ✅ **[Review Fix] Token streaming sends full accumulated text on every token**
+- ✅ **[Review Fix] `currentSchema: z.any()` in Zod validation defeats input validation**
+- ✅ **[Review Fix] SSE parsing in ChatPanel has double-parse bug that drops events**
+- ✅ **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
+- ✅ **[Review Fix] Error messages leak internal details to clients**
+- ✅ **[Review Fix] Chat endpoint operates without authentication**
+- ✅ **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
+- ✅ **[Review Fix] useDashboardStore.getState() inside setTimeout loses React context**
+- ✅ **[Review Fix] `useEffect` dependency causes infinite loop potential**
+- ✅ **[Review Fix] Duplicated response parsing logic (3 copies)**
+- ✅ **[Review Fix] Inconsistent indentation in handleChatRequest**
+- ✅ **[Review Fix] Debug console.log left in production code**
+- ✅ **[Review Fix] Artificial delays in SSE stream are fake progress, not real streaming**
+- ✅ **[Review Fix] Document event listeners leak on unmount during drag/resize**
+- ✅ **[Review Fix] No input validation on message length or conversation history size**
+- ✅ **[Review Fix] Full dashboard schema sent as GET query parameter**
+- ✅ **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
+- ✅ **[Review Fix] Chat and explain endpoints operate without authentication**
+- ✅ **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
+- ✅ **[Review Fix] Error messages leak internal details to clients**
+- ✅ **Fix audit filter dropdowns — canonical lists instead of page-derived values**
+- ✅ **[Review Fix] Remove AI config status from health endpoint**
+- ✅ **[Review Fix] Sanitize error messages in production**
+- ✅ **[Review Fix] Add Zod validation to /api/chat route**
+- ✅ **[Review Fix] Rate limiter accesses private property via bracket notation**
+- ✅ **[Review Fix] Seed script revenue events can occur after customer cancellation**
+- ✅ **[Review Fix] Audit filter dropdowns only show values from current page**
+- ✅ **[Review Fix] Missing database index on AuditLog.createdAt**
+- ✅ **[Review Fix] CSP allows 'unsafe-eval' and 'unsafe-inline' for scripts**
+- ✅ **[Review Fix] getCurrentUser() called twice per rate-limited request**
+- ✅ **[Review Fix] In-memory rate limiter doesn't persist across serverless instances**
+- ✅ **[Review Fix] Audit log API has unprotected JSON.parse**
+- ✅ **[Review Fix] All authenticated users get ADMIN role**
+- ✅ **[Review Fix] CSRF middleware blocks ALL API mutations — no client code sends tokens**
+- ✅ **[Review Fix] Database provider reverted to PostgreSQL — breaks existing deployment**
+- ✅ **🔗 Dashboard Sharing UI — Link, Permissions & Embed** [5/6 subtasks]
+- ✅ **Fix Chat 404 — Revert Invalid Model Name (claude-sonnet-4-latest)**
+- ✅ **Upgrade Claude Model — claude-sonnet-4-latest**
+- ✅ **Fix Gallery Page Crash — Tags String to Array Conversion**
 
-> Generated: 2026-04-20 00:09:44
-> Project GID: 1214122597260827
-> [View in Asana](https://app.asana.com/0/1214122597260827)
+### 🏗️ Foundation & Infrastructure
+13/13 tasks done | 0 milestones
 
+- ✅ **Overnight Sprint Merge — Config Panel, Session History, Auth Config**
+- ✅ **Add prisma generate to postinstall Hook**
+- ✅ **Prisma Client Regeneration — Fix 12 Stale Type Errors**
+- ✅ **L0 Foundation Audit — PostgreSQL → SQLite migration** [10/10 subtasks]
+- ✅ **Environment validation on app startup**
+- ✅ **Page-level ErrorBoundary component**
+- ✅ **Toast notification system**
+- ✅ **Error handling & logging framework** [4/4 subtasks]
+- ✅ **Glossary YAML → DB sync system** [4/4 subtasks]
+- ✅ **Docker Compose for local development** [3/4 subtasks]
+- ✅ **Environment configuration & secrets management** [4/4 subtasks]
+- ✅ **Database migrations & seeding** [7/7 subtasks]
+- ✅ **Sprint review — overnight build cleanup (2026-04-18)**
 
-## Untitled section
+### 🔐 Auth & Security
+10/11 tasks done | 0 milestones
 
-- [x] **[Review Fix] Sprint 5 — Gallery folder filter, thumbnail auth, onboarding config**
-- [x] **[Review Fix] Auto-save captures stale schema — fix is incomplete**
-- [x] **[Review Fix] Unused import in About page**
-- [x] **[Review Fix] tabIndex={-1} on all interactive gallery elements hurts keyboard accessibility**
-- [x] **[Review Fix] Token streaming sends full accumulated text on every token**
-- [x] **[Review Fix] `currentSchema: z.any()` in Zod validation defeats input validation**
-- [x] **[Review Fix] SSE parsing in ChatPanel has double-parse bug that drops events**
-- [x] **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
-- [x] **[Review Fix] Error messages leak internal details to clients**
-- [x] **[Review Fix] Chat endpoint operates without authentication**
-- [x] **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
-- [x] **[Review Fix] useDashboardStore.getState() inside setTimeout loses React context**
-- [x] **[Review Fix] `useEffect` dependency causes infinite loop potential**
-- [x] **[Review Fix] Duplicated response parsing logic (3 copies)**
-- [x] **[Review Fix] Inconsistent indentation in handleChatRequest**
-- [x] **[Review Fix] Debug console.log left in production code**
-- [x] **[Review Fix] Artificial delays in SSE stream are fake progress, not real streaming**
-- [x] **[Review Fix] Document event listeners leak on unmount during drag/resize**
-- [x] **[Review Fix] No input validation on message length or conversation history size**
-- [x] **[Review Fix] Full dashboard schema sent as GET query parameter**
-- [x] **[Review Fix] PrismaClient instantiated per-file with $disconnect() per-request**
-- [x] **[Review Fix] Chat and explain endpoints operate without authentication**
-- [x] **[Review Fix] CORS wildcard on SSE endpoint allows cross-origin data exfiltration**
-- [x] **[Review Fix] Error messages leak internal details to clients**
-- [x] **Fix audit filter dropdowns — canonical lists instead of page-derived values**
-- [x] **[Review Fix] Remove AI config status from health endpoint**
-- [x] **[Review Fix] Sanitize error messages in production**
-- [x] **[Review Fix] Add Zod validation to /api/chat route**
-- [x] **[Review Fix] Rate limiter accesses private property via bracket notation**
-- [x] **[Review Fix] Seed script revenue events can occur after customer cancellation**
-- [x] **[Review Fix] Audit filter dropdowns only show values from current page**
-- [x] **[Review Fix] Missing database index on AuditLog.createdAt**
-- [x] **[Review Fix] CSP allows 'unsafe-eval' and 'unsafe-inline' for scripts**
-- [x] **[Review Fix] getCurrentUser() called twice per rate-limited request**
-- [x] **[Review Fix] In-memory rate limiter doesn't persist across serverless instances**
-- [x] **[Review Fix] Audit log API has unprotected JSON.parse**
-- [x] **[Review Fix] All authenticated users get ADMIN role**
-- [x] **[Review Fix] CSRF middleware blocks ALL API mutations — no client code sends tokens**
-- [x] **[Review Fix] Database provider reverted to PostgreSQL — breaks existing deployment**
-- [x] **🔗 Dashboard Sharing UI — Link, Permissions & Embed**
-  - [x] API: PATCH /api/dashboards/[id]/share — add/remove shares
-  - [ ] Embed snippet generator (iframe code block)
-  - [x] Display current shares with user avatars
-  - [x] Permission selector (View / Edit / Remove)
-  - [x] Share modal — copy link with toast
-  - [x] Share button in toolbar (opens modal)
-- [x] **Fix Chat 404 — Revert Invalid Model Name (claude-sonnet-4-latest)**
-- [x] **Upgrade Claude Model — claude-sonnet-4-latest**
-- [x] **Fix Gallery Page Crash — Tags String to Array Conversion**
+- ✅ **🔴 Red Team Security Assessment — Static Code Analysis Report**
+- ⬜ **🔴 Red Team Security Hardening — Audit Findings Remediation** [0/23 subtasks]
+- ✅ **🔐 Metric-Level RBAC — Granular Financial Data Restrictions & Builder UX** [5/5 subtasks]
+- ✅ **🔐 Data-at-Rest Encryption — Backup Encryption + Permission Hardening (CISO §6.1)**
+- ✅ **Zod validation on all API routes (M-3)**
+- ✅ **Session timeout & security headers** [2/3 subtasks]
+- ✅ **Audit logging** [6/6 subtasks]
+- ✅ **API rate limiting** [4/4 subtasks]
+- ✅ **🔐 Role-Based Access Control & Granular Data Permissions** [16/16 subtasks]
+- ✅ **Google OAuth integration (NextAuth.js)** [7/7 subtasks]
+- ✅ **🔴 SECURITY PRIORITY: Granular Data-Level Permissions Before Wider Rollout**
 
-## 🏗️ Foundation & Infrastructure
+### 🤖 AI & Chat System
+6/7 tasks done | 0 milestones
 
-- [x] **Overnight Sprint Merge — Config Panel, Session History, Auth Config**
-- [x] **Add prisma generate to postinstall Hook**
-- [x] **Prisma Client Regeneration — Fix 12 Stale Type Errors**
-- [x] **L0 Foundation Audit — PostgreSQL → SQLite migration**
-  - [x] Write L0 decision log (docs/L0_DECISION_LOG.md)
-  - [x] Verify next build passes clean
-  - [x] Run prisma db push + seed
-  - [x] Update seed.ts and sync-glossary.ts
-  - [x] Fix all API routes for SQLite compatibility
-  - [x] Update .env.local and .env.example
-  - [x] Convert String[] arrays to comma-separated strings
-  - [x] Replace enum types with String fields
-  - [x] Convert Json fields to String with serialization layer
-  - [x] Switch Prisma schema from postgresql to sqlite
-- [x] **Environment validation on app startup**
-- [x] **Page-level ErrorBoundary component**
-- [x] **Toast notification system**
-- [x] **Error handling & logging framework**
-  - [x] Client-side error reporting (toast notifications)
-  - [x] Global error handler middleware for API routes
-  - [x] Structured JSON logging for API routes
-  - [x] Add React error boundaries for widget crashes
-- [x] **Glossary YAML → DB sync system**
-  - [x] Validate YAML schema before importing
-  - [x] Run sync on deploy (npm run glossary:sync)
-  - [x] Upsert logic — match by term name, update definition/formula
-  - [x] Build scripts/sync-glossary.ts CLI tool
-- [x] **Docker Compose for local development**
-  - [x] README instructions for docker compose up
-  - [x] Health check scripts
-  - [ ] Redis container for query caching (Phase 3)
-  - [x] PostgreSQL container with persistent volume
-- [x] **Environment configuration & secrets management**
-  - [x] Set up environment validation on app startup
-  - [x] Create .env.example with all required variables documented
-  - [x] Add Snowflake connection stubs for Phase 3
-  - [x] Add Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-- [x] **Database migrations & seeding**
-  - [x] Verify seed data loads correctly and relationships are intact
-  - [x] Generate 200 sales pipeline deals
-  - [x] Generate product usage data with weekday-heavy patterns
-  - [x] Generate monthly revenue events (~3-5% churn)
-  - [x] Generate 50,000 support tickets with seasonal patterns
-  - [x] Build seed script (scripts/seed-sample-data.ts) with 5,000 customers
-  - [x] Run prisma migrate dev to create all tables
-- [x] **Sprint review — overnight build cleanup (2026-04-18)**
+- ⬜ **🛡️ Data Integrity Verification Pipeline — AI-Generated Dashboard Accuracy Checks** [0/5 subtasks]
+- ✅ **🤖 AI-Assisted SQL & Query Explanation** [6/6 subtasks]
+- ✅ **Context-aware system prompt builder** [4/4 subtasks]
+- ✅ **AI change summaries for version history** [3/3 subtasks]
+- ✅ **Smart AI suggestions & quick actions** [4/4 subtasks]
+- ✅ **Chat session persistence** [5/5 subtasks]
+- ✅ **SSE streaming for AI responses** [5/5 subtasks]
 
-## 🔐 Auth & Security
+### 📊 Widget System
+9/9 tasks done | 0 milestones
 
-- [x] **🔴 Red Team Security Assessment — Static Code Analysis Report**
-- [ ] **🔴 Red Team Security Hardening — Audit Findings Remediation**
-  - [ ] ℹ️ INFO-04: Rename dev.db to insighthub.db in production
-  - [ ] ℹ️ INFO-02: Add IP address and User-Agent to audit log entries
-  - [ ] ℹ️ INFO-01: Make audit log writes fail-closed for critical actions
-  - [ ] 🔵 LOW-05: Pass backup encryption key via env instead of CLI argument
-  - [ ] 🔵 LOW-04: Replace prisma db push --accept-data-loss with migrate deploy
-  - [ ] 🔵 LOW-03: Add length/content validation to admin prompt override
-  - [ ] 🔵 LOW-02: Hard-fail on insecure NEXTAUTH_SECRET in production
-  - [ ] 🔵 LOW-01: Restrict user search API fields for non-admin users
-  - [ ] 🟡 MED-08: Implement session invalidation on role change
-  - [ ] 🟡 MED-07: Resolve X-Frame-Options header conflict between middleware and nginx
-  - [ ] 🟡 MED-06: Enable HTTPS redirect in nginx config
-  - [ ] 🟡 MED-05: Fix remaining error message leak in widgets/explain endpoint
-  - [ ] 🟡 MED-04: Add Zod validation to dashboard share endpoint (IDOR prevention)
-  - [ ] 🟡 MED-03: Add total request body size limit on chat API
-  - [ ] 🟡 MED-01: Validate thumbnail upload content (image magic bytes + re-encode)
-  - [ ] 🟠 HIGH-06: Implement nonce-based CSP to replace 'unsafe-inline'
-  - [ ] 🟠 HIGH-05: Migrate Snowflake credentials to AWS Secrets Manager
-  - [ ] 🟠 HIGH-03: Split health endpoint into public (status-only) and private (diagnostics)
-  - [ ] 🟠 HIGH-02: Strict Zod validation on customOverrides in permission assignments
-  - [ ] 🟠 HIGH-01: AI prompt injection defenses — filter sources before prompt construction
-  - [ ] 🔴 CRIT-03: Add auth checks to unauthenticated API endpoints
-  - [ ] 🔴 CRIT-02: Add DOMPurify to all dangerouslySetInnerHTML (Stored XSS)
-  - [ ] 🔴 CRIT-01: Hard-fail build when NEXT_PUBLIC_DEV_MODE=true in production
-- [x] **🔐 Metric-Level RBAC — Granular Financial Data Restrictions & Builder UX**
-  - [x] 📋 Define Metric-Level Restriction Rules — Admin Configuration Schema
-  - [x] 🛡️ Widget Build-Time Enforcement — Block Restricted Data at Configuration
-  - [x] 🎨 Proactive Dashboard Builder UX — Data Source Availability Indicators
-  - [x] 🏷️ Add Financial Meta-Category — Unified Financial Data Classification
-  - [x] 🏗️ Implement FILTERED Access Level — Aggregate-Only Data Access
-- [x] **🔐 Data-at-Rest Encryption — Backup Encryption + Permission Hardening (CISO §6.1)**
-- [x] **Zod validation on all API routes (M-3)**
-- [x] **Session timeout & security headers**
-  - [ ] CSRF token validation on mutations
-  - [x] Add security headers via Next.js middleware (CSP, HSTS, etc)
-  - [x] Configure 8-hour session expiry
-- [x] **Audit logging**
-  - [x] Admin audit log viewer page (/admin/audit)
-  - [x] Log: user.login, user.role_change
-  - [x] Log: glossary.create, glossary.update, glossary.delete
-  - [x] Log: version.save, version.revert
-  - [x] Log: dashboard.create, dashboard.share, dashboard.delete
-  - [x] AuditLog model already in Prisma — wire up creation
-- [x] **API rate limiting**
-  - [x] Return 429 with Retry-After header
-  - [x] Dashboard CRUD: 60 requests/min per user
-  - [x] Chat API: 30 requests/min per user
-  - [x] Implement sliding window rate limiter
-- [x] **🔐 Role-Based Access Control & Granular Data Permissions**
-  - [x] 📝 Audit: Log all permission changes
-  - [x] 🧪 Testing: Permission enforcement test suite
-  - [x] 📊 Seed: Default permission groups with sensible data category mappings
-  - [x] 🔔 UX: "Access Denied" messaging in dashboard builder
-  - [x] 👤 Admin UI: User permission assignment in User Management page
-  - [x] 🎨 Admin UI: Permission Groups management page
-  - [x] 🛡️ Server-side: Gate queryData() and API routes with permission checks
-  - [x] 🤖 AI Integration: Inject user permissions into Claude system prompt
-  - [x] 🔧 Engine: Build permission resolution engine (src/lib/auth/permissions.ts)
-  - [x] 🗄️ Database: Add PermissionGroup, UserPermissionAssignment, DataAccessRule models
-  - [x] 📋 Design: Permission Group schema & data category taxonomy
-  - [x] Creator+ check for dashboard creation
-  - [x] Admin-only routes protection (/admin/*)
-  - [x] UI conditional rendering based on user role
-  - [x] API middleware to check role before processing requests
-  - [x] Permission helper functions (src/lib/utils/permissions.ts)
-- [x] **Google OAuth integration (NextAuth.js)**
-  - [x] Redirect flow — login → onboarding (first visit) or gallery
-  - [x] Login page with Google sign-in button
-  - [x] Session persistence with JWT strategy
-  - [x] Map roles from DB (default VIEWER, admin list for ADMIN)
-  - [x] Auto-create User record on first login
-  - [x] Domain restriction — only @uszoom.com emails allowed
-  - [x] Configure NextAuth.js with Google provider
-- [x] **🔴 SECURITY PRIORITY: Granular Data-Level Permissions Before Wider Rollout**
+- ✅ **Rich Text Block Widget — Variants, Styling & Widget Library Entries**
+- ✅ **Widget Render Resilience — SSR/Hydration Fix + Data Source Aliases** [1/1 subtasks]
+- ✅ **📊 Responsive Widget Rendering — Charts & Tables on All Screen Sizes** [5/5 subtasks]
+- ✅ **"Explain this metric" tooltip** [7/7 subtasks]
+- ✅ **Widget resize handles** [4/4 subtasks]
+- ✅ **Widget interactions & drill-down** [10/10 subtasks]
+- ✅ **Widget click-to-edit config panel** [6/6 subtasks]
+- ✅ **Complete all widget renderers** [9/9 subtasks]
+- ✅ **Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types**
 
-## 🤖 AI & Chat System
+### 🎨 Dashboard Canvas & UX
+30/32 tasks done | 0 milestones
 
-- [ ] **🛡️ Data Integrity Verification Pipeline — AI-Generated Dashboard Accuracy Checks**
-  - [ ] 5️⃣ Chat Route + ChatPanel Integration + UX Badges
-  - [ ] 4️⃣ Layer 2.5 — Escalation Review + Orchestrator
-  - [ ] 3️⃣ Layer 2 — AI Verification (Haiku semantic check)
-  - [ ] 2️⃣ Layer 1 — Deterministic Checks (D-01 through D-13)
-  - [ ] 1️⃣ Source-Field Registry + Type Definitions
-- [x] **🤖 AI-Assisted SQL & Query Explanation**
-  - [x] SQL assistant system prompt section with Snowflake dialect reference
-  - [x] Formula help: respond with both Sigma-style formula AND SQL equivalent
-  - [x] "Verify My Dashboard" mode — generate Snowflake SQL to cross-check widget values
-  - [x] SQL optimization suggestions (Snowflake-specific best practices)
-  - [x] Natural Language → SQL generation (not just widgets, actual queries)
-  - [x] Explain This Query: paste SQL → Claude breaks it down in plain English
-- [x] **Context-aware system prompt builder**
-  - [x] Include widget library listings for use_widget patches
-  - [x] Filter available data sources by user role/permissions
-  - [x] Inject current dashboard schema
-  - [x] Inject full glossary into system prompt
-- [x] **AI change summaries for version history**
-  - [x] Show in version timeline sidebar
-  - [x] Store changeNote in DashboardVersion record
-  - [x] Generate change note on each patch application
-- [x] **Smart AI suggestions & quick actions**
-  - [x] "Explain this metric" button on widgets → AI explains the calculation
-  - [x] "Add a filter by region" type suggestions based on current schema
-  - [x] Quick action buttons below AI responses
-  - [x] Post-generation suggestions ("you might also want NRR and LTV")
-- [x] **Chat session persistence**
-  - [x] API: GET /api/chat/sessions/[id] — get session + messages
-  - [x] API: GET /api/chat/sessions — list user sessions
-  - [x] Load session history when opening dashboard editor
-  - [x] Save each ChatMessage to DB (user + assistant)
-  - [x] Create/update ChatSession on conversation start
-- [x] **SSE streaming for AI responses**
-  - [x] Error recovery if stream disconnects
-  - [x] Progress indicator while AI is generating
-  - [x] Client-side EventSource handling in ChatPanel
-  - [x] Stream partial JSON patches as they're generated
-  - [x] Convert /api/chat to SSE endpoint (ReadableStream)
+- ⬜ **🔀 Widget Duplication Enhancements — Option+Drag, Copy to Dashboard, View-Only Add** [0/3 subtasks]
+- ✅ **PNG Export Overhaul — html-to-image + clean widget exports**
+- ⬜ **📱 Deferred: Mobile & Tablet Support — Fix responsive views, favorites, gallery errors**
+- ✅ **Home Page Hero Redesign + Modal Scroll Fix**
+- ✅ **Widget Selection — Click-to-Select with Visual Highlight**
+- ✅ **Dark Theme Chart Polish — Softer Color Palette + Cursor Fix**
+- ✅ **Dashboard Editor UX Polish — Hover Delete, Inline Title, Resize Handle** [1/1 subtasks]
+- ✅ **🔎 Widget Data Transparency — Data Lineage Tab**
+- ✅ **⌨️ Keyboard Shortcuts & Power User UX** [9/9 subtasks]
+- ✅ **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette** [12/12 subtasks]
+- ✅ **🏠 Landing Page & Gallery — Mobile Polish** [5/5 subtasks]
+- ✅ **👆 Touch Interaction Support — Drag, Resize, Context Menu** [5/5 subtasks]
+- ✅ **📱 Responsive Editor Layout — Adaptive Canvas + Chat** [8/8 subtasks]
+- ✅ **🖥️ Desktop Polish — Mac & Windows Browser Consistency** [8/8 subtasks]
+- ✅ **🖥️📱 Cross-Platform Optimization — Desktop Excellence + Mobile/Tablet Support**
+- ✅ **Auto-Layout End-to-End Testing — All Cases Pass**
+- ✅ **🔎 Widget Data Transparency — "Show Me the Query" on Every Widget** [6/6 subtasks]
+- ✅ **Drag Ghost Outline — Visual Feedback During Widget Drag**
+- ✅ **Widget Auto-Layout — Bin-Packing for AI-Generated Dashboards** [1/1 subtasks]
+- ✅ **Custom Favicon — SVG Sparkle Icon**
+- ✅ **OG Image — Dynamic Branded Preview Card**
+- ✅ **AI Prompt Cleanup — Remove Internal Phase References**
+- ✅ **Mobile "Best on Desktop" Notice**
+- ✅ **Landing Page Entrance Animations**
+- ✅ **OG Meta Tags + Social Preview Cards**
+- ✅ **UX Polish — Error Boundaries, Loading States & Empty States**
+- ✅ **Dashboard auto-save** [4/4 subtasks]
+- ✅ **Dark/light theme toggle** [4/4 subtasks]
+- ✅ **⌨️ Keyboard shortcuts — Phase 1 (basic: undo/redo/save/search/chat) ✅** [7/7 subtasks]
+- ✅ **Onboarding flow (first-login walkthrough)** [6/6 subtasks]
+- ✅ **Version timeline sidebar** [6/6 subtasks]
+- ✅ **Responsive preview mode** [3/3 subtasks]
 
-## 📊 Widget System
+### 📁 Gallery & Sharing
+7/7 tasks done | 0 milestones
 
-- [x] **Rich Text Block Widget — Variants, Styling & Widget Library Entries**
-- [x] **Widget Render Resilience — SSR/Hydration Fix + Data Source Aliases**
-  - [x] Enhanced crash-proof widget error boundaries
-- [x] **📊 Responsive Widget Rendering — Charts & Tables on All Screen Sizes**
-  - [x] Widget min-height constraints to prevent unreadable rendering
-  - [x] KPI cards: compact layout for phone (mini grid or horizontal scroll)
-  - [x] Table horizontal scroll with sticky first column
-  - [x] Chart touch tooltips: show on tap instead of hover
-  - [x] Chart responsive: reduce axis labels/ticks on small containers
-- [x] **"Explain this metric" tooltip**
-  - [x] Fix markdown rendering in Metric Explanation modal
-  - [x] Perf: switch metric explain from Sonnet → Haiku for ~5x faster responses
-  - [x] Fix: explain-metric icon now hover-only (matches edit/delete UX)
-  - [x] Power user toggle to show underlying query
-  - [x] Popover showing definition, formula, data source
-  - [x] Info icon on widget header
-  - [x] Link widgets to glossaryTermIds
-- [x] **Widget resize handles**
-  - [x] Update store with new dimensions on resize end
-  - [x] Minimum size constraints per widget type
-  - [x] Snap to grid columns during resize
-  - [x] Resize handles on widget edges (visible on hover)
-- [x] **Widget interactions & drill-down**
-  - [x] Fix: Export dropdown SVG option + html2canvas CSS variable resolution
-  - [x] Global keyboard shortcuts (⌘1-4 nav, ? help, / focus) — OS-aware
-  - [x] Refactor: extract export functions to shared src/lib/export-utils.ts
-  - [x] Full dashboard export (PNG + SVG) via toolbar Export dropdown
-  - [x] Per-widget PNG export button (download icon on hover)
-  - [x] Full-screen mode for any widget
-  - [x] Export widget data as CSV
-  - [x] Export widget as PNG (html2canvas)
-  - [x] Click a bar/slice to filter entire dashboard
-  - [x] Hover tooltips showing exact values on all chart types
-- [x] **Widget click-to-edit config panel**
-  - [x] Live preview as settings change
-  - [x] Threshold editor (value + color + label)
-  - [x] Visual tab: color scheme, legend, grid, labels, stacked
-  - [x] Data tab: source, filters, aggregation, groupBy
-  - [x] General tab: title, subtitle, type selector
-  - [x] WidgetEditor component with tabbed interface
-- [x] **Complete all widget renderers**
-  - [x] Divider widget (visual separator)
-  - [x] ImageWidget (embedded image/logo)
-  - [x] MetricRow widget (horizontal row of KPIs)
-  - [x] Funnel widget
-  - [x] PivotTable widget
-  - [x] Heatmap widget
-  - [x] ScatterPlot widget
-  - [x] StackedBar widget
-  - [x] DonutChart widget (variation of PieChart with inner radius)
-- [x] **Widget Detail Overlay: Click-to-Expand Drill-Down for All Widget Types**
+- ✅ **Gallery Bug Fixes — Layout Shift, List View, Template Loading**
+- ✅ **Dashboard thumbnails (auto-generated previews)** [4/4 subtasks]
+- ✅ **Template system — promote to templates** [4/4 subtasks]
+- ✅ **Dashboard cloning** [3/3 subtasks]
+- ✅ **Folder system** [6/6 subtasks]
+- ✅ **Dashboard sharing system** [7/7 subtasks]
+- ✅ **Dashboard gallery improvements** [8/8 subtasks]
 
-## 🎨 Dashboard Canvas & UX
+### 📖 Glossary System
+4/5 tasks done | 0 milestones
 
-- [ ] **🔀 Widget Duplication Enhancements — Option+Drag, Copy to Dashboard, View-Only Add**
-  - [ ] View-Only "Add to Dashboard" Button
-  - [ ] Copy to Dashboard Context Menu Action
-  - [ ] Option+Drag to Duplicate Widget
-- [x] **PNG Export Overhaul — html-to-image + clean widget exports**
-- [ ] **📱 Deferred: Mobile & Tablet Support — Fix responsive views, favorites, gallery errors**
-- [x] **Home Page Hero Redesign + Modal Scroll Fix**
-- [x] **Widget Selection — Click-to-Select with Visual Highlight**
-- [x] **Dark Theme Chart Polish — Softer Color Palette + Cursor Fix**
-- [x] **Dashboard Editor UX Polish — Hover Delete, Inline Title, Resize Handle**
-  - [x] Equalize Save button and dropdown button widths
-- [x] **🔎 Widget Data Transparency — Data Lineage Tab**
-- [x] **⌨️ Keyboard Shortcuts & Power User UX**
-  - [x] Widget selection state in store (selectedWidgetId)
-  - [x] Tab — cycle through widget selection
-  - [x] ? key — shortcut help overlay modal
-  - [x] Cmd+D — duplicate selected widget
-  - [x] Arrow keys — nudge selected widget by 1 grid unit
-  - [x] Escape — deselect widget / close context menu
-  - [x] Cmd+S — trigger save
-  - [x] Delete/Backspace — remove selected widget
-  - [x] Cmd+Z / Cmd+Shift+Z — undo/redo (wire useKeyboardShortcuts to canvas)
-- [x] **⌨️ Keyboard Shortcut System — ? Overlay, Vim-Style Navigation & Command Palette**
-  - [x] Fix Ctrl+Option+F shortcut for toggling folder panel
-  - [x] Expand useKeyboardShortcuts hook to support the full registry + context scoping
-  - [x] Escape key hierarchy: overlays → modals → panels → selection → input blur
-  - [x] Tooltip shortcut hints — show keyboard shortcut in every toolbar/button tooltip
-  - [x] Command palette (⌘K) — spotlight search across dashboards, glossary, commands
-  - [x] Gallery shortcuts: j/k navigation, 1-5 tab switching, Enter to open, n to create
-  - [x] Editor shortcuts: widget select (Tab), delete (Del), duplicate (⌘D), nudge (arrows)
-  - [x] g-prefix "Go To" navigation (g+h Home, g+d Dashboards, g+g Glossary, g+n New)
-  - [x] ? Keyboard shortcuts overlay (glassmorphism modal, categorized sections)
-  - [x] Shortcut registry — declarative shortcut definitions with scope/context
-  - [x] <Kbd> component — styled keyboard key with platform-aware rendering
-  - [x] Platform detection hook (usePlatform.ts) + is-mac/is-win CSS classes
-- [x] **🏠 Landing Page & Gallery — Mobile Polish**
-  - [x] Touch target audit: all interactive elements ≥ 44px on touch devices
-  - [x] Navbar mobile: hamburger menu or bottom nav for hidden items
-  - [x] Gallery search: full-width on mobile
-  - [x] Gallery tabs: horizontal scroll with snap on mobile (or dropdown)
-  - [x] Landing page mobile layout: top-aligned hero, full-width input, larger touch targets
-- [x] **👆 Touch Interaction Support — Drag, Resize, Context Menu**
-  - [x] Scroll vs drag disambiguation on canvas
-  - [x] Touch-visible handles: show grip/resize handles permanently on touch devices
-  - [x] Virtual keyboard handling for chat input (iOS/Android)
-  - [x] Touch drag optimization: 300ms hold-to-start, larger grip handles (44px)
-  - [x] Long-press context menu (500ms hold → show menu, cancel on move)
-- [x] **📱 Responsive Editor Layout — Adaptive Canvas + Chat**
-  - [x] Editor layout: view-only mode on phone (no drag, no resize)
-  - [x] Widget Library → modal sheet on tablet/mobile
-  - [x] Toolbar responsive simplification (icon-only mode below 768px)
-  - [x] Mobile bottom nav bar (MobileTabBar.tsx) replacing top navbar
-  - [x] Widget grid responsive columns: 12 → 6 → 2 → 1 based on viewport
-  - [x] Two-mode toggle for phone: Canvas vs Chat (full-screen each)
-  - [x] Chat panel → slide-over drawer mode for tablet (< 1024px)
-  - [x] useViewport() hook: breakpoint detection via ResizeObserver
-- [x] **🖥️ Desktop Polish — Mac & Windows Browser Consistency**
-  - [x] Cross-browser testing pass: Chrome, Safari, Firefox, Edge
-  - [x] Context menu edge-awareness (right edge, bottom edge, Windows scrollbar)
-  - [x] Font rendering audit: verify text legibility on Windows ClearType
-  - [x] Window resize: auto-collapse chat panel below 1024px width
-  - [x] Windows focus-visible ring styling (custom to match theme)
-  - [x] Glassmorphism backdrop-filter fallback for older browsers
-  - [x] Platform-aware keyboard shortcut display (⌘ on Mac, Ctrl on Windows)
-  - [x] Firefox scrollbar styling (scrollbar-width: thin, scrollbar-color)
-- [x] **🖥️📱 Cross-Platform Optimization — Desktop Excellence + Mobile/Tablet Support**
-- [x] **Auto-Layout End-to-End Testing — All Cases Pass**
-- [x] **🔎 Widget Data Transparency — "Show Me the Query" on Every Widget**
-  - [x] Lineage trail: dependency tree for calculated fields (Phase 4)
-  - [x] Glossary terms referenced panel (definitions + formulas)
-  - [x] Widget data export: CSV, JSON, clipboard TSV, chart PNG/SVG
-  - [x] Data freshness indicator (timestamp + color coding)
-  - [x] "Copy Query" and "Open in SQL Editor" buttons
-  - [x] Widget header code icon → slide-out panel with SQL + raw data
-- [x] **Drag Ghost Outline — Visual Feedback During Widget Drag**
-- [x] **Widget Auto-Layout — Bin-Packing for AI-Generated Dashboards**
-  - [x] Banner/header text_blocks auto-positioned at top of dashboard
-- [x] **Custom Favicon — SVG Sparkle Icon**
-- [x] **OG Image — Dynamic Branded Preview Card**
-- [x] **AI Prompt Cleanup — Remove Internal Phase References**
-- [x] **Mobile "Best on Desktop" Notice**
-- [x] **Landing Page Entrance Animations**
-- [x] **OG Meta Tags + Social Preview Cards**
-- [x] **UX Polish — Error Boundaries, Loading States & Empty States**
-- [x] **Dashboard auto-save**
-  - [x] Save version to DB via API
-  - [x] Unsaved changes warning on navigate away
-  - [x] isDirty indicator in toolbar
-  - [x] Debounced auto-save (30s after last change)
-- [x] **Dark/light theme toggle**
-  - [x] System preference detection as default
-  - [x] Persist theme preference in localStorage
-  - [x] CSS variables for dark and light palettes
-  - [x] ThemeToggle component in navbar
-- [x] **⌨️ Keyboard shortcuts — Phase 1 (basic: undo/redo/save/search/chat) ✅**
-  - [x] Keyboard shortcuts help modal (?)
-  - [x] / → focus chat input
-  - [x] Cmd+K → search dashboards
-  - [x] Ctrl+S / Cmd+S → save version
-  - [x] Ctrl+Shift+Z / Cmd+Shift+Z → redo
-  - [x] Ctrl+Z / Cmd+Z → undo
-  - [x] Global keyboard shortcut handler
-- [x] **Onboarding flow (first-login walkthrough)**
-  - [x] Auto-redirect first-time users to onboarding
-  - [x] Store onboarding_completed flag in User record
-  - [x] Template gallery prompt with 4-6 pre-built examples
-  - [x] Guided first dashboard prompt in chat
-  - [x] Welcome modal with animated walkthrough slides
-  - [x] Create /onboarding page
-- [x] **Version timeline sidebar**
-  - [x] Visual diff overlay showing added/removed/modified widgets
-  - [x] Named checkpoints ("Before Q4 changes")
-  - [x] One-click revert to any previous version
-  - [x] Show timestamp, change note, author for each version
-  - [x] Fetch version history from API
-  - [x] VersionTimeline component (already scaffolded)
-- [x] **Responsive preview mode**
-  - [x] Widget stacking on smaller viewports
-  - [x] Responsive grid layout adaptation
-  - [x] Preview toggle buttons in toolbar (desktop/tablet/mobile)
+- ⬜ **Make template Key Insights data-driven (replace static boilerplate)**
+- ✅ **Glossary reference panel in dashboard editor** [4/4 subtasks]
+- ✅ **Glossary CRUD API** [4/5 subtasks]
+- ✅ **Glossary browse & search UI** [5/5 subtasks]
+- ✅ **Glossary → Widget Links: Browse & Add Relevant Widgets from Glossary Terms**
 
-## 📁 Gallery & Sharing
+### 💾 Data Layer
+6/9 tasks done | 0 milestones
 
-- [x] **Gallery Bug Fixes — Layout Shift, List View, Template Loading**
-- [x] **Dashboard thumbnails (auto-generated previews)**
-  - [x] Fallback placeholder for dashboards without thumbnails
-  - [x] Store in public/ or S3
-  - [x] Generate thumbnail on save
-  - [x] Server-side screenshot generation (Puppeteer or html2canvas)
-- [x] **Template system — promote to templates**
-  - [x] Template categories/tags
-  - [x] "Use this template" creates a clone for the user
-  - [x] /templates page showing all template dashboards
-  - [x] Admin action to mark dashboard as template
-- [x] **Dashboard cloning**
-  - [x] "Duplicate" option in context menu and gallery card
-  - [x] Clone current version schema with new IDs
-  - [x] API: POST /api/dashboards/[id]/duplicate
-- [x] **Folder system**
-  - [x] Fix subfolder display & add inline delete button
-  - [x] Breadcrumb navigation
-  - [x] Folder visibility (private/team/public)
-  - [x] Drag dashboards between folders
-  - [x] Create/rename/delete folders
-  - [x] FolderTree component with nested navigation
-- [x] **Dashboard sharing system**
-  - [x] Save As — duplicate dashboard to new copy
-  - [x] Email notification on share (optional)
-  - [x] Publish to gallery (make public to all authenticated users)
-  - [x] "Shared with Me" gallery section
-  - [x] API: POST /api/dashboards/[id]/share
-  - [x] Permission dropdown (View / Comment / Edit)
-  - [x] Share modal — search and select users
-- [x] **Dashboard gallery improvements**
-  - [x] Delete dashboard + right-click context menu in gallery
-  - [x] "Create New Dashboard" card in gallery grid
-  - [x] Favorites system (star dashboards)
-  - [x] Recently viewed section
-  - [x] Toggle between card view (thumbnails) and list view
-  - [x] Sort by: recently updated, most viewed, alphabetical
-  - [x] Filter by owner, department, tag, date range
-  - [x] Full-text search across titles, descriptions, tags
+- ⬜ **🔧 Deferred: Data Explorer — needs full QA pass before shipping**
+- ⬜ **🔧 Deferred: Query Playground — needs full QA pass before shipping**
+- ✅ **📐 Visual Query Builder — Sigma-Style No-Code Data Exploration** [9/9 subtasks]
+- ✅ **🧪 Query Playground — Interactive Scratch Pad** [7/7 subtasks]
+- ✅ **🔍 Data Explorer & Schema Browser** [7/7 subtasks]
+- ✅ **🟣 Power User Data Experience — SQL, Visual Query Builder & Data Verification**
+- ✅ **Snowflake connector (Phase 3)** [7/7 subtasks]
+- ⬜ **Sample data query engine** [0/6 subtasks]
+- ✅ **Dashboard CRUD API** [8/8 subtasks]
 
-## 📖 Glossary System
+### ⚙️ Admin Panel
+2/3 tasks done | 0 milestones
 
-- [ ] **Add region abbreviations to glossary & fix static exec insight**
-- [x] **Glossary reference panel in dashboard editor**
-  - [x] Widget hover shows linked term tooltips
-  - [x] Link terms to widgets (glossaryTermIds)
-  - [x] Search/browse terms inline
-  - [x] Glossary panel toggle in editor toolbar
-- [x] **Glossary CRUD API**
-  - [x] GET /api/glossary/search?q= — full-text search
-  - [x] DELETE /api/glossary/[id] — remove term (Admin)
-  - [x] PUT /api/glossary/[id] — update term (Admin)
-  - [x] POST /api/glossary — add term (Admin)
-  - [ ] GET /api/glossary — list all terms
-- [x] **Glossary browse & search UI**
-  - [x] Approved by / last reviewed metadata
-  - [x] Related terms links
-  - [x] TermCard component showing definition, formula, data source
-  - [x] Category filter pills
-  - [x] /glossary page with searchable term listing
-- [x] **Glossary → Widget Links: Browse & Add Relevant Widgets from Glossary Terms**
+- ⬜ **System settings & configuration** [3/4 subtasks]
+- ✅ **Audit log viewer** [4/4 subtasks]
+- ✅ **User management page** [5/5 subtasks]
 
-## 💾 Data Layer
+### 🧪 Testing & QA
+0/5 tasks done | 0 milestones
 
-- [ ] **🔧 Deferred: Data Explorer — needs full QA pass before shipping**
-- [ ] **🔧 Deferred: Query Playground — needs full QA pass before shipping**
-- [x] **📐 Visual Query Builder — Sigma-Style No-Code Data Exploration**
-  - [x] Join builder: drag second table, auto-suggest join conditions
-  - [x] Save visual query as widget with restorable drag-and-drop state
-  - [x] Visual-to-SQL transpiler (src/lib/data/visual-to-sql.ts)
-  - [x] "View SQL" toggle showing generated query
-  - [x] Live results preview with debounced updates
-  - [x] Formula function reference panel (searchable, categorized)
-  - [x] Formula bar with Sigma-style expressions (Sum([col]), CountIf, etc.)
-  - [x] Visual Group By, Aggregate, Filter, Sort, Limit operations
-  - [x] Column picker: drag columns from schema sidebar into query canvas
-- [x] **🧪 Query Playground — Interactive Scratch Pad**
-  - [x] Share playground sessions via link + fork capability
-  - [x] "Promote to Widget" — push playground query + chart to a dashboard
-  - [x] Quick chart from result set (one-click bar/line/scatter)
-  - [x] Markdown cells between queries (notebook-style documentation)
-  - [x] Query chaining: CTE/temp table output → next query input
-  - [x] Side-by-side result comparison with diff highlighting
-  - [x] Multi-tab query workspace with persistent tabs
-- [x] **🔍 Data Explorer & Schema Browser**
-  - [x] RBAC integration: hide or lock inaccessible tables/columns
-  - [x] "Open in SQL Editor" shortcut from any table/column
-  - [x] Glossary integration: link columns to glossary term definitions
-  - [x] Table relationship diagram (FK visualization)
-  - [x] Column profiling: distribution stats, histograms, top values
-  - [x] Table preview: first 100 rows in sortable/filterable data grid
-  - [x] Schema tree sidebar (sources → tables → columns with types)
-- [x] **🟣 Power User Data Experience — SQL, Visual Query Builder & Data Verification**
-- [x] **Snowflake connector (Phase 3)**
-  - [x] Row-level security for PII/financial data
-  - [x] Data-level permission enforcement (sensitive data tags)
-  - [x] Data source browser — table/view/column explorer
-  - [x] Query caching layer (Redis) to avoid hammering Snowflake
-  - [x] Query execution with parameterized queries (no SQL injection)
-  - [x] Connection pool management
-  - [x] Snowflake Node.js SDK integration
-- [ ] **Sample data query engine**
-  - [ ] API: GET /api/data/sources/[name]/schema (columns + types)
-  - [ ] API: GET /api/data/sources (list available tables)
-  - [ ] API: POST /api/data/query
-  - [ ] Support aggregation, groupBy, orderBy, limit, filters
-  - [ ] Sample data adapter using in-memory generated data
-  - [ ] Query engine abstraction (src/lib/data/query-engine.ts)
-- [x] **Dashboard CRUD API**
-  - [x] POST /api/dashboards/[id]/revert/[versionId] — revert
-  - [x] POST /api/dashboards/[id]/versions — save new version
-  - [x] GET /api/dashboards/[id]/versions — list versions
-  - [x] DELETE /api/dashboards/[id] — soft-delete (archive)
-  - [x] PUT /api/dashboards/[id] — update metadata
-  - [x] GET /api/dashboards/[id] — get dashboard + current schema
-  - [x] POST /api/dashboards — create new dashboard
-  - [x] GET /api/dashboards — list (filtered by user access)
+- ⬜ **🧪 Cross-Platform Testing Matrix & Device Lab** [0/6 subtasks]
+- ⬜ **Performance testing & optimization** [0/7 subtasks]
+- ⬜ **E2E tests — critical user flows** [4/6 subtasks]
+- ⬜ **Integration tests — API routes** [0/5 subtasks]
+- ⬜ **Unit tests — core logic** [0/6 subtasks]
 
-## ⚙️ Admin Panel
+### 🚀 Deployment & DevOps
+12/17 tasks done | 0 milestones
 
-- [ ] **System settings & configuration**
-  - [x] Feature flags for Phase 2/3 features
-  - [ ] Data source connection management
-  - [x] AI model selection (Claude model version)
-  - [x] Default user role for new signups
-- [x] **Audit log viewer**
-  - [x] Export audit log as CSV
-  - [x] API: GET /api/admin/audit with query params
-  - [x] Filterable table: user, action, resource type, date range
-  - [x] /admin/audit page
-- [x] **User management page**
-  - [x] API: PUT /api/admin/users/[id]/role
-  - [x] API: GET /api/admin/users
-  - [x] User activity summary (dashboards created, last login)
-  - [x] Role dropdown to change user roles
-  - [x] /admin page with user list table
+- ⬜ **🔒 Add automated security scanning to CI pipeline (SAST, deps, secrets)**
+- ⬜ **ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)**
+- ✅ **🔒 Verify & Enable EBS Volume Encryption on EC2 (CISO §6.1)** [due 2026-04-19]
+- ✅ **CI/CD: Split GitHub Actions CI and Local Tailscale SSH Deploy**
+- ✅ **Production Redeploy — L5 Model Fix + postinstall**
+- ✅ **BitBucket Pipelines CI/CD Configuration**
+- ✅ **Production Redeploy — L4 Bug Fixes + Canvas UX**
+- ✅ **Fix Readonly Database — Absolute DB Path + Symlink**
+- ✅ **Production Redeploy — L3 Brand Identity + Type Safety**
+- ✅ **Production Redeploy — L2 Polish Changes**
+- ✅ **EC2 Production Deployment — dashboards.jeffcoy.net** [8/8 subtasks]
+- ✅ **Health check endpoint (/api/health)**
+- ✅ **Domain & DNS setup** [0/4 subtasks]
+- ⬜ **Backup & disaster recovery** [0/3 subtasks]
+- ⬜ **Production monitoring & alerting** [0/6 subtasks]
+- ⬜ **CI/CD pipeline** [2/6 subtasks]
+- ✅ **EC2 deployment setup** [0/7 subtasks]
 
-## 🧪 Testing & QA
+### 🔮 Advanced Features (Phase 4)
+0/13 tasks done | 0 milestones
 
-- [ ] **🧪 Cross-Platform Testing Matrix & Device Lab**
-  - [ ] iPhone real-device test pass (Safari)
-  - [ ] iPad real-device test pass (Safari, portrait + landscape)
-  - [ ] Manual test script template (docs/TESTING_MATRIX.md)
-  - [ ] Lighthouse mobile audit: target score > 90
-  - [ ] Visual regression screenshots across breakpoints
-  - [ ] Playwright responsive tests: landing, gallery, editor at 3 breakpoints
-- [ ] **Performance testing & optimization**
-  - [ ] Virtual scrolling for data tables
-  - [ ] Lazy-load widgets below the fold
-  - [ ] Search results: < 200ms
-  - [ ] Widget data refresh: < 3s per widget
-  - [ ] AI response (first token): < 1s via SSE
-  - [ ] Dashboard canvas render: < 2s (all widgets)
-  - [ ] Gallery load: < 1s
-- [ ] **E2E tests — critical user flows**
-  - [x] Test: Glossary → Add term → Verify appears in AI prompt
-  - [x] Test: Admin → Change user role → Verify permissions
-  - [ ] Test: Share dashboard → Verify recipient can view
-  - [ ] Test: Open existing dashboard → Edit via chat → Undo → Redo
-  - [x] Test: Login → Gallery → New Dashboard → Chat → Save
-  - [x] Set up Playwright
-- [ ] **Integration tests — API routes**
-  - [ ] Test /api/data/query with sample data
-  - [ ] Test /api/admin routes (role enforcement)
-  - [ ] Test /api/glossary CRUD
-  - [ ] Test /api/dashboards CRUD
-  - [ ] Test /api/chat route (mock Claude responses)
-- [ ] **Unit tests — core logic**
-  - [ ] Test dashboard store actions (undo/redo, widget CRUD)
-  - [ ] Test sample data generation
-  - [ ] Test glossary sync logic
-  - [ ] Test permissions.ts (role-based checks)
-  - [ ] Test schema-patcher.ts (all patch types)
-  - [ ] Set up Jest/Vitest for the project
+- ⬜ **🔧 Deferred: Visual Query Builder — needs full QA pass before shipping**
+- ⬜ **🔄 Snowflake Cross-Validation Mode** [0/6 subtasks]
+- ⬜ **"Ask about this data" — contextual AI queries** [0/3 subtasks]
+- ⬜ **API access (programmatic dashboard creation)** [0/3 subtasks]
+- ⬜ **Scheduled dashboard snapshots & email digests** [0/4 subtasks]
+- ⬜ **Dashboard embedding (iframe mode)** [0/4 subtasks]
+- ⬜ **🔮 SQL Editor Mode — Full Query Environment for Power Users** [0/9 subtasks]
+- ⬜ **📐 Custom Calculated Fields — Sigma-Style Formulas & SQL Expressions** [0/9 subtasks]
+- ⬜ **Dashboard alerts & notifications** [0/4 subtasks]
+- ⬜ **Natural language filtering** [0/3 subtasks]
+- ⬜ **Collaborative editing (real-time)** [0/4 subtasks]
+- ⬜ **Dashboard comments & annotations** [0/3 subtasks]
+- ⬜ **🎙️ Voice Input: Whisper API Speech-to-Text** [5/8 subtasks]
 
-## 🚀 Deployment & DevOps
+### 📝 Documentation
+1/3 tasks done | 0 milestones
 
-- [ ] **🔒 Add automated security scanning to CI pipeline (SAST, deps, secrets)**
-- [ ] **ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)**
-- [x] **🔒 Verify & Enable EBS Volume Encryption on EC2 (CISO §6.1)** (due 2026-04-19)
-- [x] **CI/CD: Split GitHub Actions CI and Local Tailscale SSH Deploy**
-- [x] **Production Redeploy — L5 Model Fix + postinstall**
-- [x] **BitBucket Pipelines CI/CD Configuration**
-- [x] **Production Redeploy — L4 Bug Fixes + Canvas UX**
-- [x] **Fix Readonly Database — Absolute DB Path + Symlink**
-- [x] **Production Redeploy — L3 Brand Identity + Type Safety**
-- [x] **Production Redeploy — L2 Polish Changes**
-- [x] **EC2 Production Deployment — dashboards.jeffcoy.net**
-  - [x] SQLite DB seed on production
-  - [x] Prisma CLI env fix (prisma/.env for DATABASE_URL)
-  - [x] Let's Encrypt SSL via Certbot
-  - [x] Cloudflare DNS CNAME setup
-  - [x] Nginx reverse proxy config
-  - [x] Systemd service (insighthub.service)
-  - [x] EC2 deploy script (scripts/ec2-deploy.sh)
-  - [x] Next.js standalone output mode configuration
-- [x] **Health check endpoint (/api/health)**
-- [x] **Domain & DNS setup**
-  - [ ] Update NEXTAUTH_URL for production domain
-  - [ ] SSL certificate provisioning
-  - [ ] DNS A/CNAME records pointing to EC2
-  - [ ] Register subdomain (e.g., insighthub.uszoom.com or insighthub.jeffcoy.net)
-- [ ] **Backup & disaster recovery**
-  - [ ] Backup verification/restoration test procedure
-  - [ ] Point-in-time recovery documentation
-  - [ ] Automated daily PostgreSQL backups to S3
-- [ ] **Production monitoring & alerting**
-  - [ ] Disk space / memory alerts
-  - [ ] Database connection pool monitoring
-  - [ ] Performance monitoring (Web Vitals)
-  - [ ] Error tracking (Sentry or similar)
-  - [ ] Uptime monitoring (e.g., UptimeRobot)
-  - [ ] Health check endpoint (/api/health)
-- [ ] **CI/CD pipeline**
-  - [ ] Database migration on deploy
-  - [ ] Manual promotion to production
-  - [ ] Auto-deploy to staging on merge to develop
-  - [ ] Run unit + integration tests on PR
-  - [x] Run linting + type checking on PR
-  - [x] GitHub Actions or BitBucket Pipelines config
-- [x] **EC2 deployment setup**
-  - [ ] PostgreSQL production database setup
-  - [ ] Environment variables in production (.env.production)
-  - [ ] PM2 or systemd process manager for Next.js
-  - [ ] SSL certificate (Let's Encrypt or ACM)
-  - [ ] Configure Nginx reverse proxy to Next.js (port 3000)
-  - [ ] Install Node.js, PostgreSQL, Nginx
-  - [ ] Provision EC2 instance (t3.medium or similar)
+- ✅ **README and project setup** [6/6 subtasks]
+- ⬜ **Developer documentation** [0/7 subtasks]
+- ⬜ **User documentation / help center** [0/6 subtasks]
 
-## 🔮 Advanced Features (Phase 4)
+### TO SORT
+0/3 tasks done | 0 milestones
 
-- [ ] **🔧 Deferred: Visual Query Builder — needs full QA pass before shipping**
-- [ ] **🔄 Snowflake Cross-Validation Mode**
-  - [ ] Scheduled validation with drift alerting (Phase 4)
-  - [ ] Export validation report as PDF for audit/compliance
-  - [ ] Dashboard-wide validation report (traffic light per widget)
-  - [ ] Side-by-side diff with discrepancy highlighting and explanation
-  - [ ] Auto-generate Snowflake-equivalent SQL for any InsightHub widget
-  - [ ] Widget-level validation panel: InsightHub value vs Snowflake result
-- [ ] **"Ask about this data" — contextual AI queries**
-  - [ ] AI cross-references with other data sources
-  - [ ] Send data context + question to AI
-  - [ ] Right-click context menu on chart data points
-- [ ] **API access (programmatic dashboard creation)**
-  - [ ] API documentation (OpenAPI/Swagger)
-  - [ ] Rate limiting for API consumers
-  - [ ] API key management for service accounts
-- [ ] **Scheduled dashboard snapshots & email digests**
-  - [ ] Subscription management (weekly/monthly)
-  - [ ] Email template with dashboard preview
-  - [ ] Screenshot generation via Puppeteer
-  - [ ] Cron job for scheduled snapshots
-- [ ] **Dashboard embedding (iframe mode)**
-  - [ ] Copy embed code button in share modal
-  - [ ] Configurable toolbar visibility in embed mode
-  - [ ] Token-based authentication for embedded views
-  - [ ] Embed-specific view route (/dashboard/[id]/embed)
-- [ ] **🔮 SQL Editor Mode — Full Query Environment for Power Users**
-  - [ ] Keyboard shortcuts (⌘+Enter run, ⌘+S save, ⌘+Shift+F format)
-  - [ ] Phase 1: lightweight SQL parser for sample data (alasql or sql.js)
-  - [ ] Query management: save, history, fork, share, pin
-  - [ ] Query → Widget pipeline ("Add to Dashboard" with auto widget type detection)
-  - [ ] Schema-aware autocomplete (tables, columns, Snowflake functions, glossary snippets)
-  - [ ] Save query as widget data source
-  - [ ] Query execution with results preview
-  - [ ] SQL syntax highlighting and autocomplete
-  - [ ] Code editor component (Monaco or CodeMirror)
-- [ ] **📐 Custom Calculated Fields — Sigma-Style Formulas & SQL Expressions**
-  - [ ] Promote calculated field → shared field → glossary term pipeline
-  - [ ] Type inference + edit-time validation with friendly errors
-  - [ ] Formula-to-SQL transpiler for execution
-  - [ ] Function library reference panel (categorized, searchable)
-  - [ ] SQL expression mode for advanced users
-  - [ ] Sigma-style formula language parser (Sum([col]), CountIf, If, DateDiff, etc.)
-  - [ ] Save custom fields to schema
-  - [ ] Expression parser and evaluator
-  - [ ] Formula editor UI
-- [ ] **Dashboard alerts & notifications**
-  - [ ] Alert history and acknowledgement
-  - [ ] Email/Slack notifications
-  - [ ] Threshold evaluation on data refresh
-  - [ ] Alert rule configuration per widget
-- [ ] **Natural language filtering**
-  - [ ] Filter chips showing active NL filters
-  - [ ] Apply parsed filters to global/widget filters
-  - [ ] NL filter parser using Claude
-- [ ] **Collaborative editing (real-time)**
-  - [ ] "X is editing" indicator
-  - [ ] Conflict resolution for simultaneous edits
-  - [ ] Cursor presence indicators
-  - [ ] WebSocket server for real-time updates
-- [ ] **Dashboard comments & annotations**
-  - [ ] Notification when someone comments on your dashboard
-  - [ ] Comment thread UI on widgets
-  - [ ] Comment data model (linked to widget + position)
-- [ ] **🎙️ Voice Input: Whisper API Speech-to-Text**
-  - [x] ✅ Audio waveform visualizer — real-time mic amplitude bars
-  - [x] ✅ Update UI copy for Whisper flow — Recording/Transcribing states
-  - [ ] ⬜ Future: Chunked streaming for long dictation
-  - [x] ✅ Remove speech.d.ts (Web Speech API types no longer needed)
-  - [ ] ⬜ Add OPENAI_API_KEY to EC2 production env
-  - [ ] ⬜ Add OPENAI_API_KEY to .env.local and test locally
-  - [x] ✅ Env config — OPENAI_API_KEY in .env.example + env.ts
-  - [x] ✅ Whisper API route + MediaRecorder hook
+- ⬜ **Work together with Cascade so that it asks me to guess at some more (at least generally) accurate numbers about the business. See what things would be most important to guess at to get closer to accurate company data. Definitely not accurate, just trending in the right direction so people aren't totally thrown off by numbers that are just pulled out of a hat.**
+- ⬜ **Add "Presentation" Mode so that people can easily share their screens in a meeting and still get the interactive benefits**
+- ⬜ ****
 
-## 📝 Documentation
+### 🎯 Jeff — Action Needed
+1/9 tasks done | 0 milestones
 
-- [x] **README and project setup**
-  - [x] Deployment instructions
-  - [x] Running locally instructions
-  - [x] Environment variables reference
-  - [x] Installation and setup steps
-  - [x] Prerequisites (Node.js, Docker, etc)
-  - [x] Project overview and feature list
-- [ ] **Developer documentation**
-  - [ ] Deployment runbook
-  - [ ] API endpoint reference
-  - [ ] Database schema reference
-  - [ ] AI system prompt customization guide
-  - [ ] Adding new widget types guide
-  - [ ] Local development setup guide
-  - [ ] Architecture overview diagram
-- [ ] **User documentation / help center**
-  - [ ] FAQ / troubleshooting
-  - [ ] Glossary guide for admins
-  - [ ] Widget types reference with examples
-  - [ ] How to share and organize dashboards
-  - [ ] How to create a dashboard via chat
-  - [ ] Getting started guide
+- ⬜ **📱 ACTION: Real Device Testing (iPhone & iPad)**
+- ⬜ **🗄️ DECIDE: Backup & Disaster Recovery Strategy**
+- ⬜ **📈 INPUT: Provide Ballpark Business Numbers for Seed Data**
+- ⬜ **🏷️ DECIDE: Which Metrics Are Financially Sensitive?**
+- ⬜ **🌐 DECIDE: Final Production Domain**
+- ⬜ **📊 ACTION: Provide Datadog API Key & DD_SITE**
+- ⬜ **📧 DECIDE: Email Provider for Notifications**
+- ⬜ **🔑 ACTION: Deploy OPENAI_API_KEY to EC2 Production**
+- ✅ **🔒 URGENT: Verify & Enable EBS Volume Encryption** [due 2026-04-19]
 
-## TO SORT
+### Untitled section
+0/0 tasks done | 0 milestones
 
-- [ ] **Work together with Cascade so that it asks me to guess at some more (at least generally) accurate numbers about the business. See what things would be most important to guess at to get closer to accurate company data. Definitely not accurate, just trending in the right direction so people aren't totally thrown off by numbers that are just pulled out of a hat.**
-- [ ] **Add "Presentation" Mode so that people can easily share their screens in a meeting and still get the interactive benefits**
-- [ ] ****
-
-## 🎯 Jeff — Action Needed
-
-- [ ] **📱 ACTION: Real Device Testing (iPhone & iPad)**
-- [ ] **🗄️ DECIDE: Backup & Disaster Recovery Strategy**
-- [ ] **📈 INPUT: Provide Ballpark Business Numbers for Seed Data**
-- [ ] **🏷️ DECIDE: Which Metrics Are Financially Sensitive?**
-- [ ] **🌐 DECIDE: Final Production Domain**
-- [ ] **📊 ACTION: Provide Datadog API Key & DD_SITE**
-- [ ] **📧 DECIDE: Email Provider for Notifications**
-- [ ] **🔑 ACTION: Deploy OPENAI_API_KEY to EC2 Production**
-- [x] **🔒 URGENT: Verify & Enable EBS Volume Encryption** (due 2026-04-19)
-
-## Untitled section
