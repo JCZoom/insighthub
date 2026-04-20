@@ -14,57 +14,74 @@ interface PresentationModeResult {
 }
 
 /**
- * Hook to manage presentation mode using the browser Fullscreen API.
- * Hides all browser chrome, OS taskbar, and editing UI — true fullscreen.
+ * Hook to manage presentation mode using the browser Fullscreen API +
+ * Keyboard Lock API for true OS-level fullscreen with layered Escape.
  *
- * Listens for `fullscreenchange` to keep state in sync when the user
- * exits fullscreen via Escape or other browser-native mechanisms.
+ * Keyboard Lock (`navigator.keyboard.lock(['Escape'])`) tells the browser
+ * to pass Escape to JavaScript instead of using it to exit fullscreen.
+ * This enables the layered dismiss in DashboardCanvas:
+ *   1st Escape → close overlay/modal
+ *   2nd Escape → exit presentation mode + fullscreen
  *
- * Note: In true fullscreen, the browser captures the first Escape press
- * to exit fullscreen. Layered overlay dismiss (DashboardCanvas) still
- * works when exiting via the on-screen button instead of Escape.
+ * Falls back gracefully: if Keyboard Lock is unavailable, Escape will
+ * exit fullscreen directly (browser default) and state syncs via
+ * the `fullscreenchange` listener.
  */
 export function usePresentationMode(): PresentationModeResult {
   const [isPresentationMode, setIsPresentationMode] = useState(false);
 
-  const enterPresentationMode = useCallback(() => {
+  const enterFullscreen = useCallback(async () => {
     const el = document.documentElement;
-    if (el.requestFullscreen) {
-      el.requestFullscreen().catch(() => {
-        // Fullscreen denied (e.g. not triggered by user gesture) — fall back to CSS-only
-      });
+    try {
+      await el.requestFullscreen();
+      // Lock Escape so it routes to JS instead of exiting fullscreen
+      if ('keyboard' in navigator && (navigator.keyboard as any).lock) {
+        await (navigator.keyboard as any).lock(['Escape']);
+      }
+    } catch {
+      // Fullscreen denied or Keyboard Lock unsupported — CSS-only fallback
     }
-    setIsPresentationMode(true);
   }, []);
 
-  const exitPresentationMode = useCallback(() => {
+  const exitFullscreen = useCallback(() => {
+    if ('keyboard' in navigator && (navigator.keyboard as any).unlock) {
+      (navigator.keyboard as any).unlock();
+    }
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-    setIsPresentationMode(false);
   }, []);
+
+  const enterPresentationMode = useCallback(() => {
+    enterFullscreen();
+    setIsPresentationMode(true);
+  }, [enterFullscreen]);
+
+  const exitPresentationMode = useCallback(() => {
+    exitFullscreen();
+    setIsPresentationMode(false);
+  }, [exitFullscreen]);
 
   const togglePresentationMode = useCallback(() => {
     setIsPresentationMode(prev => {
       const entering = !prev;
       if (entering) {
-        const el = document.documentElement;
-        if (el.requestFullscreen) {
-          el.requestFullscreen().catch(() => {});
-        }
+        enterFullscreen();
       } else {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
+        exitFullscreen();
       }
       return entering;
     });
-  }, []);
+  }, [enterFullscreen, exitFullscreen]);
 
-  // Sync state when fullscreen is exited via browser-native Escape or other means
+  // Sync state when fullscreen is exited via browser-native mechanisms
+  // (e.g. if Keyboard Lock isn't supported and browser consumes Escape)
   useEffect(() => {
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement && isPresentationMode) {
+        if ('keyboard' in navigator && (navigator.keyboard as any).unlock) {
+          (navigator.keyboard as any).unlock();
+        }
         setIsPresentationMode(false);
       }
     };
