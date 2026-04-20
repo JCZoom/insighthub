@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth/session';
 
 /**
  * POST /api/voice/transcribe
@@ -10,6 +11,21 @@ import { NextRequest, NextResponse } from 'next/server';
  * The OpenAI key never leaves the server.
  */
 export async function POST(request: NextRequest) {
+  try {
+    // Authentication required - prevents abuse of OpenAI proxy
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  } catch (error) {
+    // Handle auth errors
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.error('Auth error in voice transcribe:', error);
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

@@ -1,213 +1,53 @@
 {
-  "cached_at": "2026-04-18T18:05:55.603153",
+  "cached_at": "2026-04-20T00:47:04.526797",
   "decisions": {
-    "1214122597260608:f5e938d1bfaa": {
+    "1214129426189780:a9fbb3ba5b06": {
       "automatable": true,
-      "reason": "Can update env config files"
+      "reason": "Can fix code vulnerabilities from audit report"
     },
-    "1214122597232504:b1db62c33001": {
+    "1214126974627718:1f848a55dd9c": {
       "automatable": true,
-      "reason": "Can run migrations and create seed scripts"
+      "reason": "Can build verification pipeline and data checks"
     },
-    "1214125662519348:75a7bb0812fe": {
+    "1214124701597458:4fbdda9fbfc3": {
       "automatable": true,
-      "reason": "Can implement security middleware and headers"
+      "reason": "Can implement widget duplication features and handlers"
     },
-    "1214122597309248:27bc00b86623": {
-      "automatable": true,
-      "reason": "Can implement audit logging system"
-    },
-    "1214124626635321:4f6a2c313ca5": {
-      "automatable": true,
-      "reason": "Can implement rate limiting middleware"
-    },
-    "1214125662501105:6a7ce4c3ce5b": {
-      "automatable": true,
-      "reason": "Can implement RBAC system and permissions"
-    },
-    "1214122597291831:dcaa89cf6e89": {
-      "automatable": true,
-      "reason": "Can implement OAuth with NextAuth.js"
-    },
-    "1214127925523009:ea4038df27c1": {
-      "automatable": true,
-      "reason": "Can implement data-level permission controls"
-    },
-    "1214133150432884:77eb354e475a": {
-      "automatable": true,
-      "reason": "Can implement AI SQL assistance features"
-    },
-    "1214127917352756:57708f79807e": {
-      "automatable": true,
-      "reason": "Can build dynamic prompt generation system"
-    },
-    "1214125662523233:a9036de32f66": {
-      "automatable": true,
-      "reason": "Can implement AI change summary generation"
-    },
-    "1214125662459465:0318f4cc78e3": {
-      "automatable": true,
-      "reason": "Can implement AI suggestion system"
-    },
-    "1214139832842345:d2389aaf0711": {
-      "automatable": true,
-      "reason": "Can implement chat session persistence"
-    },
-    "1214133141790744:6353ea3e238f": {
-      "automatable": true,
-      "reason": "Can implement SSE streaming responses"
-    },
-    "1214124635675910:7a95bc868cc6": {
-      "automatable": true,
-      "reason": "Can implement responsive widget layouts"
-    },
-    "1214139832808824:2dcce0412815": {
-      "automatable": true,
-      "reason": "Can add tooltip with glossary integration"
-    },
-    "1214127917256949:5e0a4c5e8a05": {
-      "automatable": true,
-      "reason": "Can implement drag resize functionality"
-    },
-    "1214124626630234:a80ac644b717": {
-      "automatable": true,
-      "reason": "Can implement widget interaction features"
-    },
-    "1214124626650274:4540f0213f6a": {
-      "automatable": true,
-      "reason": "Can build widget configuration panel"
-    },
-    "1214124626627909:1ee2d47d61bc": {
-      "automatable": true,
-      "reason": "Can implement remaining widget types"
-    },
-    "1214124634642808:2a89367f72a4": {
-      "automatable": true,
-      "reason": "Can implement widget detail overlay"
-    },
-    "1214133151139234:56a1bc77fe1e": {
-      "automatable": true,
-      "reason": "Can implement keyboard shortcut system"
-    },
-    "1214125671522231:f4353fdb7e7a": {
-      "automatable": true,
-      "reason": "Can improve mobile responsive styling"
-    },
-    "1214122606359555:151cae146e11": {
-      "automatable": true,
-      "reason": "Can implement touch interaction support"
-    },
-    "1214133150726838:239d370063d5": {
-      "automatable": true,
-      "reason": "Can implement responsive editor layout"
-    },
-    "1214125671525623:17e013c05ed4": {
-      "automatable": true,
-      "reason": "Can fix cross-browser compatibility issues"
-    },
-    "1214124635722818:ac14350b6292": {
-      "automatable": true,
-      "reason": "Can implement cross-platform optimizations"
-    },
-    "1214122606028761:4553f656e5c3": {
-      "automatable": true,
-      "reason": "Can add query transparency features"
-    },
-    "1214139826485836:3da54ed72c39": {
-      "automatable": true,
-      "reason": "Can build onboarding flow UI"
-    },
-    "1214127917346484:a03906919382": {
-      "automatable": true,
-      "reason": "Can implement version timeline UI"
-    },
-    "1214125662518751:5f0d53fbfbec": {
-      "automatable": true,
-      "reason": "Can add responsive preview modes"
-    },
-    "1214125662459347:54576e958014": {
-      "automatable": true,
-      "reason": "Can implement screenshot generation system"
-    },
-    "1214125662600431:1f4dcf33c15b": {
-      "automatable": true,
-      "reason": "Can build template promotion system"
-    },
-    "1214125662496608:24422c3eb1bb": {
-      "automatable": true,
-      "reason": "Can implement dashboard cloning feature"
-    },
-    "1214124626721004:84ea1f55fef0": {
-      "automatable": true,
-      "reason": "Can implement folder organization system"
-    },
-    "1214122597285598:e536558221ee": {
-      "automatable": true,
-      "reason": "Can implement dashboard sharing system"
-    },
-    "1214133141851979:49ae28656fbe": {
-      "automatable": true,
-      "reason": "Can improve gallery with search/filters"
-    },
-    "1214122597328486:f2a17382e934": {
-      "automatable": true,
-      "reason": "Can build glossary reference panel"
-    },
-    "1214124626859777:0358e0cd5f30": {
-      "automatable": true,
-      "reason": "Can implement glossary browse UI"
-    },
-    "1214122605158895:0353fd915930": {
-      "automatable": true,
-      "reason": "Can link glossary terms to widgets"
-    },
-    "1214124635388433:37e24ed74298": {
-      "automatable": true,
-      "reason": "Can build visual query builder"
-    },
-    "1214127926091086:df65c5095157": {
-      "automatable": true,
-      "reason": "Can implement query playground interface"
-    },
-    "1214133150414714:54f1a706a4a2": {
-      "automatable": true,
-      "reason": "Can build data explorer interface"
-    },
-    "1214124635378881:82bcedc75e3b": {
-      "automatable": true,
-      "reason": "Can implement power user features"
-    },
-    "1214125662622796:fa87c6f0d06b": {
+    "1214124692739799:2ade206b910e": {
       "automatable": false,
-      "reason": "Requires external Snowflake setup"
+      "reason": "Requires manual testing on mobile devices"
+    },
+    "1214129722835417:24a1aeb4a924": {
+      "automatable": true,
+      "reason": "Can replace static text with data-driven insights"
+    },
+    "1214125728974537:759c957f16cf": {
+      "automatable": false,
+      "reason": "Requires manual QA pass before shipping"
+    },
+    "1214125729047241:192f4ee3eba6": {
+      "automatable": false,
+      "reason": "Requires manual QA pass before shipping"
     },
     "1214122597299836:7ac3e02854e6": {
       "automatable": true,
-      "reason": "Can implement sample data engine"
+      "reason": "Can build unified query interface"
     },
     "1214122597394658:12438bc12059": {
       "automatable": true,
-      "reason": "Can build system settings interface"
-    },
-    "1214122597431872:12ea66f3dcd6": {
-      "automatable": true,
-      "reason": "Can implement audit log viewer"
-    },
-    "1214124626804501:eaaa3f19e076": {
-      "automatable": true,
-      "reason": "Can build user management interface"
+      "reason": "Can implement admin configuration system"
     },
     "1214124635707093:b2055a7092f3": {
       "automatable": false,
-      "reason": "Requires physical Windows devices"
+      "reason": "Requires manual testing on multiple devices"
     },
     "1214122597421640:85cf34dd4ac0": {
       "automatable": true,
-      "reason": "Can implement performance optimizations"
+      "reason": "Can implement performance testing and optimization"
     },
     "1214125662713839:24faaa163ab1": {
       "automatable": true,
-      "reason": "Can write E2E tests"
+      "reason": "Can write Playwright E2E tests"
     },
     "1214125662514157:ab43835ce137": {
       "automatable": true,
@@ -215,147 +55,131 @@
     },
     "1214122597431622:adbf8a8d0b8d": {
       "automatable": true,
-      "reason": "Can write unit tests"
+      "reason": "Can write unit tests for core logic"
+    },
+    "1214129461594585:cd7d176da8f9": {
+      "automatable": true,
+      "reason": "Can add security scanning to CI pipeline"
+    },
+    "1214127961828743:04cbc25a5042": {
+      "automatable": false,
+      "reason": "Requires external IAM permission configuration"
     },
     "1214127917426706:4a54a9fe7ea5": {
-      "automatable": false,
-      "reason": "Requires infrastructure setup"
+      "automatable": true,
+      "reason": "Can implement backup and recovery automation"
     },
     "1214124626867287:2e359791127c": {
-      "automatable": false,
-      "reason": "Requires external monitoring services"
+      "automatable": true,
+      "reason": "Can implement monitoring and alerting systems"
     },
     "1214125662649501:670b28cfe0ee": {
+      "automatable": true,
+      "reason": "Can build CI/CD pipeline configuration"
+    },
+    "1214123355431052:62a2ef383bec": {
       "automatable": false,
-      "reason": "Requires CI/CD infrastructure setup"
+      "reason": "Requires manual QA pass before shipping"
     },
     "1214124635379056:f3b6037652f8": {
       "automatable": true,
-      "reason": "Can implement cross-validation features"
+      "reason": "Can build Snowflake cross-validation system"
     },
     "1214122597543335:2703cea11ff0": {
       "automatable": true,
-      "reason": "Can implement contextual AI queries"
+      "reason": "Can implement contextual AI query features"
     },
     "1214127917447661:93fd551ffa8a": {
       "automatable": true,
-      "reason": "Can build REST API endpoints"
+      "reason": "Can build REST API for dashboard management"
     },
     "1214124626948365:74eea6e1f03a": {
-      "automatable": false,
-      "reason": "Requires email service setup"
+      "automatable": true,
+      "reason": "Can implement scheduled snapshots and email"
     },
     "1214124626928896:dddf5ff436a2": {
       "automatable": true,
-      "reason": "Can implement iframe embedding"
+      "reason": "Can build iframe embedding with auth"
     },
     "1214127917477404:c3d7a5e5eca1": {
       "automatable": true,
-      "reason": "Can build SQL editor interface"
+      "reason": "Can build full SQL editor interface"
     },
     "1214139851584627:68f4a4d4f395": {
       "automatable": true,
-      "reason": "Can implement calculated fields system"
+      "reason": "Can implement calculated fields and formulas"
     },
     "1214133141843775:5d363533d595": {
-      "automatable": false,
-      "reason": "Requires external notification services"
+      "automatable": true,
+      "reason": "Can build dashboard alerts and notifications"
     },
     "1214125662665581:05bcdcc9e960": {
       "automatable": true,
-      "reason": "Can implement NL filtering with AI"
+      "reason": "Can implement AI-powered natural language filtering"
     },
     "1214124626920155:1d055cdd360f": {
       "automatable": true,
-      "reason": "Can implement real-time collaboration"
+      "reason": "Can build WebSocket collaborative editing"
     },
     "1214122597542940:fb494622b4eb": {
       "automatable": true,
-      "reason": "Can implement commenting system"
-    },
-    "1214124634484185:dcfcf806a467": {
-      "automatable": true,
-      "reason": "Can implement speech-to-text integration"
-    },
-    "1214124626817722:99dd44faca4f": {
-      "automatable": true,
-      "reason": "Can write README and setup docs"
-    },
-    "1214122597548220:1335992e7594": {
-      "automatable": true,
-      "reason": "Can write technical documentation"
-    },
-    "1214127917553411:a6b503d84c7d": {
-      "automatable": true,
-      "reason": "Can write user documentation"
-    },
-    "1214122629497691:dc6b84ef618d": {
-      "automatable": true,
-      "reason": "Fix React hook context issue in setTimeout"
-    },
-    "1214122629529165:bfd9cbd799f0": {
-      "automatable": true,
-      "reason": "Fix useEffect dependency loop issue"
-    },
-    "1214124658812877:8727eeefbf98": {
-      "automatable": true,
-      "reason": "Refactor duplicated response parsing logic"
-    },
-    "1214127949380975:17d4e42bcc6d": {
-      "automatable": true,
-      "reason": "Fix inconsistent indentation in code"
-    },
-    "1214125694511334:dde64db2701d": {
-      "automatable": true,
-      "reason": "Remove debug console.log statements"
-    },
-    "1214133173777130:c4829defac2d": {
-      "automatable": true,
-      "reason": "Implement real streaming instead of artificial delays"
-    },
-    "1214125694553722:b14688705cf6": {
-      "automatable": true,
-      "reason": "Fix event listener cleanup on unmount"
-    },
-    "1214127949394614:b16ff674bba8": {
-      "automatable": true,
-      "reason": "Add input validation for message length"
-    },
-    "1214124658813050:64d99bf2e4c6": {
-      "automatable": true,
-      "reason": "Fix schema sent as query parameters"
-    },
-    "1214122629468934:9e1185b3632f": {
-      "automatable": true,
-      "reason": "Use existing PrismaClient singleton"
-    },
-    "1214133173671683:f2e0b3e33db0": {
-      "automatable": true,
-      "reason": "Add proper authentication to endpoints"
-    },
-    "1214124658812867:a3d78f6244b0": {
-      "automatable": true,
-      "reason": "Fix CORS wildcard security issue"
-    },
-    "1214133173750334:67311fbd553c": {
-      "automatable": true,
-      "reason": "Sanitize error messages for clients"
+      "reason": "Can implement comments and annotations system"
     },
     "1214124634484185:1d9a0034608c": {
       "automatable": true,
-      "reason": "Implement Whisper API for speech-to-text"
+      "reason": "Can integrate Whisper API for voice input"
     },
-    "1214125691559387:c37092173303": {
-      "automatable": false,
-      "reason": "Requires business analysis and external collaboration"
-    },
-    "1214125662501105:97bd3f0059c5": {
+    "1214122597548220:1335992e7594": {
       "automatable": true,
-      "reason": "Code implementation of RBAC system and permissions"
+      "reason": "Can write technical developer documentation"
+    },
+    "1214127917553411:a6b503d84c7d": {
+      "automatable": false,
+      "reason": "Requires business knowledge for user documentation"
     },
     "1214125691559387:070406162972": {
       "automatable": false,
-      "reason": "Business decision requiring external human input/consultation"
+      "reason": "Requires business knowledge and human input"
+    },
+    "1214127992516941:c3fab1065731": {
+      "automatable": true,
+      "reason": "Can implement presentation mode interface"
+    },
+    "1214127992516943:1df0eaabbc6b": {
+      "automatable": false,
+      "reason": "No task description provided"
+    },
+    "1214122642087362:5e86d9bdd972": {
+      "automatable": false,
+      "reason": "Requires manual testing on physical devices"
+    },
+    "1214127962125142:832bb6d7e261": {
+      "automatable": false,
+      "reason": "Requires business decisions about backup strategy"
+    },
+    "1214125707178506:21506f8d0b47": {
+      "automatable": false,
+      "reason": "Requires business knowledge and human input"
+    },
+    "1214124671515358:2fdad8d2c894": {
+      "automatable": false,
+      "reason": "Requires business policy decisions"
+    },
+    "1214124671467094:018c1b715e2e": {
+      "automatable": false,
+      "reason": "Requires business decision about domain"
+    },
+    "1214124671514378:75e9ac2eeb14": {
+      "automatable": false,
+      "reason": "Requires external API key access"
+    },
+    "1214127962108988:009c50c7b498": {
+      "automatable": false,
+      "reason": "Requires business decision about email provider"
+    },
+    "1214125707137986:bcaf721db006": {
+      "automatable": false,
+      "reason": "Requires server access and credentials"
     }
   }
 }

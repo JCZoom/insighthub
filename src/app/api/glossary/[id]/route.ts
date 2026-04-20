@@ -10,6 +10,12 @@ interface RouteContext {
 // GET /api/glossary/[id] — get a single glossary term
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
+    // Authentication required - prevents data enumeration
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await context.params;
     const term = await prisma.glossaryTerm.findUnique({ where: { id } });
     if (!term) {
@@ -18,6 +24,12 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ term });
   } catch (error) {
     console.error('Get glossary term error:', error);
+
+    // Handle auth errors specifically
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

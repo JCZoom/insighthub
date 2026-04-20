@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth/session';
 import type { WidgetConfig } from '@/types';
 
 /**
@@ -17,6 +18,12 @@ import type { WidgetConfig } from '@/types';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication required - defense in depth
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { dashboardId, dashboardTitle, widgets, publisherId } = body as {
       dashboardId: string;
@@ -55,6 +62,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Widget publish error:', error);
+
+    // Handle auth errors specifically
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     return NextResponse.json({ error: 'Failed to publish widgets' }, { status: 500 });
   }
 }
