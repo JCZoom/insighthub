@@ -80,6 +80,30 @@ const TEMPLATE_DASHBOARDS = [
     isTemplate: true,
     isPublic: true,
   },
+  {
+    id: 'customer-health',
+    title: 'Customer Health',
+    description: 'Usage analytics, feature adoption, regional distribution, and churn risk indicators.',
+    tags: 'customer,retention,satisfaction',
+    isTemplate: true,
+    isPublic: true,
+  },
+  {
+    id: 'financial-overview',
+    title: 'Financial Overview',
+    description: 'Revenue deep-dive, MRR/ARR tracking, retention metrics, and revenue composition.',
+    tags: 'finance,revenue,accounting',
+    isTemplate: true,
+    isPublic: true,
+  },
+  {
+    id: 'cs-automation',
+    title: 'CS Automation',
+    description: 'AI deflection rates across chat, voice, and ticket channels — bot performance, cost savings, and topic accuracy.',
+    tags: 'automation,chatbot,deflection,ai',
+    isTemplate: true,
+    isPublic: true,
+  },
 ];
 
 // Helper functions
