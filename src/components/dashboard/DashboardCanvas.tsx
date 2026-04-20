@@ -14,7 +14,7 @@ import { ResizeHandles, type ResizeDirection } from './ResizeHandles';
 import { getMinWidgetSize } from '@/components/widgets/widget-utils';
 import type { WidgetConfig, FilterConfig } from '@/types';
 import { useRouter } from 'next/navigation';
-import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2 } from 'lucide-react';
+import { Undo2, Redo2, Save, Info, Check, Library, Loader2, GripVertical, Trash2, Pencil, Share2, Keyboard, Settings2, HelpCircle, Filter, X, Download, Camera, Image as ImageIcon, ChevronDown, Copy, BookOpen, MessageCircle, Monitor, Tablet, Smartphone, Code2, Maximize, Minimize } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
@@ -39,9 +39,15 @@ interface DashboardCanvasProps {
   isChatDrawerOpen?: boolean;
   /** Ref to the dashboard grid element for external access (e.g., thumbnail generation) */
   dashboardRef?: React.RefObject<HTMLDivElement | null>;
+  /** Whether presentation mode is active (fullscreen, no chrome) */
+  isPresentationMode?: boolean;
+  /** Callback to toggle presentation mode */
+  onTogglePresentationMode?: () => void;
+  /** Callback to exit presentation mode */
+  onExitPresentationMode?: () => void;
 }
 
-export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen, dashboardRef }: DashboardCanvasProps) {
+export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen, dashboardRef, isPresentationMode, onTogglePresentationMode, onExitPresentationMode }: DashboardCanvasProps) {
   const {
     schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
     undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
@@ -109,7 +115,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     : 1;
   const previewMaxWidth = previewMode === 'tablet' ? 768 : previewMode === 'mobile' ? 375 : undefined;
   const isPreviewConstrained = previewMode === 'tablet' || previewMode === 'mobile';
-  const isEffectivelyViewOnly = viewport.isViewOnly || isPreviewConstrained;
+  const isEffectivelyViewOnly = viewport.isViewOnly || isPreviewConstrained || isPresentationMode;
 
   // Long press context menu support
   const { createLongPressHandler, LongPressRing } = useLongPressContextMenu();
@@ -135,7 +141,40 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     onSave: () => handleSave(),
     onSaveAs: () => handleSaveAs(),
     onToggleHelp: () => setShowHelp(prev => !prev),
+    onTogglePresentationMode: onTogglePresentationMode,
   });
+
+  // Layered Escape for presentation mode:
+  // 1st Escape → close the open overlay/modal
+  // 2nd Escape → exit presentation mode
+  //
+  // Uses CAPTURE phase + stopImmediatePropagation so this fires BEFORE any
+  // overlay's own Escape handler (WidgetDetailOverlay, ShareModal, etc.),
+  // preventing them from closing the overlay AND exiting presentation in one press.
+  useEffect(() => {
+    if (!isPresentationMode) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if ((e as any).__insightHubHandled) return;
+
+      // Priority 1: Close any open overlay first
+      if (detailWidget) { setDetailWidget(null); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+      if (queryPanelWidget) { setQueryPanelWidget(null); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+      if (explainWidget) { setExplainWidget(null); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+      if (showHelp) { setShowHelp(false); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+      if (showShare) { setShowShare(false); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+      if (addToDashboardWidget) { setAddToDashboardWidget(null); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+      if (configWidgetId) { setConfigWidgetId(null); e.stopImmediatePropagation(); (e as any).__insightHubHandled = true; return; }
+
+      // Priority 2: Nothing open — exit presentation mode
+      onExitPresentationMode?.();
+      (e as any).__insightHubHandled = true;
+    };
+
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [isPresentationMode, detailWidget, queryPanelWidget, explainWidget, showHelp, showShare, addToDashboardWidget, configWidgetId, onExitPresentationMode]);
 
   // Handle explain metric requests
   const handleExplainMetric = useCallback((widget: WidgetConfig) => {
@@ -645,7 +684,8 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     <div className="flex-1 flex min-h-0">
       {/* Canvas + toolbar column */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-y-auto">
-      {/* Toolbar */}
+      {/* Toolbar — hidden in presentation mode */}
+      {!isPresentationMode && (
       <div className="sticky top-0 z-20 flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           {isEditingTitle ? (
@@ -798,6 +838,17 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
             )}
           </div>
           {/* Responsive preview toggle — tablet/phone previews deferred, keeping desktop-only for now */}
+          {onTogglePresentationMode && (
+            <Tooltip content="Presentation mode" shortcut="F5" side="bottom">
+              <button
+                onClick={onTogglePresentationMode}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-secondary)] text-sm font-medium hover:bg-accent-blue/10 hover:text-accent-blue transition-colors"
+              >
+                <Maximize size={14} />
+                {!viewport.isToolbarCompact && <span>Present</span>}
+              </button>
+            </Tooltip>
+          )}
           <Tooltip content="Keyboard shortcuts" shortcut="?" side="bottom">
             <button
               onClick={() => setShowHelp(true)}
@@ -843,12 +894,15 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           </div>
         </div>
       </div>
+      )}
 
-      {/* Demo mode banner */}
+      {/* Demo mode banner — hidden in presentation mode */}
+      {!isPresentationMode && (
       <div className="flex items-center gap-2 px-4 py-1.5 bg-accent-amber/5 border-b border-accent-amber/20 text-xs text-accent-amber">
         <Info size={12} />
         <span>Demo mode — using sample data. Right-click to add widgets. Drag to move, corner to resize, double-click to edit config.</span>
       </div>
+      )}
 
       {/* Widget grid */}
       <div
@@ -1156,8 +1210,24 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
         {/* Long press ring indicator */}
         <LongPressRing />
 
+        {/* Presentation mode floating controls */}
+        {isPresentationMode && onExitPresentationMode && (
+          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-b from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">
+            <h1 className="text-lg font-semibold text-white drop-shadow-lg truncate max-w-[60%]">
+              {title}
+            </h1>
+            <button
+              onClick={onExitPresentationMode}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-md text-white text-sm font-medium hover:bg-white/20 transition-colors border border-white/20"
+            >
+              <Minimize size={14} />
+              Exit Presentation
+            </button>
+          </div>
+        )}
+
         {/* Floating chat toggle button for tablet/mobile */}
-        {viewport.isChatDrawer && onToggleChatDrawer && (
+        {!isPresentationMode && viewport.isChatDrawer && onToggleChatDrawer && (
           <Tooltip content="Toggle Chat" side="left">
             <button
               onClick={onToggleChatDrawer}

@@ -10,6 +10,7 @@ interface KeyboardShortcutOptions {
   onFocusChat?: () => void;
   onToggleHelp?: () => void;
   onToggleMic?: () => void;
+  onTogglePresentationMode?: () => void;
 }
 
 export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
@@ -165,6 +166,13 @@ export function useKeyboardShortcuts(options: KeyboardShortcutOptions = {}) {
     if (meta && e.shiftKey && e.key.toLowerCase() === 'm') {
       e.preventDefault();
       optionsRef.current.onToggleMic?.();
+      return;
+    }
+
+    // Presentation mode: F5
+    if (e.key === 'F5') {
+      e.preventDefault();
+      optionsRef.current.onTogglePresentationMode?.();
       return;
     }
   }, []);

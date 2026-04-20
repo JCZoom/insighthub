@@ -16,6 +16,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { useToast } from '@/components/ui/toast';
 import { useViewport } from '@/hooks/useViewport';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
+import { usePresentationMode } from '@/hooks/usePresentationMode';
 
 function NewDashboardInner() {
   const { initialize } = useDashboardStore();
@@ -29,6 +30,7 @@ function NewDashboardInner() {
   const chatInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const viewport = useViewport();
+  const { isPresentationMode, exitPresentationMode, togglePresentationMode } = usePresentationMode();
 
   const { save } = useAutoSave({ enabled: false }); // Enable after first save
 
@@ -46,8 +48,8 @@ function NewDashboardInner() {
 
   return (
     <div className="h-screen flex flex-col">
-      <MobileNotice />
-      <Navbar />
+      {!isPresentationMode && <MobileNotice />}
+      {!isPresentationMode && <Navbar />}
       <div className="flex-1 flex min-h-0">
         {/* Phone mode: Canvas or Chat (full screen) */}
         {viewport.layoutMode === 'mobile' && (
@@ -56,6 +58,9 @@ function NewDashboardInner() {
               <DashboardCanvas
                 onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
                 isLibraryOpen={isLibraryOpen}
+                isPresentationMode={isPresentationMode}
+                onTogglePresentationMode={togglePresentationMode}
+                onExitPresentationMode={exitPresentationMode}
               />
             ) : (
               <div className="flex-1 flex flex-col">
@@ -75,6 +80,9 @@ function NewDashboardInner() {
               isLibraryOpen={isLibraryOpen}
               onToggleChatDrawer={() => setIsChatDrawerOpen(prev => !prev)}
               isChatDrawerOpen={isChatDrawerOpen}
+              isPresentationMode={isPresentationMode}
+              onTogglePresentationMode={togglePresentationMode}
+              onExitPresentationMode={exitPresentationMode}
             />
             <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
 
@@ -106,19 +114,26 @@ function NewDashboardInner() {
             <DashboardCanvas
               onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
               isLibraryOpen={isLibraryOpen}
+              isPresentationMode={isPresentationMode}
+              onTogglePresentationMode={togglePresentationMode}
+              onExitPresentationMode={exitPresentationMode}
             />
-            <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
-            <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
-            <div className="flex flex-col shrink-0 min-h-0 overflow-hidden" style={{ width: chatWidth }}>
-              <ChatPanel initialPrompt={initialPrompt} />
-              <VersionTimeline />
-            </div>
+            {!isPresentationMode && (
+              <>
+                <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+                <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
+                <div className="flex flex-col shrink-0 min-h-0 overflow-hidden" style={{ width: chatWidth }}>
+                  <ChatPanel initialPrompt={initialPrompt} />
+                  <VersionTimeline />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
 
       {/* Mobile bottom navigation */}
-      {viewport.isMobileNav && (
+      {!isPresentationMode && viewport.isMobileNav && (
         <MobileTabBar
           phoneMode={phoneMode}
           onPhoneModeChange={setPhoneMode}

@@ -5,17 +5,17 @@
 
 | Metric | Count |
 |--------|-------|
-| Total tasks | 186 |
+| Total tasks | 189 |
 | Completed tasks | 144 |
 | Total subtasks | 511 |
 | Completed subtasks | 351 |
-| **Overall progress** | **495/697 (71%)** |
+| **Overall progress** | **495/700 (71%)** |
 
 ---
 
 # InsightHub — Asana Project Summary
 
-> Generated: 2026-04-19 23:10:33
+> Generated: 2026-04-20 00:09:44
 > Project GID: 1214122597260827
 > [View in Asana](https://app.asana.com/0/1214122597260827)
 
@@ -462,6 +462,7 @@
 
 ## 📖 Glossary System
 
+- [ ] **Add region abbreviations to glossary & fix static exec insight**
 - [x] **Glossary reference panel in dashboard editor**
   - [x] Widget hover shows linked term tooltips
   - [x] Link terms to widgets (glossaryTermIds)
@@ -752,6 +753,8 @@
 ## TO SORT
 
 - [ ] **Work together with Cascade so that it asks me to guess at some more (at least generally) accurate numbers about the business. See what things would be most important to guess at to get closer to accurate company data. Definitely not accurate, just trending in the right direction so people aren't totally thrown off by numbers that are just pulled out of a hat.**
+- [ ] **Add "Presentation" Mode so that people can easily share their screens in a meeting and still get the interactive benefits**
+- [ ] ****
 
 ## 🎯 Jeff — Action Needed
 
@@ -764,3 +767,5 @@
 - [ ] **📧 DECIDE: Email Provider for Notifications**
 - [ ] **🔑 ACTION: Deploy OPENAI_API_KEY to EC2 Production**
 - [x] **🔒 URGENT: Verify & Enable EBS Volume Encryption** (due 2026-04-19)
+
+## Untitled section

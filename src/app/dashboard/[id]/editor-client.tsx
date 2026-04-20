@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/toast';
 import { useViewport } from '@/hooks/useViewport';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
 import { trackRecentlyViewed } from '@/app/gallery-client';
+import { usePresentationMode } from '@/hooks/usePresentationMode';
 
 interface EditorClientProps {
   dashboardId: string;
@@ -44,6 +45,7 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
   const { toast } = useToast();
   const viewport = useViewport();
   const router = useRouter();
+  const { isPresentationMode, enterPresentationMode, exitPresentationMode, togglePresentationMode } = usePresentationMode();
 
   const { save, getIsGeneratingThumbnail } = useAutoSaveWithThumbnails({
     getDashboardElement: () => dashboardGridRef.current,
@@ -129,8 +131,8 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
 
   return (
     <div className="h-screen flex flex-col">
-      <MobileNotice />
-      <Navbar />
+      {!isPresentationMode && <MobileNotice />}
+      {!isPresentationMode && <Navbar />}
       <div className="flex-1 flex min-h-0">
         {/* Phone mode: Canvas or Chat (full screen) */}
         {viewport.layoutMode === 'mobile' && (
@@ -142,6 +144,9 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
                 onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
                 isGlossaryOpen={isGlossaryOpen}
                 dashboardRef={dashboardGridRef}
+                isPresentationMode={isPresentationMode}
+                onTogglePresentationMode={togglePresentationMode}
+                onExitPresentationMode={exitPresentationMode}
               />
             ) : (
               <div className="flex-1 flex flex-col">
@@ -165,6 +170,9 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
               onToggleChatDrawer={() => setIsChatDrawerOpen(prev => !prev)}
               isChatDrawerOpen={isChatDrawerOpen}
               dashboardRef={dashboardGridRef}
+              isPresentationMode={isPresentationMode}
+              onTogglePresentationMode={togglePresentationMode}
+              onExitPresentationMode={exitPresentationMode}
             />
             <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
             <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
@@ -200,20 +208,27 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
               onToggleGlossary={() => setIsGlossaryOpen(prev => !prev)}
               isGlossaryOpen={isGlossaryOpen}
               dashboardRef={dashboardGridRef}
+              isPresentationMode={isPresentationMode}
+              onTogglePresentationMode={togglePresentationMode}
+              onExitPresentationMode={exitPresentationMode}
             />
-            <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
-            <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
-            <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
-            <div className="flex flex-col shrink-0 min-h-0 overflow-hidden" style={{ width: chatWidth }}>
-              <ChatPanel />
-              <VersionTimeline />
-            </div>
+            {!isPresentationMode && (
+              <>
+                <WidgetLibraryPanel isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} />
+                <GlossaryPanel isOpen={isGlossaryOpen} onClose={() => setIsGlossaryOpen(false)} />
+                <ResizableDivider width={chatWidth} onWidthChange={handleChatWidthChange} side="right" />
+                <div className="flex flex-col shrink-0 min-h-0 overflow-hidden" style={{ width: chatWidth }}>
+                  <ChatPanel />
+                  <VersionTimeline />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
 
       {/* Mobile bottom navigation */}
-      {viewport.isMobileNav && (
+      {!isPresentationMode && viewport.isMobileNav && (
         <MobileTabBar
           phoneMode={phoneMode}
           onPhoneModeChange={setPhoneMode}
