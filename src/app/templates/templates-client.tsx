@@ -19,7 +19,7 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
     tags: ['revenue', 'churn', 'executive', 'kpi'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
-    widgetCount: 14,
+    widgetCount: 16,
     isTemplate: true,
   },
   {
@@ -29,7 +29,7 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
     tags: ['support', 'tickets', 'csat', 'performance'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
-    widgetCount: 10,
+    widgetCount: 12,
     isTemplate: true,
   },
   {
@@ -39,7 +39,7 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
     tags: ['churn', 'retention', 'analysis', 'segments'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
-    widgetCount: 12,
+    widgetCount: 14,
     isTemplate: true,
   },
   {
@@ -49,7 +49,7 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
     tags: ['sales', 'pipeline', 'deals', 'forecasting'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
-    widgetCount: 10,
+    widgetCount: 12,
     isTemplate: true,
   },
   {
@@ -59,7 +59,7 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
     tags: ['customer', 'retention', 'satisfaction', 'engagement'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
-    widgetCount: 10,
+    widgetCount: 12,
     isTemplate: true,
   },
   {
@@ -69,7 +69,17 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
     tags: ['finance', 'revenue', 'accounting', 'financial'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
-    widgetCount: 10,
+    widgetCount: 12,
+    isTemplate: true,
+  },
+  {
+    id: 'template-cs-automation',
+    title: 'CS Automation',
+    description: 'AI deflection rates across chat, voice, and ticket channels — bot performance, cost savings, and topic-level accuracy across 12 widgets.',
+    tags: ['automation', 'chatbot', 'deflection', 'ai', 'support'],
+    ownerName: 'InsightHub',
+    updatedAt: new Date('2026-04-19T12:00:00'),
+    widgetCount: 12,
     isTemplate: true,
   },
 ];

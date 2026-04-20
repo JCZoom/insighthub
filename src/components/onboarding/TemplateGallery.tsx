@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, TrendingUp, HeadphonesIcon, PieChart, Users, Building2, ArrowRight, Play, Eye } from 'lucide-react';
+import { BarChart3, TrendingUp, HeadphonesIcon, PieChart, Users, Building2, Bot, ArrowRight, Play, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Tooltip } from '@/components/ui/Tooltip';
 
@@ -81,6 +81,18 @@ const DASHBOARD_TEMPLATES = [
     tags: ['Finance', 'Revenue', 'Metrics'],
     widgets: ['MRR & ARR', 'NRR & GRR', 'Revenue Trend', 'MRR Growth', 'Sales Pipeline'],
     prompt: 'Create a financial overview dashboard with KPIs for MRR, ARR, NRR, and GRR. Include revenue trend area chart, revenue composition stacked bar, MRR growth trend line chart, revenue by plan donut, revenue by region table, and sales pipeline funnel.',
+  },
+  {
+    id: 'template-cs-automation',
+    title: 'CS Automation',
+    description: 'AI deflection rates across chat, voice, and ticket — bot performance, cost savings, and topic accuracy.',
+    icon: Bot,
+    color: 'from-accent-purple/20 to-accent-purple/5 border-accent-purple/20',
+    iconColor: 'text-accent-purple',
+    previewImage: '/images/templates/cs-automation-preview.png',
+    tags: ['Automation', 'AI', 'Deflection'],
+    widgets: ['Chat Deflection', 'Voice Deflection', 'Cost Savings', 'Channel Breakdown', 'Bot Topics'],
+    prompt: 'Build a CS automation dashboard with KPIs for chat deflection rate, voice deflection rate, ticket deflection rate, and overall deflection. Include deflection rate trend area chart, deflection by channel bar chart, cost savings area chart, conversations by channel donut, and bot performance by topic table.',
   },
 ];
 

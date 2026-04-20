@@ -29,6 +29,29 @@ export const SOURCE_FIELD_REGISTRY: Record<string, string[]> = {
   customers_by_region: ['region', 'count', 'mrr', 'churn_rate'],
   usage_by_feature: ['feature', 'daily_users', 'total_usage', 'adoption_rate'],
   usage_by_month: ['month', 'mail_scan', 'package_forward', 'check_deposit', 'address_use'],
+  // CS Automation sources
+  cs_automation_summary: [
+    'total_conversations', 'chat_deflection_rate', 'voice_deflection_rate',
+    'ticket_deflection_rate', 'overall_deflection_rate', 'human_handoff_rate',
+    'avg_bot_resolution_seconds', 'avg_human_resolution_minutes',
+    'bot_csat', 'human_csat', 'cost_per_automated', 'cost_per_human',
+  ],
+  cs_deflection_by_month: [
+    'month', 'chat_deflection', 'voice_deflection', 'ticket_deflection',
+    'total_conversations', 'automated_resolutions', 'human_handoffs',
+  ],
+  cs_deflection_by_channel: [
+    'channel', 'deflection_rate', 'total_conversations', 'automated',
+    'human_assisted', 'avg_resolution_seconds',
+  ],
+  cs_bot_topic_performance: [
+    'topic', 'total_queries', 'deflection_rate', 'avg_confidence',
+    'escalation_rate', 'csat',
+  ],
+  cs_cost_savings: [
+    'month', 'automated_savings', 'human_cost', 'total_cost',
+    'conversations_automated',
+  ],
 };
 
 // ── Valid Enums ────────────────────────────────────────────

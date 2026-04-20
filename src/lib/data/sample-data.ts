@@ -216,6 +216,68 @@ function generateKpiSummary(): Record<string, unknown>[] {
   }];
 }
 
+// ── CS Automation Data Generators ─────────────────────────────────────────
+
+function generateCsAutomationSummary(): Record<string, unknown>[] {
+  return [{
+    total_conversations: randInt(42000, 58000),
+    chat_deflection_rate: +(randBetween(48, 53)).toFixed(1),
+    voice_deflection_rate: +(randBetween(5.5, 8.5)).toFixed(1),
+    ticket_deflection_rate: +(randBetween(0, 1.2)).toFixed(1),
+    overall_deflection_rate: +(randBetween(32, 38)).toFixed(1),
+    human_handoff_rate: +(randBetween(47, 52)).toFixed(1),
+    avg_bot_resolution_seconds: randInt(25, 55),
+    avg_human_resolution_minutes: randInt(8, 18),
+    bot_csat: +(randBetween(72, 82)).toFixed(1),
+    human_csat: +(randBetween(85, 93)).toFixed(1),
+    cost_per_automated: +(randBetween(0.03, 0.08)).toFixed(3),
+    cost_per_human: +(randBetween(4.50, 7.50)).toFixed(2),
+  }];
+}
+
+function generateCsDeflectionByMonth(): Record<string, unknown>[] {
+  // Show chat growing from ~35% to ~50%, voice from ~2% to ~7%, tickets staying near 0%
+  return MONTHS.map((month, i) => ({
+    month,
+    chat_deflection: +(35 + i * 1.0 + randBetween(-1, 1.5)).toFixed(1),
+    voice_deflection: +(2 + i * 0.35 + randBetween(-0.3, 0.5)).toFixed(1),
+    ticket_deflection: +(0 + (i > 12 ? randBetween(0, 0.8) : 0)).toFixed(1),
+    total_conversations: randInt(2800, 4200),
+    automated_resolutions: randInt(900, 2100),
+    human_handoffs: randInt(1200, 2400),
+  }));
+}
+
+function generateCsDeflectionByChannel(): Record<string, unknown>[] {
+  return [
+    { channel: 'Live Chat', deflection_rate: +(randBetween(48, 53)).toFixed(1), total_conversations: randInt(22000, 30000), automated: randInt(11000, 15000), human_assisted: randInt(11000, 15000), avg_resolution_seconds: randInt(22, 40) },
+    { channel: 'Voice', deflection_rate: +(randBetween(5.5, 8.5)).toFixed(1), total_conversations: randInt(12000, 18000), automated: randInt(700, 1500), human_assisted: randInt(11000, 17000), avg_resolution_seconds: randInt(35, 65) },
+    { channel: 'Email/Ticket', deflection_rate: +(randBetween(0, 1.2)).toFixed(1), total_conversations: randInt(8000, 12000), automated: randInt(0, 120), human_assisted: randInt(8000, 12000), avg_resolution_seconds: 0 },
+  ];
+}
+
+function generateCsBotTopicPerformance(): Record<string, unknown>[] {
+  const topics = ['Account & Billing', 'Shipping Status', 'Password Reset', 'Plan Changes', 'Feature Help', 'Cancellation', 'Technical Issue', 'Onboarding'];
+  return topics.map(topic => ({
+    topic,
+    total_queries: randInt(1500, 8000),
+    deflection_rate: +(randBetween(15, 82)).toFixed(1),
+    avg_confidence: +(randBetween(0.65, 0.95)).toFixed(2),
+    escalation_rate: +(randBetween(8, 55)).toFixed(1),
+    csat: +(randBetween(68, 92)).toFixed(1),
+  }));
+}
+
+function generateCsCostSavings(): Record<string, unknown>[] {
+  return MONTHS.map((month, i) => ({
+    month,
+    automated_savings: Math.round(8000 + i * 1200 + randBetween(-500, 800)),
+    human_cost: Math.round(45000 + randBetween(-3000, 3000)),
+    total_cost: Math.round(53000 - i * 600 + randBetween(-2000, 2000)),
+    conversations_automated: randInt(900 + i * 80, 1200 + i * 100),
+  }));
+}
+
 const DATA_GENERATORS: Record<string, () => Record<string, unknown>[]> = {
   'kpi_summary': generateKpiSummary,
   'mrr_by_month': generateMrrByMonth,
@@ -233,6 +295,12 @@ const DATA_GENERATORS: Record<string, () => Record<string, unknown>[]> = {
   'usage_by_month': generateUsageByMonth,
   'customers_by_plan': generateCustomersByPlan,
   'customers_by_region': generateCustomersByRegion,
+  // CS Automation sources
+  'cs_automation_summary': generateCsAutomationSummary,
+  'cs_deflection_by_month': generateCsDeflectionByMonth,
+  'cs_deflection_by_channel': generateCsDeflectionByChannel,
+  'cs_bot_topic_performance': generateCsBotTopicPerformance,
+  'cs_cost_savings': generateCsCostSavings,
   // Table aliases from AI-generated queries
   'sample_customers': generateCustomersByRegion,
   'sample_subscriptions': generateMrrByMonth,
