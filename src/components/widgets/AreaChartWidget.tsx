@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { WidgetConfig } from '@/types';
-import { getColorPalette, getAnimationDuration, TOOLTIP_STYLE } from './widget-utils';
+import { getColorPalette, getAnimationDuration, getTooltipConfig, formatDateTick, formatAxisNumber, calcXInterval } from './widget-utils';
+import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 
 interface AreaChartWidgetProps {
   config: WidgetConfig;
@@ -11,10 +13,18 @@ interface AreaChartWidgetProps {
 }
 
 export function AreaChartWidget({ config, data, onChartClick }: AreaChartWidgetProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const responsive = useResponsiveWidget(containerRef);
+
   const COLORS = getColorPalette(config.visualConfig.colorScheme);
   const animDuration = getAnimationDuration(config);
-  const showGrid = config.visualConfig.showGrid !== false;
-  const showLabels = config.visualConfig.showLabels !== false;
+
+  const showGrid = config.visualConfig.showGrid !== false && responsive.showAxis;
+  const showLabels = config.visualConfig.showLabels !== false && responsive.showLabels;
+  const showLegend = config.visualConfig.showLegend !== false && responsive.showLegend;
+
+  const tooltipConfig = getTooltipConfig(responsive.isTouchDevice);
+
   if (!data.length) {
     return <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">No data</div>;
   }
@@ -34,19 +44,24 @@ export function AreaChartWidget({ config, data, onChartClick }: AreaChartWidgetP
     );
   }
 
+  const isMobile = responsive.size === 'mobile';
+  const titleSize = isMobile ? 'text-xs' : 'text-sm';
+  const subtitleSize = isMobile ? 'text-[10px]' : 'text-xs';
+
   return (
-    <div className="card p-4 h-full flex flex-col fade-in">
+    <div ref={containerRef} className="card p-4 h-full flex flex-col fade-in">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{config.title}</h3>
-        {config.subtitle && <p className="text-xs text-[var(--text-muted)]">{config.subtitle}</p>}
+        <h3 className={`${titleSize} font-semibold text-[var(--text-primary)]`}>{config.title}</h3>
+        {config.subtitle && !isMobile && (
+          <p className={`${subtitleSize} text-[var(--text-muted)]`}>{config.subtitle}</p>
+        )}
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+            margin={responsive.margin}
             onClick={onChartClick ? (data: any) => {
-              // When clicking an area chart, filter by the X-axis value at the click point
               if (data && data.activeLabel !== undefined) {
                 onChartClick(xKey, data.activeLabel);
               }
@@ -62,14 +77,34 @@ export function AreaChartWidget({ config, data, onChartClick }: AreaChartWidgetP
               ))}
             </defs>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} />}
-            <XAxis dataKey={xKey} tick={showLabels ? { fontSize: 11, fill: 'var(--text-secondary)' } : false} axisLine={{ stroke: 'var(--border-color)' }} tickLine={false} />
-            <YAxis tick={showLabels ? { fontSize: 11, fill: 'var(--text-secondary)' } : false} axisLine={false} tickLine={false} />
-            <Tooltip
-              cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
-              {...TOOLTIP_STYLE}
+            <XAxis
+              dataKey={xKey}
+              tick={showLabels ? {
+                fontSize: responsive.fontSize,
+                fill: 'var(--text-secondary)'
+              } : false}
+              axisLine={responsive.showAxis ? { stroke: 'var(--border-color)' } : false}
+              tickLine={false}
+              interval={calcXInterval(data.length, responsive.width)}
+              tickFormatter={formatDateTick}
             />
-            {config.visualConfig.showLegend !== false && areaKeys.length > 1 && (
-              <Legend wrapperStyle={{ fontSize: '11px' }} />
+            <YAxis
+              tick={showLabels ? {
+                fontSize: responsive.fontSize,
+                fill: 'var(--text-secondary)'
+              } : false}
+              axisLine={false}
+              tickLine={false}
+              tickCount={responsive.tickCount}
+              tickFormatter={formatAxisNumber}
+              width={50}
+            />
+            <Tooltip
+              cursor={responsive.isTouchDevice ? false : { stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
+              {...tooltipConfig}
+            />
+            {showLegend && areaKeys.length > 1 && (
+              <Legend wrapperStyle={{ fontSize: `${responsive.fontSize}px` }} />
             )}
             {areaKeys.map((key, i) => (
               <Area
@@ -78,7 +113,7 @@ export function AreaChartWidget({ config, data, onChartClick }: AreaChartWidgetP
                 dataKey={key}
                 stroke={COLORS[i % COLORS.length]}
                 fill={`url(#gradient-${key})`}
-                strokeWidth={2}
+                strokeWidth={isMobile ? 1.5 : 2}
                 stackId={config.visualConfig.stacked ? 'stack' : undefined}
                 animationDuration={animDuration}
               />

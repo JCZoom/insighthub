@@ -101,6 +101,43 @@ export function getMinWidgetSize(widgetType: string): { minW: number; minH: numb
   };
 }
 
+// ── Smart Axis Formatting ──────────────────────────────────────────────
+
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/** Format date-like x-axis labels compactly: "2025-01" → "Jan '25" */
+export function formatDateTick(value: unknown): string {
+  if (typeof value !== 'string') return String(value ?? '');
+  const m = value.match(/^(\d{4})-(\d{2})(?:-\d{2})?$/);
+  if (m) {
+    return `${SHORT_MONTHS[parseInt(m[2], 10) - 1]} '${m[1].slice(2)}`;
+  }
+  return value;
+}
+
+/** Compact Y-axis tick: 4500000 → "4.5M", 12000 → "12K" */
+export function formatAxisNumber(value: unknown): string {
+  const n = Number(value);
+  if (isNaN(n)) return String(value ?? '');
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(abs >= 10_000_000 ? 0 : 1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}K`;
+  return n.toFixed(n % 1 !== 0 ? 1 : 0);
+}
+
+/**
+ * Calculate smart X-axis interval to prevent label overlap.
+ * Returns the number of ticks to skip between visible labels.
+ */
+export function calcXInterval(dataLen: number, containerWidth: number): number {
+  if (dataLen <= 4) return 0;
+  const labelWidth = 55; // approx px per formatted label like "Jan '25"
+  const usableWidth = containerWidth * 0.82; // account for margins
+  const maxLabels = Math.max(3, Math.floor(usableWidth / labelWidth));
+  if (dataLen <= maxLabels) return 0;
+  return Math.ceil(dataLen / maxLabels) - 1;
+}
+
 /** Enhanced tooltip value formatter using existing utility functions */
 function formatTooltipValue(value: any, name: string | number | undefined): [string, string] {
   const displayName = String(name || 'Value');

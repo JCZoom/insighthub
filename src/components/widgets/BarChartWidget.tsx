@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { WidgetConfig } from '@/types';
-import { getColorPalette, getAnimationDuration, getTooltipConfig } from './widget-utils';
+import { getColorPalette, getAnimationDuration, getTooltipConfig, formatDateTick, formatAxisNumber, calcXInterval } from './widget-utils';
 import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
 
 interface BarChartWidgetProps {
@@ -75,8 +75,8 @@ export function BarChartWidget({ config, data, onChartClick }: BarChartWidgetPro
               } : false}
               axisLine={responsive.showAxis ? { stroke: 'var(--border-color)' } : false}
               tickLine={false}
-              interval={responsive.size === 'mobile' ? 'preserveStartEnd' : 0}
-              tickCount={responsive.tickCount}
+              interval={calcXInterval(data.length, responsive.width)}
+              tickFormatter={formatDateTick}
             />
             <YAxis
               tick={showLabels ? {
@@ -86,6 +86,8 @@ export function BarChartWidget({ config, data, onChartClick }: BarChartWidgetPro
               axisLine={false}
               tickLine={false}
               tickCount={responsive.tickCount}
+              tickFormatter={formatAxisNumber}
+              width={50}
             />
             <Tooltip
               cursor={responsive.isTouchDevice ? false : { fill: 'rgba(255,255,255,0.04)' }}
