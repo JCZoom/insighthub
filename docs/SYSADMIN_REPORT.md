@@ -606,8 +606,13 @@ sudo tail -f /var/log/nginx/error.log
 │   ├── pre-deploy-*.db           # Auto backups before each deploy
 │   ├── pre-restore-*.db          # Auto backups before each restore
 │   └── insighthub-*.db           # Scheduled backups
+├── data/
+│   └── system-settings.json      # System settings (feature flags, AI config) — NEW
 ├── glossary/
 │   └── terms.yaml                # Business glossary definitions
+├── public/
+│   └── thumbnails/               # Dashboard preview images — NEW
+│       └── {dashboardId}.png
 ├── scripts/
 │   ├── backup-db.sh
 │   ├── restore-db.sh
@@ -623,10 +628,16 @@ sudo tail -f /var/log/nginx/error.log
 |------|-------|-------------|-------|
 | `/opt/insighthub/` | `jeffreycoy:jeffreycoy` | `755` | App root |
 | `.env.local` | `jeffreycoy:jeffreycoy` | `600` (recommended) | Contains secrets |
-| `prisma/dev.db` | `jeffreycoy:jeffreycoy` | `664` | Must be writable by app |
+| `prisma/dev.db` | `jeffreycoy:jeffreycoy` | `600` | Hardened from 664 (April 2026) |
 | `backups/` | `jeffreycoy:jeffreycoy` | `755` | Backup storage |
 
 **Systemd `ProtectSystem=strict`** makes the entire filesystem read-only except paths listed in `ReadWritePaths`: `/opt/insighthub/prisma`, `/opt/insighthub/backups`, `/opt/insighthub/logs`.
+
+> **⚠️ New writable paths needed (April 19):** The following directories must also be writable by the app:
+> - `/opt/insighthub/data/` — for `system-settings.json` (admin settings panel)
+> - `/opt/insighthub/public/thumbnails/` — for dashboard preview images
+>
+> If these are not in `ReadWritePaths`, the admin settings panel and thumbnail saves will fail with EROFS errors. Update the systemd service file accordingly.
 
 ---
 
@@ -639,6 +650,7 @@ sudo tail -f /var/log/nginx/error.log
 | 80 | Nginx | `0.0.0.0` | Public (redirects to HTTPS after Certbot) |
 | 443 | Nginx (Certbot) | `0.0.0.0` | Public (HTTPS) |
 | 3001 | Node.js | `127.0.0.1` | Localhost only (via Nginx proxy) |
+| 6379 | Redis | `127.0.0.1` | Localhost only (optional) |
 
 ### 8.2 External Connections (Outbound from App)
 
@@ -646,6 +658,8 @@ sudo tail -f /var/log/nginx/error.log
 |-------------|----------|---------|
 | `api.anthropic.com` | HTTPS | Claude AI chat |
 | `api.openai.com` | HTTPS | Whisper voice transcription |
+| Snowflake endpoint | HTTPS (443) | Live data queries (Phase 3, if configured) |
+| Redis host | TCP (6379) | Query result caching (optional, if `REDIS_URL` set) |
 
 ### 8.3 SSH Access
 
@@ -868,7 +882,9 @@ Pipeline: `bitbucket-pipelines.yml`
 | # | Item | Details |
 |---|------|---------|
 | 10 | **PostgreSQL migration** | Switch from SQLite to PostgreSQL for concurrent access |
-| 11 | **Redis for rate limiting** | Replace in-memory rate limiter for horizontal scaling |
+| 11 | **Redis for rate limiting** | Redis caching layer now available (`src/lib/redis/client.ts`); extend to rate limiting for horizontal scaling |
+| 11a | **Verify new writable paths** | Ensure `data/` and `public/thumbnails/` are in systemd `ReadWritePaths` |
+| 11b | **Back up system-settings.json** | Include `data/system-settings.json` in backup strategy |
 | 12 | **CDN for static assets** | CloudFront in front of Nginx |
 | 13 | **Load balancer** | ALB + auto-scaling group for redundancy |
 | 14 | **EBS encryption** | ⚠️ **Automation ready — awaiting IAM permissions. See §13 below.** |
@@ -1075,3 +1091,13 @@ After successful encryption, the following items in the CISO report should be up
 | **EBS encryption** | `scripts/enable-ebs-encryption.sh` | Full EBS encryption migration automation |
 | **EBS check** | `scripts/check-ebs-encryption.sh` | Verify EBS volume encryption status |
 | **EBS IAM policy** | `scripts/iam-ebs-encryption-policy.json` | IAM policy for EC2 encryption operations |
+| **Snowflake config** | `src/lib/snowflake/config.ts` | Snowflake connection settings |
+| **Snowflake connector** | `src/lib/snowflake/connection.ts` | Connection pool management |
+| **Redis client** | `src/lib/redis/client.ts` | Redis cache operations |
+| **Redis config** | `src/lib/redis/config.ts` | Redis connection settings |
+| **Admin settings API** | `src/app/api/admin/settings/route.ts` | Feature toggle management |
+| **Settings storage** | `src/lib/settings.ts` | File-based settings (data/system-settings.json) |
+| **Chat retention** | `src/lib/data/retention.ts` | 90-day chat message purge |
+| **Retention API** | `src/app/api/admin/retention/route.ts` | Admin-only retention endpoint |
+| **Critical flows E2E** | `e2e/critical-flows.spec.ts` | Dashboard CRUD, sharing, admin tests |
+| **Sprint review** | `docs/sprint-review-2026-04-19.md` | Full code review findings |
