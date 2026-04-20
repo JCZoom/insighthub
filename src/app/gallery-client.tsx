@@ -56,6 +56,36 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
     widgetCount: 6,
     isTemplate: true,
   },
+  {
+    id: 'template-customer',
+    title: 'Customer Health',
+    description: 'Usage analytics, feature adoption, regional distribution, and churn risk indicators.',
+    tags: ['customer', 'retention', 'satisfaction'],
+    ownerName: 'InsightHub',
+    updatedAt: new Date('2026-04-13T12:00:00'),
+    widgetCount: 12,
+    isTemplate: true,
+  },
+  {
+    id: 'template-finance',
+    title: 'Financial Overview',
+    description: 'Revenue deep-dive, MRR/ARR tracking, retention metrics, and revenue composition.',
+    tags: ['finance', 'revenue', 'accounting'],
+    ownerName: 'InsightHub',
+    updatedAt: new Date('2026-04-13T12:00:00'),
+    widgetCount: 12,
+    isTemplate: true,
+  },
+  {
+    id: 'template-cs-automation',
+    title: 'CS Automation',
+    description: 'AI deflection rates across chat, voice, and ticket — bot performance, cost savings, and topic accuracy.',
+    tags: ['automation', 'chatbot', 'deflection', 'ai'],
+    ownerName: 'InsightHub',
+    updatedAt: new Date('2026-04-13T12:00:00'),
+    widgetCount: 12,
+    isTemplate: true,
+  },
 ];
 
 type TabId = 'all' | 'my' | 'company' | 'shared' | 'templates';
