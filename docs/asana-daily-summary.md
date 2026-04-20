@@ -5,17 +5,17 @@
 
 | Metric | Count |
 |--------|-------|
-| Total tasks | 181 |
-| Completed tasks | 143 |
-| Total subtasks | 480 |
+| Total tasks | 186 |
+| Completed tasks | 144 |
+| Total subtasks | 511 |
 | Completed subtasks | 351 |
-| **Overall progress** | **494/661 (75%)** |
+| **Overall progress** | **495/697 (71%)** |
 
 ---
 
 # InsightHub — Asana Project Summary
 
-> Generated: 2026-04-19 14:46:41
+> Generated: 2026-04-19 23:10:33
 > Project GID: 1214122597260827
 > [View in Asana](https://app.asana.com/0/1214122597260827)
 
@@ -123,6 +123,31 @@
 
 ## 🔐 Auth & Security
 
+- [x] **🔴 Red Team Security Assessment — Static Code Analysis Report**
+- [ ] **🔴 Red Team Security Hardening — Audit Findings Remediation**
+  - [ ] ℹ️ INFO-04: Rename dev.db to insighthub.db in production
+  - [ ] ℹ️ INFO-02: Add IP address and User-Agent to audit log entries
+  - [ ] ℹ️ INFO-01: Make audit log writes fail-closed for critical actions
+  - [ ] 🔵 LOW-05: Pass backup encryption key via env instead of CLI argument
+  - [ ] 🔵 LOW-04: Replace prisma db push --accept-data-loss with migrate deploy
+  - [ ] 🔵 LOW-03: Add length/content validation to admin prompt override
+  - [ ] 🔵 LOW-02: Hard-fail on insecure NEXTAUTH_SECRET in production
+  - [ ] 🔵 LOW-01: Restrict user search API fields for non-admin users
+  - [ ] 🟡 MED-08: Implement session invalidation on role change
+  - [ ] 🟡 MED-07: Resolve X-Frame-Options header conflict between middleware and nginx
+  - [ ] 🟡 MED-06: Enable HTTPS redirect in nginx config
+  - [ ] 🟡 MED-05: Fix remaining error message leak in widgets/explain endpoint
+  - [ ] 🟡 MED-04: Add Zod validation to dashboard share endpoint (IDOR prevention)
+  - [ ] 🟡 MED-03: Add total request body size limit on chat API
+  - [ ] 🟡 MED-01: Validate thumbnail upload content (image magic bytes + re-encode)
+  - [ ] 🟠 HIGH-06: Implement nonce-based CSP to replace 'unsafe-inline'
+  - [ ] 🟠 HIGH-05: Migrate Snowflake credentials to AWS Secrets Manager
+  - [ ] 🟠 HIGH-03: Split health endpoint into public (status-only) and private (diagnostics)
+  - [ ] 🟠 HIGH-02: Strict Zod validation on customOverrides in permission assignments
+  - [ ] 🟠 HIGH-01: AI prompt injection defenses — filter sources before prompt construction
+  - [ ] 🔴 CRIT-03: Add auth checks to unauthenticated API endpoints
+  - [ ] 🔴 CRIT-02: Add DOMPurify to all dangerouslySetInnerHTML (Stored XSS)
+  - [ ] 🔴 CRIT-01: Hard-fail build when NEXT_PUBLIC_DEV_MODE=true in production
 - [x] **🔐 Metric-Level RBAC — Granular Financial Data Restrictions & Builder UX**
   - [x] 📋 Define Metric-Level Restriction Rules — Admin Configuration Schema
   - [x] 🛡️ Widget Build-Time Enforcement — Block Restricted Data at Configuration
@@ -176,6 +201,12 @@
 
 ## 🤖 AI & Chat System
 
+- [ ] **🛡️ Data Integrity Verification Pipeline — AI-Generated Dashboard Accuracy Checks**
+  - [ ] 5️⃣ Chat Route + ChatPanel Integration + UX Badges
+  - [ ] 4️⃣ Layer 2.5 — Escalation Review + Orchestrator
+  - [ ] 3️⃣ Layer 2 — AI Verification (Haiku semantic check)
+  - [ ] 2️⃣ Layer 1 — Deterministic Checks (D-01 through D-13)
+  - [ ] 1️⃣ Source-Field Registry + Type Definitions
 - [x] **🤖 AI-Assisted SQL & Query Explanation**
   - [x] SQL assistant system prompt section with Snowflake dialect reference
   - [x] Formula help: respond with both Sigma-style formula AND SQL equivalent
@@ -266,6 +297,10 @@
 
 ## 🎨 Dashboard Canvas & UX
 
+- [ ] **🔀 Widget Duplication Enhancements — Option+Drag, Copy to Dashboard, View-Only Add**
+  - [ ] View-Only "Add to Dashboard" Button
+  - [ ] Copy to Dashboard Context Menu Action
+  - [ ] Option+Drag to Duplicate Widget
 - [x] **PNG Export Overhaul — html-to-image + clean widget exports**
 - [ ] **📱 Deferred: Mobile & Tablet Support — Fix responsive views, favorites, gallery errors**
 - [x] **Home Page Hero Redesign + Modal Scroll Fix**
@@ -561,6 +596,7 @@
 
 ## 🚀 Deployment & DevOps
 
+- [ ] **🔒 Add automated security scanning to CI pipeline (SAST, deps, secrets)**
 - [ ] **ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)**
 - [x] **🔒 Verify & Enable EBS Volume Encryption on EC2 (CISO §6.1)** (due 2026-04-19)
 - [x] **CI/CD: Split GitHub Actions CI and Local Tailscale SSH Deploy**
