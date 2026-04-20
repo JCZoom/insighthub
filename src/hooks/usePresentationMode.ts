@@ -31,12 +31,11 @@ export function usePresentationMode(): PresentationModeResult {
   const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   const enterFullscreen = useCallback(async () => {
-    const el = document.documentElement;
     try {
-      await el.requestFullscreen();
+      await document.documentElement.requestFullscreen();
       // Lock Escape so it routes to JS instead of exiting fullscreen
-      if ('keyboard' in navigator && (navigator.keyboard as any).lock) {
-        await (navigator.keyboard as any).lock(['Escape']);
+      if ('keyboard' in navigator && typeof (navigator as any).keyboard?.lock === 'function') {
+        await (navigator as any).keyboard.lock(['Escape']);
       }
     } catch {
       // Fullscreen denied or Keyboard Lock unsupported — CSS-only fallback
@@ -44,11 +43,16 @@ export function usePresentationMode(): PresentationModeResult {
   }, []);
 
   const exitFullscreen = useCallback(() => {
-    if ('keyboard' in navigator && (navigator.keyboard as any).unlock) {
-      (navigator.keyboard as any).unlock();
-    }
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+    try {
+      if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+        (navigator as any).keyboard.unlock();
+      }
+    } catch { /* ignore */ }
+
+    const fullscreenEl = document.fullscreenElement ?? (document as any).webkitFullscreenElement;
+    if (fullscreenEl) {
+      const exitFn = document.exitFullscreen ?? (document as any).webkitExitFullscreen;
+      exitFn?.call(document).catch(() => {});
     }
   }, []);
 
@@ -64,31 +68,35 @@ export function usePresentationMode(): PresentationModeResult {
 
   const togglePresentationMode = useCallback(() => {
     setIsPresentationMode(prev => {
-      const entering = !prev;
-      if (entering) {
-        enterFullscreen();
-      } else {
-        exitFullscreen();
-      }
-      return entering;
+      if (!prev) enterFullscreen();
+      else exitFullscreen();
+      return !prev;
     });
   }, [enterFullscreen, exitFullscreen]);
 
-  // Sync state when fullscreen is exited via browser-native mechanisms
-  // (e.g. if Keyboard Lock isn't supported and browser consumes Escape)
+  // Sync state when fullscreen is exited by the browser (Escape, gesture, etc.)
+  // NO dependency on isPresentationMode — avoids stale closure bugs.
+  // Safe to call setIsPresentationMode(false) even when already false (no-op re-render).
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && isPresentationMode) {
-        if ('keyboard' in navigator && (navigator.keyboard as any).unlock) {
-          (navigator.keyboard as any).unlock();
-        }
+      const isFullscreen = !!(document.fullscreenElement ?? (document as any).webkitFullscreenElement);
+      if (!isFullscreen) {
+        try {
+          if ('keyboard' in navigator && typeof (navigator as any).keyboard?.unlock === 'function') {
+            (navigator as any).keyboard.unlock();
+          }
+        } catch { /* ignore */ }
         setIsPresentationMode(false);
       }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [isPresentationMode]);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   return {
     isPresentationMode,

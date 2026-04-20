@@ -1212,13 +1212,13 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
 
         {/* Presentation mode floating controls */}
         {isPresentationMode && onExitPresentationMode && (
-          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-b from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">
+          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-b from-black/40 to-transparent pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-300">
             <h1 className="text-lg font-semibold text-white drop-shadow-lg truncate max-w-[60%]">
               {title}
             </h1>
             <button
               onClick={onExitPresentationMode}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-md text-white text-sm font-medium hover:bg-white/20 transition-colors border border-white/20"
+              className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-md text-white text-sm font-medium hover:bg-white/20 transition-colors border border-white/20"
             >
               <Minimize size={14} />
               Exit Presentation
