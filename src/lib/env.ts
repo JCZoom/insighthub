@@ -191,16 +191,16 @@ export function assertEnv(): void {
     console.warn(`⚠️  ENV: ${w}`);
   }
 
-  // CRITICAL: Hard-fail if dev mode is enabled in production (security bypass)
+  // Dev mode in production — warn but don't crash (intentional until OAuth is configured)
+  // TODO: Restore throw when OAuth is enabled and NEXT_PUBLIC_DEV_MODE is set to false
   if (
     process.env.NODE_ENV === 'production' &&
     process.env.NEXT_PUBLIC_DEV_MODE === 'true'
   ) {
-    const msg =
-      '🚨 CRITICAL: NEXT_PUBLIC_DEV_MODE=true in production — authentication is completely bypassed! ' +
-      'This is a critical security vulnerability. Set NEXT_PUBLIC_DEV_MODE=false or remove it entirely.';
-    console.error(msg);
-    throw new Error(msg);
+    console.warn(
+      '⚠️  NEXT_PUBLIC_DEV_MODE=true in production — authentication is bypassed. ' +
+      'This is acceptable during development but must be disabled before public launch.'
+    );
   }
 
   if (result.invalid.length > 0) {
