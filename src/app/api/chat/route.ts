@@ -11,6 +11,7 @@ import { withRateLimit, chatRateLimiter } from '@/lib/rate-limiter';
 import { getCurrentUser } from '@/lib/auth/session';
 import prisma from '@/lib/db/prisma';
 import { z } from 'zod';
+import { getSystemSettings } from '@/lib/settings';
 
 interface YamlGlossaryEntry {
   term: string;
@@ -286,6 +287,8 @@ async function handleChatRequest({
     }
 
     const anthropic = new Anthropic({ apiKey });
+    const settings = await getSystemSettings();
+    const chatModel = process.env.ANTHROPIC_MODEL || settings.ai.chatModel || 'claude-sonnet-4-20250514';
     const glossaryTerms = await loadGlossaryForPrompt();
 
     // Require authentication
@@ -373,7 +376,7 @@ async function handleChatRequest({
           try {
             // Use Anthropic streaming API for real token-by-token streaming
             const stream = await anthropic.messages.stream({
-              model: 'claude-sonnet-4-20250514',
+              model: chatModel,
               max_tokens: 4096,
               system: systemPrompt,
               messages,
@@ -456,11 +459,15 @@ async function handleChatRequest({
             controller.close();
           } catch (error) {
             console.error('Streaming error:', error);
-            const errorMessage = process.env.NODE_ENV === 'production'
-              ? 'Internal server error'
-              : (error instanceof Error ? error.message : 'Internal server error');
-            controller.enqueue(new TextEncoder().encode(formatSSE('error', { error: errorMessage })));
-            controller.close();
+            try {
+              const errorMessage = process.env.NODE_ENV === 'production'
+                ? 'Internal server error'
+                : (error instanceof Error ? error.message : 'Internal server error');
+              controller.enqueue(new TextEncoder().encode(formatSSE('error', { error: errorMessage })));
+              controller.close();
+            } catch {
+              // Controller already closed (e.g., client disconnected)
+            }
           }
         }
       });
@@ -476,7 +483,7 @@ async function handleChatRequest({
 
     // Fallback to non-streaming mode for backwards compatibility
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: chatModel,
       max_tokens: 4096,
       system: systemPrompt,
       messages,

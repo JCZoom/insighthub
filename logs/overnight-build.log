@@ -1155,3 +1155,43 @@
 [2026-04-20 00:47:04] 📌 Task: 🔴 Red Team Security Hardening — Audit Findings Remediation
 [2026-04-20 00:47:04]    Section: 🔐 Auth & Security | Priority: Normal
 [2026-04-20 00:47:04]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-20 01:09:50]   ⏱️  Claude Code finished in 1366s (exit code: 1)
+[2026-04-20 01:09:50]   💰 Task cost: $0.0000 | Running total: $0.00 / $25.00
+[2026-04-20 01:09:50]   📊 Tokens: 0 in + 0 out | cache: 0 read + 0 create
+[2026-04-20 01:09:50]   ❌ Task failed (consecutive failures: 1)
+[2026-04-20 01:09:50]   💤 Pausing 15s before next task...
+[2026-04-20 01:10:05] 
+────────────────────────────────────────────────────────────
+[2026-04-20 01:10:05] 📋 Iteration 2/10 | Spent so far: $0.00 / $25.00
+[2026-04-20 01:10:05] ────────────────────────────────────────────────────────────
+[2026-04-20 01:10:06] 📌 Task: 🔴 Red Team Security Hardening — Audit Findings Remediation
+[2026-04-20 01:10:06]    Section: 🔐 Auth & Security | Priority: Normal
+[2026-04-20 01:10:06]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-20 07:06:01]   ⏱️  Claude Code finished in 21355s (exit code: 1)
+[2026-04-20 07:06:01]   💰 Task cost: $0.0000 | Running total: $0.00 / $25.00
+[2026-04-20 07:06:01]   📊 Tokens: 0 in + 0 out | cache: 0 read + 0 create
+[2026-04-20 07:06:01]   ❌ Task failed (consecutive failures: 2)
+[2026-04-20 07:06:01]   💤 Pausing 15s before next task...
+[2026-04-20 07:23:13] 
+────────────────────────────────────────────────────────────
+[2026-04-20 07:23:13] 📋 Iteration 3/10 | Spent so far: $0.00 / $25.00
+[2026-04-20 07:23:13] ────────────────────────────────────────────────────────────
+[2026-04-20 07:23:14] 📌 Task: 🔴 Red Team Security Hardening — Audit Findings Remediation
+[2026-04-20 07:23:14]    Section: 🔐 Auth & Security | Priority: Normal
+[2026-04-20 07:23:14]   🤖 Running Claude Code (claude-sonnet-4-20250514)...
+[2026-04-20 07:40:39]   ⏱️  Claude Code finished in 1045s (exit code: 1)
+[2026-04-20 07:40:39]   💰 Task cost: $0.0000 | Running total: $0.00 / $25.00
+[2026-04-20 07:40:39]   📊 Tokens: 0 in + 0 out | cache: 0 read + 0 create
+[2026-04-20 07:40:39]   ❌ Task failed (consecutive failures: 3)
+[2026-04-20 07:40:39] 
+🛑 Circuit breaker tripped: 3 consecutive failures. Stopping.
+[2026-04-20 07:40:39] 
+============================================================
+[2026-04-20 07:40:39] 🌅 Overnight builder finished
+[2026-04-20 07:40:39]    Tasks attempted: 3
+[2026-04-20 07:40:39]    Succeeded: 0
+[2026-04-20 07:40:39]    Failed: 3
+[2026-04-20 07:40:39]    Total spent: $0.00
+[2026-04-20 07:40:39]    Total tokens: 0 in + 0 out
+[2026-04-20 07:40:39] ============================================================
+[2026-04-20 07:40:39] 📝 Morning summary written to docs/overnight-build-summary-2026-04-20.md
