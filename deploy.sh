@@ -126,7 +126,7 @@ ssh "$EC2_USER@$EC2_HOST" "
 echo "[6/7] Building & packaging..."
 ssh "$EC2_USER@$EC2_HOST" "
     cd $APP_DIR &&
-    GIT_COMMIT='$GIT_COMMIT' npm run build 2>&1 | tail -5 &&
+    NEXT_PUBLIC_DEV_MODE=false GIT_COMMIT='$GIT_COMMIT' npm run build 2>&1 | tail -5 &&
     echo '  ✓ Build complete' &&
     cp -r public .next/standalone/public 2>/dev/null || true &&
     cp -r .next/static .next/standalone/.next/static &&
