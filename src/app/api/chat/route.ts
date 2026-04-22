@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import YAML from 'yaml';
 import Anthropic from '@anthropic-ai/sdk';
+import type { MessageStream } from '@anthropic-ai/sdk/lib/MessageStream';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import type { DashboardSchema, SchemaPatch, VerificationReport } from '@/types';
 import { verifyDashboardIntegrity } from '@/lib/ai/verify-integrity';
@@ -91,7 +92,7 @@ async function loadGlossaryForPrompt(): Promise<{ term: string; category: string
 }
 
 // SSE helper function to format Server-Sent Events messages
-function formatSSE(event: string, data: any): string {
+function formatSSE(event: string, data: Record<string, unknown>): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
@@ -166,9 +167,9 @@ function parseAIResponse(rawText: string, isSqlMode: boolean): {
 
 // Process real streaming response from Anthropic
 async function* processRealStream(
-  stream: any,
+  stream: MessageStream,
   isSqlMode: boolean
-): AsyncGenerator<{ event: string; data: any }> {
+): AsyncGenerator<{ event: string; data: Record<string, unknown> }> {
   let accumulatedText = '';
   let progress = 0;
 
@@ -176,7 +177,7 @@ async function* processRealStream(
 
   try {
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
+      if (chunk.type === 'content_block_delta' && 'delta' in chunk && chunk.delta.type === 'text_delta') {
         accumulatedText += chunk.delta.text;
         progress = Math.min(progress + 2, 85); // Gradually increase progress
 
@@ -184,7 +185,7 @@ async function* processRealStream(
         yield {
           event: 'token',
           data: {
-            text: chunk.delta.text,
+            text: 'delta' in chunk && chunk.delta.type === 'text_delta' ? chunk.delta.text : '',
             progress
           }
         };
@@ -383,16 +384,16 @@ async function handleChatRequest({
             });
 
             // Process real stream and forward updates
-            let finalParsedData: any = null;
-            let collectedPatches: any[] = [];
+            let finalParsedData: { explanation: string; sessionId?: string; [key: string]: unknown } | null = null;
+            const collectedPatches: SchemaPatch[] = [];
 
             for await (const chunk of processRealStream(stream, isSqlMode)) {
               if (chunk.event === 'explanation') {
-                finalParsedData = chunk.data;
+                finalParsedData = chunk.data as { explanation: string; sessionId?: string; [key: string]: unknown };
                 // Update sessionId in the completion data
                 finalParsedData.sessionId = chatSession?.id;
               } else if (chunk.event === 'patch') {
-                collectedPatches.push(chunk.data.patch);
+                collectedPatches.push(chunk.data.patch as SchemaPatch);
               }
               controller.enqueue(new TextEncoder().encode(formatSSE(chunk.event, chunk.data)));
             }
@@ -403,10 +404,10 @@ async function handleChatRequest({
                 controller.enqueue(new TextEncoder().encode(formatSSE('progress', { message: 'Verifying data integrity...', progress: 95 })));
 
                 const preSchema = (currentSchema ?? { layout: { columns: 12, rowHeight: 80, gap: 16 }, globalFilters: [], widgets: [] }) as unknown as DashboardSchema;
-                const postSchema = applyPatches(preSchema, collectedPatches as SchemaPatch[]);
+                const postSchema = applyPatches(preSchema, collectedPatches);
                 const verificationReport = await verifyDashboardIntegrity(
                   message,
-                  collectedPatches as SchemaPatch[],
+                  collectedPatches,
                   postSchema,
                   glossaryTerms,
                 );
@@ -428,7 +429,7 @@ async function handleChatRequest({
             // Save assistant message to database
             if (chatSession && finalParsedData) {
               try {
-                const explanation = finalParsedData.explanation || '';
+                const explanation = String(finalParsedData.explanation || '');
                 const schemaChangeString = collectedPatches.length > 0
                   ? JSON.stringify(collectedPatches)
                   : null;

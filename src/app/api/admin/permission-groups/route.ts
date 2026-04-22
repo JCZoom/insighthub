@@ -181,7 +181,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prepare update data
-    const updateData: any = {};
+    const updateData: Record<string, string | undefined> = {};
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
     if (validatedData.featurePermissions) updateData.featurePermissions = JSON.stringify(validatedData.featurePermissions);

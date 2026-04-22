@@ -64,7 +64,7 @@ export default function TemplateManagementClient({ currentUser }: TemplateManage
 
         const { dashboards: dbDashboards } = await res.json();
 
-        const dashboardData: DashboardData[] = (dbDashboards || []).map((d: any) => ({
+        const dashboardData: DashboardData[] = (dbDashboards || []).map((d: { id: string; title: string; description?: string; tags?: string | string[]; owner?: { id: string; name: string }; schema?: string; isTemplate?: boolean; isFeatured?: boolean; isPublic?: boolean; _count?: { versions?: number }; createdAt: string; updatedAt: string }) => ({
           id: d.id,
           title: d.title,
           description: d.description || null,

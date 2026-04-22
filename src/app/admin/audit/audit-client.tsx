@@ -10,7 +10,7 @@ interface AuditLog {
   action: string;
   resourceType: string;
   resourceId: string;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
   user: {
     id: string;
