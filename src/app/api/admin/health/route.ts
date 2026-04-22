@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser, isAdmin } from '@/lib/auth/session';
+import prisma from '@/lib/db/prisma';
 
 const startedAt = Date.now();
 
@@ -25,10 +26,7 @@ export async function GET() {
     // Check database connectivity with timing
     const dbStart = Date.now();
     try {
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
       await prisma.$queryRaw`SELECT 1`;
-      await prisma.$disconnect();
       checks.database = { status: 'connected', latencyMs: Date.now() - dbStart };
     } catch {
       checks.database = { status: 'disconnected', latencyMs: Date.now() - dbStart };

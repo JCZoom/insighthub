@@ -31,6 +31,12 @@ function loadGlossaryFromYaml(): GlossaryEntry[] {
 
 // GET /api/glossary — list all terms (YAML + DB) or fetch specific terms by IDs
 export async function GET(request: NextRequest) {
+  try {
+    await getCurrentUser();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const source = searchParams.get('source') || 'yaml';
   const idsParam = searchParams.get('ids');

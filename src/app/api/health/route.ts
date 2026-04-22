@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/db/prisma';
 
 // GET /api/health — public health check endpoint for monitoring (basic status only)
 export async function GET() {
   // Simple database connectivity check
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
     await prisma.$queryRaw`SELECT 1`;
-    await prisma.$disconnect();
 
     return NextResponse.json(
       {
