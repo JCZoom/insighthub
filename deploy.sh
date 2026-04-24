@@ -74,6 +74,36 @@ if ! ssh -o ConnectTimeout=5 "$EC2_USER@$EC2_HOST" 'echo ok' >/dev/null 2>&1; th
 fi
 echo "  ✓ SSH connected"
 
+# 1b. Production pre-flight: verify required secrets present on EC2 (gap G-13).
+# Skip this check only if the git branch is explicitly `staging` or this is a dev-target.
+if [ "$EC2_HOST" = "autoqa" ] && [ "${SKIP_PREFLIGHT:-false}" != "true" ]; then
+    echo "[1b/7] Production secrets pre-flight..."
+    MISSING=$(ssh "$EC2_USER@$EC2_HOST" "
+        cd $APP_DIR &&
+        if [ ! -f .env.local ]; then echo 'NO_ENV_FILE'; exit 0; fi
+        missing=''
+        for v in BACKUP_ENCRYPTION_KEY BACKUP_S3_BUCKET BACKUP_KMS_KEY_ID \
+                 BACKUP_WRITER_AWS_ACCESS_KEY_ID BACKUP_WRITER_AWS_SECRET_ACCESS_KEY; do
+            if ! grep -qE \"^\${v}=.+\" .env.local 2>/dev/null; then
+                missing=\"\$missing \$v\"
+            fi
+        done
+        echo \"\$missing\"
+    ")
+    if [ "$MISSING" = "NO_ENV_FILE" ]; then
+        echo "  ✗ ERROR: $APP_DIR/.env.local missing on EC2."
+        exit 1
+    fi
+    if [ -n "$MISSING" ]; then
+        echo "  ✗ ERROR: required backup-isolation secrets missing in $APP_DIR/.env.local:"
+        for v in $MISSING; do echo "      - $v"; done
+        echo "  Run ./scripts/setup-backup-isolation.sh and follow docs/BACKUP_ISOLATION_SETUP.md."
+        echo "  To bypass (not recommended, documented exception only): SKIP_PREFLIGHT=true ./deploy.sh"
+        exit 1
+    fi
+    echo "  ✓ Backup-isolation secrets present"
+fi
+
 # 2. Pre-deploy DB backup
 if [ "$SKIP_BACKUP" = true ]; then
     echo "[2/7] Skipping DB backup (--skip-backup)"
