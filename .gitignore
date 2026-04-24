@@ -54,3 +54,6 @@ prisma/dev.db-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Internal USZoom policy PDFs — not for public repo
+/policies_USZoom_*/
