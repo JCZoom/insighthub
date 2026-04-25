@@ -48,6 +48,7 @@ const CreateDashboardSchema = z.object({
   tags: z.union([z.array(z.string().max(50)).max(20), z.string().max(500)]).optional(),
   schema: DashboardSchemaValidator.optional(),
   isPublic: z.boolean().optional(),
+  folderId: z.string().nullable().optional(),
 });
 
 // GET /api/dashboards — list dashboards accessible by the current user
@@ -87,6 +88,10 @@ export async function GET(request: NextRequest) {
           include: {
             owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
             folder: { select: { id: true, name: true } },
+            // Alias appearances in other folders. We only select the folderId —
+            // the client turns this into the list of "this dashboard also shows
+            // up in these folders" for filtering and UI badges.
+            folderAliases: { select: { folderId: true } },
             shares: {
               where: { userId: user.id },
               select: { id: true, permission: true, userId: true }
@@ -126,10 +131,22 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const { title, description, tags, schema, isPublic } = parseResult.data;
+      const { title, description, tags, schema, isPublic, folderId } = parseResult.data;
 
       const dashboardSchema = schema || EMPTY_DASHBOARD_SCHEMA;
       const tagsStr = Array.isArray(tags) ? tags.join(',') : (tags || '');
+
+      // If a folderId was supplied, make sure it belongs to the current user.
+      // null / undefined means "create at root" (no primary folder).
+      if (folderId) {
+        const folder = await prisma.folder.findFirst({
+          where: { id: folderId, ownerId: user.id },
+          select: { id: true },
+        });
+        if (!folder) {
+          return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+        }
+      }
 
       const dashboard = await prisma.dashboard.create({
         data: {
@@ -138,6 +155,7 @@ export async function POST(request: NextRequest) {
           tags: tagsStr,
           isPublic: isPublic || false,
           ownerId: user.id,
+          folderId: folderId || null,
           currentVersion: 1,
           versions: {
             create: {

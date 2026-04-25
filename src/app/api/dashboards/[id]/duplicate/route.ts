@@ -39,14 +39,47 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'Dashboard not found' }, { status: 404 });
       }
 
+      // Optional body: { folderId?: string | null, title?: string }
+      // If the caller supplies a folderId, we verify ownership and place the clone
+      // there. Otherwise, the clone defaults to the source's primary folder so the
+      // user doesn't surprise-lose their organizational context.
+      let body: { folderId?: string | null; title?: string } = {};
+      try {
+        body = await request.json();
+      } catch {
+        // No body or invalid JSON — fall through with defaults.
+      }
+
+      let targetFolderId: string | null = source.folderId;
+      if (body.folderId !== undefined) {
+        if (body.folderId === null) {
+          targetFolderId = null;
+        } else {
+          const folder = await prisma.folder.findFirst({
+            where: { id: body.folderId, ownerId: user.id },
+            select: { id: true },
+          });
+          if (!folder) {
+            return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+          }
+          targetFolderId = body.folderId;
+        }
+      }
+
+      const cloneTitle =
+        typeof body.title === 'string' && body.title.trim().length > 0
+          ? body.title.trim().slice(0, 200)
+          : `${source.title} (copy)`;
+
       const sourceSchema = source.versions[0]?.schema || '{}';
 
       const clone = await prisma.dashboard.create({
         data: {
-          title: `${source.title} (copy)`,
+          title: cloneTitle,
           description: source.description,
           tags: source.tags,
           ownerId: user.id,
+          folderId: targetFolderId,
           currentVersion: 1,
           versions: {
             create: {

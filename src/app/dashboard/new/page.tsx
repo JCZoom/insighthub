@@ -39,6 +39,12 @@ function NewDashboardInner() {
       await save();
       toast({ type: 'success', title: 'Dashboard saved' });
     },
+    onSaveAs: () => {
+      // On the fresh /dashboard/new canvas, Save As opens the shared dialog so
+      // the user can name the dashboard and pick a folder in a single step —
+      // avoiding the default "save at root, then move" dance.
+      useDashboardStore.getState().openSaveAsDialog();
+    },
     onFocusChat: () => chatInputRef.current?.focus(),
   });
 

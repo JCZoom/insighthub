@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { name, visibility, parentId } = body;
+    const { name, visibility, parentId, sortOrder } = body;
 
     // Check if folder exists and belongs to user
     const folder = await prisma.folder.findFirst({
@@ -138,6 +138,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (name !== undefined) updateData.name = name.trim();
     if (visibility !== undefined) updateData.visibility = visibility;
     if (parentId !== undefined) updateData.parentId = parentId;
+    if (sortOrder !== undefined && Number.isFinite(sortOrder)) {
+      updateData.sortOrder = Math.trunc(sortOrder);
+    }
 
     const updatedFolder = await prisma.folder.update({
       where: { id: resolvedParams.id },

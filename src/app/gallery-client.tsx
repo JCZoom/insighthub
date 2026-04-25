@@ -3,9 +3,10 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Search, LayoutGrid, List, FolderOpen, Star, Users, BookTemplate, Building2, ArrowUpDown, Plus, ChevronDown, ChevronRight, Clock, Filter, X, Folder, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { DashboardCard, type DashboardCardData } from '@/components/gallery/DashboardCard';
-import { FolderTree, type FolderNode } from '@/components/folders/FolderTree';
+import { FolderTree, type FolderNode, type FolderSortMode, sortFolderNodes } from '@/components/folders/FolderTree';
 import { FolderBreadcrumbs, buildBreadcrumbs } from '@/components/folders/FolderBreadcrumbs';
 import { FolderManager } from '@/components/folders/FolderManager';
+import { FolderPicker } from '@/components/folders/FolderPicker';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -175,6 +176,17 @@ export function GalleryPage() {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [showFolderTree, setShowFolderTree] = useState(true);
+  // Folder sidebar sort preference — persisted per user via localStorage so the
+  // gallery remembers how they like their folders ordered between sessions.
+  const [folderSortMode, setFolderSortMode] = useState<FolderSortMode>('az');
+  const [showFolderSort, setShowFolderSort] = useState(false);
+  // Folder picker state — drives both "Move to folder" (single) and
+  // "Add to folder" (multi) flows triggered from dashboard card context menus.
+  const [picker, setPicker] = useState<
+    | { mode: 'move'; dashboardId: string; currentFolderId: string | null }
+    | { mode: 'add'; dashboardId: string; disabled: string[]; currentAliases: string[] }
+    | null
+  >(null);
 
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
   const galleryRouter = useRouter();
@@ -426,6 +438,13 @@ export function GalleryPage() {
             isFavorite: false,
             folderId: d.folderId,
             folder: d.folder ? { id: d.folder.id, name: d.folder.name } : null,
+            // Flatten the folderAliases relation into a simple array of folder
+            // IDs the card can consult when deciding whether to show an alias
+            // badge and which context-menu items are valid.
+            aliasFolderIds: Array.isArray(d.folderAliases)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ? d.folderAliases.map((a: any) => a.folderId).filter(Boolean)
+              : [],
           }),
         );
         // Merge: user-created dashboards + templates (skip dupes by id)
@@ -447,6 +466,42 @@ export function GalleryPage() {
   useEffect(() => {
     fetchFolders();
   }, [fetchFolders]);
+
+  // Restore folder sort preference from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('insighthub-folder-sort');
+      if (raw === 'az' || raw === 'za' || raw === 'newest' || raw === 'oldest' || raw === 'manual') {
+        setFolderSortMode(raw);
+      }
+    } catch {
+      // localStorage unavailable (SSR / privacy mode) — default stays.
+    }
+  }, []);
+
+  // Persist folder sort preference whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('insighthub-folder-sort', folderSortMode);
+    } catch {
+      // Non-fatal
+    }
+  }, [folderSortMode]);
+
+  // Sorted folder tree — memoized so children only re-render when the sort
+  // mode or raw folder tree actually changes.
+  const sortedFolders = useMemo(
+    () => sortFolderNodes(folders, folderSortMode),
+    [folders, folderSortMode]
+  );
+
+  // Close folder-sort dropdown on outside click (mirrors the existing sort menu behavior)
+  useEffect(() => {
+    if (!showFolderSort) return;
+    const close = () => setShowFolderSort(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showFolderSort]);
 
   const toggleFavorite = useCallback((id: string) => {
     setDashboards(prev => {
@@ -546,7 +601,11 @@ export function GalleryPage() {
     }
   }, [toast]);
 
-  // Move dashboard to folder (drag-and-drop or API call)
+  // Move dashboard to folder (drag-and-drop or API call).
+  // Also trims the in-memory alias list: if we moved the dashboard into a folder
+  // it was previously aliased into, the alias has been auto-removed server-side
+  // (see /api/dashboards/[id]/move) so the card should no longer claim to be
+  // "in" that folder twice.
   const handleMoveDashboard = useCallback(async (dashboardId: string, toFolderId: string | null) => {
     try {
       const res = await fetch(`/api/dashboards/${dashboardId}/move`, {
@@ -555,7 +614,13 @@ export function GalleryPage() {
         body: JSON.stringify({ folderId: toFolderId }),
       });
       if (res.ok) {
-        setDashboards(prev => prev.map(d => d.id === dashboardId ? { ...d, folderId: toFolderId } : d));
+        setDashboards(prev => prev.map(d => {
+          if (d.id !== dashboardId) return d;
+          const nextAliases = toFolderId
+            ? (d.aliasFolderIds || []).filter((fid) => fid !== toFolderId)
+            : (d.aliasFolderIds || []);
+          return { ...d, folderId: toFolderId, aliasFolderIds: nextAliases };
+        }));
         toast({ type: 'success', title: 'Dashboard moved', description: toFolderId ? 'Moved to folder.' : 'Moved to root.' });
       } else {
         toast({ type: 'error', title: 'Move failed', description: 'Could not move this dashboard.' });
@@ -564,6 +629,128 @@ export function GalleryPage() {
       toast({ type: 'error', title: 'Move failed', description: 'Network error.' });
     }
   }, [toast]);
+
+  // Open the "Move to folder" picker (single-select) for a given dashboard
+  const handleOpenMove = useCallback((dashboardId: string) => {
+    const d = dashboards.find((x) => x.id === dashboardId);
+    setPicker({
+      mode: 'move',
+      dashboardId,
+      currentFolderId: d?.folderId ?? null,
+    });
+  }, [dashboards]);
+
+  // Open the "Add to folders" picker (multi-select) for a given dashboard.
+  // The primary folder + any already-aliased folders are pre-checked (so the
+  // user sees the full set of folders the dashboard currently appears in).
+  // The primary folder is also disabled so the user can't alias to where it
+  // already lives as its primary home.
+  const handleOpenAddAliases = useCallback((dashboardId: string) => {
+    const d = dashboards.find((x) => x.id === dashboardId);
+    if (!d) return;
+    const currentAliases = d.aliasFolderIds || [];
+    setPicker({
+      mode: 'add',
+      dashboardId,
+      disabled: d.folderId ? [d.folderId] : [],
+      currentAliases,
+    });
+  }, [dashboards]);
+
+  // Remove a single alias appearance. Triggered from the "Remove from this folder"
+  // context menu item when viewing a dashboard from a non-primary folder.
+  const handleRemoveAlias = useCallback(async (dashboardId: string, folderId: string) => {
+    try {
+      const res = await fetch(
+        `/api/dashboards/${dashboardId}/aliases?folderId=${encodeURIComponent(folderId)}`,
+        { method: 'DELETE' }
+      );
+      if (!res.ok) {
+        toast({ type: 'error', title: 'Could not remove from folder' });
+        return;
+      }
+      setDashboards((prev) =>
+        prev.map((d) =>
+          d.id === dashboardId
+            ? { ...d, aliasFolderIds: (d.aliasFolderIds || []).filter((f) => f !== folderId) }
+            : d
+        )
+      );
+      toast({ type: 'success', title: 'Removed from folder', description: 'The dashboard still lives in its primary folder.' });
+    } catch {
+      toast({ type: 'error', title: 'Remove failed', description: 'Network error.' });
+    }
+  }, [toast]);
+
+  // Confirm the FolderPicker's selection. Branches on picker.mode.
+  const handlePickerConfirm = useCallback(
+    async (selection: (string | null)[]) => {
+      if (!picker) return;
+      if (picker.mode === 'move') {
+        const target = selection[0] ?? null;
+        setPicker(null);
+        await handleMoveDashboard(picker.dashboardId, target);
+        return;
+      }
+      // Multi-select alias flow. We diff the selection against the existing
+      // alias set: add any new ones (POST), remove any that were unchecked (DELETE).
+      const selectedIds = selection.filter((s): s is string => !!s);
+      const existing = new Set(picker.currentAliases);
+      const toAdd = selectedIds.filter((id) => !existing.has(id));
+      const toRemove = picker.currentAliases.filter((id) => !selectedIds.includes(id));
+
+      try {
+        if (toAdd.length > 0) {
+          const res = await fetch(`/api/dashboards/${picker.dashboardId}/aliases`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderIds: toAdd }),
+          });
+          if (!res.ok) throw new Error('Add aliases failed');
+        }
+        // Remove-in-parallel — each DELETE is cheap and we don't need to wait
+        // sequentially. If one fails, the others still apply.
+        if (toRemove.length > 0) {
+          await Promise.all(
+            toRemove.map((fid) =>
+              fetch(
+                `/api/dashboards/${picker.dashboardId}/aliases?folderId=${encodeURIComponent(fid)}`,
+                { method: 'DELETE' }
+              )
+            )
+          );
+        }
+
+        // Recompute the local alias state
+        setDashboards((prev) =>
+          prev.map((d) =>
+            d.id === picker.dashboardId
+              ? { ...d, aliasFolderIds: selectedIds }
+              : d
+          )
+        );
+        const addedN = toAdd.length;
+        const removedN = toRemove.length;
+        if (addedN > 0 || removedN > 0) {
+          toast({
+            type: 'success',
+            title: 'Folders updated',
+            description:
+              addedN > 0 && removedN > 0
+                ? `Added to ${addedN}, removed from ${removedN}.`
+                : addedN > 0
+                  ? `Added to ${addedN} folder${addedN === 1 ? '' : 's'}.`
+                  : `Removed from ${removedN} folder${removedN === 1 ? '' : 's'}.`,
+          });
+        }
+      } catch {
+        toast({ type: 'error', title: 'Update failed', description: 'Network error.' });
+      } finally {
+        setPicker(null);
+      }
+    },
+    [picker, handleMoveDashboard, toast]
+  );
 
   // Derive unique values for filter dropdowns
   const ownerOptions = useMemo(() => [...new Set(dashboards.map(d => d.ownerName).filter(Boolean))].sort(), [dashboards]);
@@ -593,9 +780,15 @@ export function GalleryPage() {
   const clearFilters = () => { setFilterOwner(''); setFilterDepartment(''); setFilterTag(''); setFilterDateRange('all'); };
 
   const filtered = sortDashboards(dashboards.filter(d => {
-    // Folder filtering - only show dashboards in the current folder
-    // Normalize undefined to null so templates (no folderId) appear at root
-    if ((d.folderId ?? null) !== currentFolderId) return false;
+    // Folder filtering — a dashboard appears in the currently-viewed folder if
+    // either its primary folderId matches OR it's been aliased into this folder.
+    // Root (null) intentionally does NOT show aliases because aliases are never
+    // created against the root — only the primary folderId can be null.
+    const primaryMatch = (d.folderId ?? null) === currentFolderId;
+    const aliasMatch =
+      currentFolderId != null &&
+      (d.aliasFolderIds ?? []).includes(currentFolderId);
+    if (!primaryMatch && !aliasMatch) return false;
 
     if (activeTab === 'templates' && !d.isTemplate) return false;
     if (activeTab === 'company') return matchesSearch(d) && matchesFilters(d);
@@ -639,17 +832,56 @@ export function GalleryPage() {
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">Folders</h3>
-              <Tooltip content="Collapse folders" side="right">
-                <button
-                  onClick={() => setShowFolderTree(false)}
-                  className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
-                >
-                  <PanelLeftClose size={14} />
-                </button>
-              </Tooltip>
+              <div className="flex items-center gap-1">
+                {/* Folder sort dropdown — mirrors the gallery sort on the right, but
+                    drives the sidebar ordering specifically. Persisted to localStorage. */}
+                <div className="relative">
+                  <Tooltip content="Sort folders" side="bottom">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowFolderSort(v => !v); }}
+                      className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                    >
+                      <ArrowUpDown size={12} />
+                    </button>
+                  </Tooltip>
+                  {showFolderSort && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-full mt-1 z-50 min-w-[140px] py-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-card)]/95 backdrop-blur-md shadow-lg"
+                    >
+                      {([
+                        { id: 'az', label: 'A → Z' },
+                        { id: 'za', label: 'Z → A' },
+                        { id: 'newest', label: 'Newest first' },
+                        { id: 'oldest', label: 'Oldest first' },
+                        { id: 'manual', label: 'Manual' },
+                      ] as Array<{ id: FolderSortMode; label: string }>).map(opt => (
+                        <button
+                          key={opt.id}
+                          onClick={() => { setFolderSortMode(opt.id); setShowFolderSort(false); }}
+                          className={cn(
+                            'w-full text-left px-3 py-1.5 text-xs transition-colors',
+                            folderSortMode === opt.id ? 'text-accent-blue bg-accent-blue/10' : 'text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Tooltip content="Collapse folders" side="right">
+                  <button
+                    onClick={() => setShowFolderTree(false)}
+                    className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
+                  >
+                    <PanelLeftClose size={14} />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
             <FolderTree
-              folders={folders}
+              folders={sortedFolders}
               selectedFolderId={currentFolderId}
               onFolderSelect={handleFolderSelect}
               onCreateFolder={folderManager.createFolder}
@@ -860,7 +1092,20 @@ export function GalleryPage() {
                 : 'flex flex-col gap-2'
             )}>
               {recentlyViewed.map(d => (
-                <DashboardCard key={`recent-${d.id}`} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} onTogglePublic={handleTogglePublic} />
+                <DashboardCard
+                  key={`recent-${d.id}`}
+                  dashboard={d}
+                  viewMode={viewMode}
+                  viewingFolderId={currentFolderId}
+                  onToggleFavorite={toggleFavorite}
+                  onDelete={handleDelete}
+                  onRename={handleRename}
+                  onDuplicate={handleDuplicate}
+                  onTogglePublic={handleTogglePublic}
+                  onMoveToFolder={handleOpenMove}
+                  onAddToFolders={handleOpenAddAliases}
+                  onRemoveAlias={handleRemoveAlias}
+                />
               ))}
             </div>
           )}
@@ -885,7 +1130,20 @@ export function GalleryPage() {
                 : 'flex flex-col gap-2'
             )}>
               {favorites.map(d => (
-                <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} onTogglePublic={handleTogglePublic} />
+                <DashboardCard
+                  key={d.id}
+                  dashboard={d}
+                  viewMode={viewMode}
+                  viewingFolderId={currentFolderId}
+                  onToggleFavorite={toggleFavorite}
+                  onDelete={handleDelete}
+                  onRename={handleRename}
+                  onDuplicate={handleDuplicate}
+                  onTogglePublic={handleTogglePublic}
+                  onMoveToFolder={handleOpenMove}
+                  onAddToFolders={handleOpenAddAliases}
+                  onRemoveAlias={handleRemoveAlias}
+                />
               ))}
             </div>
           )}
@@ -952,7 +1210,21 @@ export function GalleryPage() {
               </div>
             </Link>
             {filtered.map((d, i) => (
-              <DashboardCard key={d.id} dashboard={d} viewMode={viewMode} isSelected={i + 1 === selectedCardIndex} onToggleFavorite={toggleFavorite} onDelete={handleDelete} onRename={handleRename} onDuplicate={handleDuplicate} onTogglePublic={handleTogglePublic} />
+              <DashboardCard
+                key={d.id}
+                dashboard={d}
+                viewMode={viewMode}
+                isSelected={i + 1 === selectedCardIndex}
+                viewingFolderId={currentFolderId}
+                onToggleFavorite={toggleFavorite}
+                onDelete={handleDelete}
+                onRename={handleRename}
+                onDuplicate={handleDuplicate}
+                onTogglePublic={handleTogglePublic}
+                onMoveToFolder={handleOpenMove}
+                onAddToFolders={handleOpenAddAliases}
+                onRemoveAlias={handleRemoveAlias}
+              />
             ))}
           </div>
         )}
@@ -962,6 +1234,38 @@ export function GalleryPage() {
 
       {/* Folder Management Modals */}
       {folderManager.modals}
+
+      {/* Folder Picker — shared modal for both "Move to folder" and "Add to folders".
+          The picker's mode, pre-selection, and disabled set are derived from the current
+          picker state so the single component can serve both flows. */}
+      {picker && picker.mode === 'move' && (
+        <FolderPicker
+          key="move-picker"
+          mode="single"
+          includeRoot
+          initialSelection={[picker.currentFolderId]}
+          title="Move dashboard to folder"
+          description="Choose where this dashboard should primarily live. Aliases (if any) are unaffected."
+          confirmLabel="Move here"
+          folders={folders}
+          onConfirm={handlePickerConfirm}
+          onClose={() => setPicker(null)}
+        />
+      )}
+      {picker && picker.mode === 'add' && (
+        <FolderPicker
+          key="add-picker"
+          mode="multi"
+          initialSelection={picker.currentAliases}
+          disabledFolderIds={picker.disabled}
+          title="Add dashboard to folders"
+          description="The dashboard will appear in each selected folder without moving its primary home. Uncheck to remove an existing appearance."
+          confirmLabel="Update folders"
+          folders={folders}
+          onConfirm={handlePickerConfirm}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </main>
   );
 }

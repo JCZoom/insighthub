@@ -20,11 +20,14 @@ export enum AuditAction {
   DASHBOARD_SHARE = 'dashboard.share',
   DASHBOARD_DUPLICATE = 'dashboard.duplicate',
   DASHBOARD_MOVE = 'dashboard.move',
+  DASHBOARD_ALIAS_ADD = 'dashboard.alias_add',
+  DASHBOARD_ALIAS_REMOVE = 'dashboard.alias_remove',
 
   // Folder actions
   FOLDER_CREATE = 'folder.create',
   FOLDER_UPDATE = 'folder.update',
   FOLDER_DELETE = 'folder.delete',
+  FOLDER_REORDER = 'folder.reorder',
 
   // Settings actions
   SETTINGS_UPDATE = 'settings.update',

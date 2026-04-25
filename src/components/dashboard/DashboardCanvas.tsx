@@ -28,6 +28,8 @@ import { exportToPNG } from '@/lib/export-utils';
 import { WidgetQueryPanel } from './WidgetQueryPanel';
 import { DataFreshness } from './DataFreshness';
 import { AddToDashboardModal } from './AddToDashboardModal';
+import { DashboardFolderChip } from './DashboardFolderChip';
+import { SaveAsDialog } from './SaveAsDialog';
 
 
 interface DashboardCanvasProps {
@@ -49,8 +51,8 @@ interface DashboardCanvasProps {
 
 export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossary, isGlossaryOpen, onToggleChatDrawer, isChatDrawerOpen, dashboardRef, isPresentationMode, onTogglePresentationMode, onExitPresentationMode }: DashboardCanvasProps) {
   const {
-    schema, title, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
-    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters,
+    schema, title, dashboardId, canUndo, canRedo, isDirty, isAiWorking, selectedWidgetId, selectedWidgetIds,
+    undo, redo, addWidget, removeWidget, updateWidget, duplicateWidget, moveWidget, moveWidgets, resizeWidget, setTitle, selectWidget, selectWidgets, toggleSelection, addGlobalFilter, removeGlobalFilter, clearGlobalFilters, openSaveAsDialog,
   } = useDashboardStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
@@ -249,33 +251,12 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
     setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
-  const handleSaveAs = async () => {
-    const store = useDashboardStore.getState();
-    const { schema: currentSchema, title: currentTitle, initialize } = store;
-    const copyTitle = currentTitle.replace(/\s*\(Copy(?: \d+)?\)$/, '') + ' (Copy)';
-    setSaveStatus('saving');
+  // Save As now opens the shared dialog (title + folder picker). The actual
+  // POST/duplicate happens inside SaveAsDialog so the flow is consistent whether
+  // triggered from this button, the keyboard shortcut, or the editor header.
+  const handleSaveAs = () => {
     setShowSaveMenu(false);
-    try {
-      const createRes = await fetch('/api/dashboards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: copyTitle, schema: currentSchema }),
-      });
-      if (!createRes.ok) {
-        toast({ type: 'error', title: 'Save As failed', description: 'Could not create dashboard copy.' });
-        setSaveStatus('idle');
-        return;
-      }
-      const { dashboard } = await createRes.json();
-      initialize(dashboard.id, copyTitle, currentSchema);
-      router.replace(`/dashboard/${dashboard.id}`);
-      setSaveStatus('saved');
-      toast({ type: 'success', title: 'Saved as new dashboard!', description: `"${copyTitle}" created in your gallery.` });
-    } catch {
-      toast({ type: 'error', title: 'Save As failed', description: 'Network error.' });
-      setSaveStatus('idle');
-    }
-    setTimeout(() => setSaveStatus('idle'), 2000);
+    openSaveAsDialog();
   };
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
@@ -717,6 +698,13 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
               </button>
             </Tooltip>
           )}
+          {/* Folder chip — persistent indicator + quick-move entry point. Hidden on compact viewports
+              to keep the editor toolbar single-line; the chip reappears ≥md. */}
+          <DashboardFolderChip
+            dashboardId={dashboardId}
+            size="sm"
+            className="hidden md:inline-flex"
+          />
           {isDirty && <span className="pill pill-amber">Unsaved</span>}
           {isAiWorking && (
             <span className="flex items-center gap-1.5 pill pill-blue">
@@ -1275,6 +1263,10 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
           onClose={() => setConfigWidgetId(null)}
         />
       )}
+
+      {/* Save-As dialog — shared across the toolbar button, kebab menu,
+          and Cmd+Shift+S keyboard shortcut. Visibility driven by the store. */}
+      <SaveAsDialog />
     </div>
   );
 }

@@ -36,6 +36,7 @@ model Dashboard {
   owner          User               @relation("owner", fields: [ownerId], references: [id])
   folderId       String?
   folder         Folder?            @relation(fields: [folderId], references: [id])
+  folderAliases  FolderAlias[]
   currentVersion Int                @default(1)
   versions       DashboardVersion[]
   shares         DashboardShare[]
@@ -84,12 +85,34 @@ model Folder {
   parent     Folder?          @relation("children", fields: [parentId], references: [id])
   children   Folder[]         @relation("children")
   dashboards Dashboard[]
+  aliases    FolderAlias[]
   ownerId    String
   visibility String           @default("PRIVATE")
+  sortOrder  Int              @default(0)
   createdAt  DateTime         @default(now())
+
+  @@index([ownerId])
+  @@index([parentId])
 }
 
 // FolderVisibility values: PRIVATE, TEAM, PUBLIC
+
+// FolderAlias — a "shortcut" that makes a dashboard appear in an additional folder
+// without moving its primary location. Deleting the dashboard cascades and removes
+// all aliases automatically. Deleting an alias only removes the appearance in that
+// folder; the dashboard itself is unaffected.
+model FolderAlias {
+  id          String    @id @default(cuid())
+  folderId    String
+  folder      Folder    @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  dashboardId String
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([folderId, dashboardId])
+  @@index([dashboardId])
+  @@index([folderId])
+}
 
 model ChatSession {
   id          String        @id @default(cuid())

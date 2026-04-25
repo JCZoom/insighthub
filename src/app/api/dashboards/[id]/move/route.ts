@@ -40,19 +40,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const oldFolderId = dashboard.folderId;
 
-    // Update dashboard folder
-    const updatedDashboard = await prisma.dashboard.update({
-      where: { id: resolvedParams.id },
-      data: { folderId: folderId || null },
-      include: {
-        folder: {
-          select: { id: true, name: true }
-        },
-        owner: {
-          select: { id: true, name: true }
+    // Update dashboard folder and remove any alias pointing at the new primary
+    // folder (otherwise the dashboard would appear twice inside that folder:
+    // once as its primary home and once as a leftover alias).
+    const [, updatedDashboard] = await prisma.$transaction([
+      folderId
+        ? prisma.folderAlias.deleteMany({
+            where: { dashboardId: resolvedParams.id, folderId },
+          })
+        : // No-op transaction entry when moving to root
+          prisma.folderAlias.deleteMany({ where: { id: '__noop__' } }),
+      prisma.dashboard.update({
+        where: { id: resolvedParams.id },
+        data: { folderId: folderId || null },
+        include: {
+          folder: {
+            select: { id: true, name: true }
+          },
+          owner: {
+            select: { id: true, name: true }
+          }
         }
-      }
-    });
+      }),
+    ]);
 
     // Log the move operation
     await createAuditLog({

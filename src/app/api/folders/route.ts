@@ -35,14 +35,27 @@ export async function GET(request: NextRequest) {
             }
           }
         },
+        // Aliases: dashboards that "live" in another folder but are shown here too
+        aliases: {
+          include: {
+            dashboard: {
+              include: {
+                owner: { select: { id: true, name: true } },
+                _count: { select: { versions: true } },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             children: true,
-            dashboards: true
+            dashboards: true,
+            aliases: true,
           }
         }
       },
-      orderBy: { name: 'asc' }
+      // Manual sortOrder first, then alphabetical as a stable tiebreak
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
     return NextResponse.json({ folders });

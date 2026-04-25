@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Folder, FolderOpen, FolderPlus, Plus, Edit2, Trash2, Move } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { ChevronDown, ChevronRight, Folder, FolderOpen, FolderPlus, Plus, Edit2, Trash2, Move, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/Tooltip';
 
@@ -16,10 +16,53 @@ export interface FolderNode {
     title: string;
     isTemplate?: boolean;
   }>;
+  sortOrder?: number;
+  createdAt?: string | Date;
   _count?: {
     children: number;
     dashboards: number;
   };
+}
+
+export type FolderSortMode = 'manual' | 'az' | 'za' | 'newest' | 'oldest';
+
+// Produce a new array of siblings sorted according to the given mode. The API
+// returns folders in sortOrder+name order already, but we re-sort client-side
+// so manual/A-Z/Newest toggles are instant (no refetch).
+export function sortFolderNodes(nodes: FolderNode[], mode: FolderSortMode): FolderNode[] {
+  const cloned = nodes.map((n) => ({
+    ...n,
+    children: n.children ? sortFolderNodes(n.children, mode) : n.children,
+  }));
+  const nameCmp = (a: FolderNode, b: FolderNode) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  const timeOf = (n: FolderNode) => {
+    if (!n.createdAt) return 0;
+    return typeof n.createdAt === 'string'
+      ? new Date(n.createdAt).getTime()
+      : n.createdAt.getTime();
+  };
+  switch (mode) {
+    case 'az':
+      cloned.sort(nameCmp);
+      break;
+    case 'za':
+      cloned.sort((a, b) => nameCmp(b, a));
+      break;
+    case 'newest':
+      cloned.sort((a, b) => timeOf(b) - timeOf(a) || nameCmp(a, b));
+      break;
+    case 'oldest':
+      cloned.sort((a, b) => timeOf(a) - timeOf(b) || nameCmp(a, b));
+      break;
+    case 'manual':
+    default:
+      cloned.sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || nameCmp(a, b)
+      );
+      break;
+  }
+  return cloned;
 }
 
 interface FolderTreeProps {
@@ -109,28 +152,63 @@ export function FolderTree({
     setContextMenu(null);
   }, []);
 
-  // Drag-and-drop handlers for moving dashboards into folders
+  // Drag-and-drop handlers for moving dashboards into folders. A 600ms hover
+  // timer auto-expands collapsed folders so users can drop into subfolders
+  // they can't currently see — this is the Finder/Explorer behavior users
+  // expect and removes a major friction point from the tree interaction.
+  const expandTimerRef = useRef<{ id: string | null; timer: ReturnType<typeof setTimeout> } | null>(null);
+
+  const cancelExpandTimer = useCallback(() => {
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current.timer);
+      expandTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleExpand = useCallback((folderId: string) => {
+    if (expandTimerRef.current?.id === folderId) return; // already scheduled
+    cancelExpandTimer();
+    const timer = setTimeout(() => {
+      setExpandedFolders((prev) => {
+        if (prev.has(folderId)) return prev;
+        const next = new Set(prev);
+        next.add(folderId);
+        return next;
+      });
+      expandTimerRef.current = null;
+    }, 600);
+    expandTimerRef.current = { id: folderId, timer };
+  }, [cancelExpandTimer]);
+
   const handleDragOver = useCallback((e: React.DragEvent, folderId: string | null) => {
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     setDragOverFolderId(folderId);
-  }, []);
+    if (folderId && folderId !== '__root__') {
+      scheduleExpand(folderId);
+    }
+  }, [scheduleExpand]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOverFolderId(null);
-  }, []);
+    cancelExpandTimer();
+  }, [cancelExpandTimer]);
 
   const handleDrop = useCallback((e: React.DragEvent, folderId: string | null) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverFolderId(null);
+    cancelExpandTimer();
     const dashboardId = e.dataTransfer.getData('application/dashboard-id');
     if (dashboardId && onMoveDashboard) {
       onMoveDashboard(dashboardId, folderId);
     }
-  }, [onMoveDashboard]);
+  }, [onMoveDashboard, cancelExpandTimer]);
+
+  // Cleanup: cancel any pending expand timer if the tree unmounts
+  useEffect(() => () => cancelExpandTimer(), [cancelExpandTimer]);
 
   const renderFolder = useCallback((folder: FolderNode, depth = 0) => {
     const isExpanded = expandedFolders.has(folder.id);

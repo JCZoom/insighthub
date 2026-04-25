@@ -47,8 +47,13 @@ interface DashboardState {
   canUndo: boolean;
   canRedo: boolean;
 
+  // UI flags (not persisted) — used to open shared editor dialogs from anywhere
+  showSaveAsDialog: boolean;
+
   // Actions
   initialize: (id: string | null, title: string, schema: DashboardSchema) => void;
+  openSaveAsDialog: () => void;
+  closeSaveAsDialog: () => void;
   applyPatch: (patches: SchemaPatch[], note: string) => void;
   addWidget: (widget: WidgetConfig) => void;
   removeWidget: (widgetId: string) => void;
@@ -88,6 +93,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   historyIndex: 0,
   canUndo: false,
   canRedo: false,
+  showSaveAsDialog: false,
+
+  openSaveAsDialog: () => set({ showSaveAsDialog: true }),
+  closeSaveAsDialog: () => set({ showSaveAsDialog: false }),
 
   initialize: (id, title, schema) => {
     set({

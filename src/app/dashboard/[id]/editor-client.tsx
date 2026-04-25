@@ -63,20 +63,10 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
       });
     },
     onSaveAs: async () => {
-      // Save current work first
+      // Snapshot current work so the duplicate/clone reflects unsaved edits,
+      // then open the shared Save-As dialog (title + folder picker).
       await save();
-      try {
-        const res = await fetch(`/api/dashboards/${dashboardId}/duplicate`, { method: 'POST' });
-        if (res.ok) {
-          const { dashboard } = await res.json();
-          toast({ type: 'success', title: 'Saved as copy', description: `"${dashboard.title}" created.` });
-          router.push(`/dashboard/${dashboard.id}`);
-        } else {
-          toast({ type: 'error', title: 'Save As failed', description: 'Could not duplicate dashboard.' });
-        }
-      } catch {
-        toast({ type: 'error', title: 'Save As failed', description: 'Network error.' });
-      }
+      useDashboardStore.getState().openSaveAsDialog();
     },
     onFocusChat: () => chatInputRef.current?.focus(),
   });

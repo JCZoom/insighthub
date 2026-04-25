@@ -139,6 +139,7 @@ rsync -az --delete \
     --exclude 'e2e/test-results' \
     --exclude 'e2e/playwright-report' \
     --exclude '.DS_Store' \
+    --exclude 'policies_USZoom_*' \
     "$SCRIPT_DIR/" "$EC2_USER@$EC2_HOST:$APP_DIR/"
 echo "  ✓ Files synced"
 
