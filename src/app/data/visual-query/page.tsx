@@ -3,56 +3,68 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { VisualQueryBuilder } from '@/components/data/VisualQueryBuilder';
-import { Database, Eye, Code, Save, Share } from 'lucide-react';
-import { queryDataSync } from '@/lib/data/sample-data';
+import { Database, Eye, Code, AlertCircle } from 'lucide-react';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type {
   VisualQueryConfig,
   QueryExecutionResult,
-  TableConfig,
-  ColumnMetadata
+  TableConfig
 } from '@/types/visual-query';
+import type {
+  SchemaResponse,
+  DataColumn as ApiDataColumn,
+} from '@/types/data-explorer';
 
-// Sample schema for demonstration
-const SAMPLE_SCHEMA: TableConfig[] = [
-  {
-    name: 'sample_customers',
-    alias: 'customers',
-    columns: [
-      { name: 'id', type: 'number', table: 'sample_customers', description: 'Customer ID', isPrimaryKey: true },
-      { name: 'name', type: 'text', table: 'sample_customers', description: 'Customer name' },
-      { name: 'email', type: 'text', table: 'sample_customers', description: 'Customer email' },
-      { name: 'city', type: 'text', table: 'sample_customers', description: 'Customer city' },
-      { name: 'signup_date', type: 'date', table: 'sample_customers', description: 'Account signup date' },
-      { name: 'total_orders', type: 'number', table: 'sample_customers', description: 'Total number of orders' },
-      { name: 'total_spent', type: 'number', table: 'sample_customers', description: 'Total amount spent' }
-    ]
-  },
-  {
-    name: 'sample_orders',
-    alias: 'orders',
-    columns: [
-      { name: 'id', type: 'number', table: 'sample_orders', description: 'Order ID', isPrimaryKey: true },
-      { name: 'customer_id', type: 'number', table: 'sample_orders', description: 'Customer ID', isForeignKey: true, referencedTable: 'sample_customers', referencedColumn: 'id' },
-      { name: 'order_date', type: 'date', table: 'sample_orders', description: 'Order date' },
-      { name: 'total_amount', type: 'number', table: 'sample_orders', description: 'Order total amount' },
-      { name: 'status', type: 'text', table: 'sample_orders', description: 'Order status' },
-      { name: 'product_count', type: 'number', table: 'sample_orders', description: 'Number of products' }
-    ]
-  },
-  {
-    name: 'sample_products',
-    alias: 'products',
-    columns: [
-      { name: 'id', type: 'number', table: 'sample_products', description: 'Product ID', isPrimaryKey: true },
-      { name: 'name', type: 'text', table: 'sample_products', description: 'Product name' },
-      { name: 'category', type: 'text', table: 'sample_products', description: 'Product category' },
-      { name: 'price', type: 'number', table: 'sample_products', description: 'Product price' },
-      { name: 'stock', type: 'number', table: 'sample_products', description: 'Stock quantity' },
-      { name: 'created_date', type: 'date', table: 'sample_products', description: 'Product creation date' }
-    ]
+/**
+ * Convert the permission-aware /api/data/schema response into the
+ * TableConfig[] shape the VisualQueryBuilder expects. We flatten the
+ * source → tables → columns tree into a single list of TableConfigs
+ * because VQB thinks in terms of tables/sources, not categories.
+ *
+ * Tables the user cannot access are omitted entirely — VQB should
+ * only see queryable sources.
+ */
+function schemaResponseToTableConfigs(schema: SchemaResponse): TableConfig[] {
+  const tables: TableConfig[] = [];
+  for (const source of schema.sources) {
+    for (const t of source.tables) {
+      if (!t.isAccessible) continue;
+      tables.push({
+        name: t.name,
+        // Don't set `alias` to the human-readable displayName — aliases
+        // flow into FROM clauses and would produce invalid SQL when they
+        // contain spaces (e.g. FROM mrr_by_month "Mrr By Month" would
+        // require all column refs to use the quoted alias). The VQB uses
+        // ColumnMetadata.displayName for labels in the UI already.
+        columns: t.columns.map((c: ApiDataColumn) => ({
+          name: c.name,
+          displayName: c.displayName,
+          type: mapColumnType(c.type),
+          table: t.name,
+          description: c.description,
+          isPrimaryKey: c.isPrimaryKey,
+          isForeignKey: c.isForeignKey,
+          isGlossaryLinked: Boolean(c.glossaryTermId),
+          glossaryTermId: c.glossaryTermId,
+        })),
+      });
+    }
   }
-];
+  return tables;
+}
+
+function mapColumnType(
+  raw: string
+): 'text' | 'number' | 'date' | 'boolean' | 'json' {
+  const t = raw.toLowerCase();
+  if (['integer', 'number', 'float', 'double', 'decimal', 'bigint'].some((x) => t.includes(x))) {
+    return 'number';
+  }
+  if (t.includes('date') || t.includes('time')) return 'date';
+  if (t.includes('bool')) return 'boolean';
+  if (t.includes('json')) return 'json';
+  return 'text';
+}
 
 interface SavedQuery {
   id: string;
@@ -70,6 +82,37 @@ function VisualQueryPageContent() {
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showSavedQueries, setShowSavedQueries] = useState(false);
+  const [schema, setSchema] = useState<TableConfig[]>([]);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [schemaLoading, setSchemaLoading] = useState(true);
+
+  // Load the real permission-aware schema from the server.
+  // Tables the user cannot access are filtered out at the API layer.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSchema() {
+      try {
+        const res = await fetch('/api/data/schema');
+        if (!res.ok) {
+          throw new Error(`Schema request failed with ${res.status}`);
+        }
+        const body = (await res.json()) as SchemaResponse;
+        if (cancelled) return;
+        setSchema(schemaResponseToTableConfigs(body));
+      } catch (err) {
+        if (cancelled) return;
+        setSchemaError(
+          err instanceof Error ? err.message : 'Failed to load schema'
+        );
+      } finally {
+        if (!cancelled) setSchemaLoading(false);
+      }
+    }
+    loadSchema();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load saved queries from localStorage on mount
   useEffect(() => {
@@ -89,15 +132,13 @@ function VisualQueryPageContent() {
     setIsLoading(false);
   }, []);
 
-  // Initialize query from URL parameters
+  // Initialize query from URL parameters (once schema is loaded)
   useEffect(() => {
     const table = searchParams.get('table');
-    const source = searchParams.get('source');
     const column = searchParams.get('column');
 
-    if (table && source && !isLoading) {
-      // Find the table in our sample schema
-      const tableConfig = SAMPLE_SCHEMA.find(t => t.name === table);
+    if (table && !isLoading && !schemaLoading && schema.length > 0) {
+      const tableConfig = schema.find(t => t.name === table);
       if (tableConfig) {
         const initialQuery: VisualQueryConfig = {
           id: crypto.randomUUID(),
@@ -118,7 +159,7 @@ function VisualQueryPageContent() {
         setCurrentQuery(initialQuery);
       }
     }
-  }, [searchParams, isLoading]);
+  }, [searchParams, isLoading, schemaLoading, schema]);
 
   // Save queries to localStorage
   useEffect(() => {
@@ -127,27 +168,36 @@ function VisualQueryPageContent() {
     }
   }, [savedQueries, isLoading]);
 
-  // Execute query using sample data
-  const executeQuery = useCallback(async (sql: string): Promise<QueryExecutionResult> => {
-    const startTime = performance.now();
+  /**
+   * Execute the current query via the secure server endpoint. The server
+   * regenerates SQL from the config (we never send client SQL as the
+   * execution source of truth), applies RBAC + RLS + masking, and returns
+   * the full audit report.
+   */
+  const executeQuery = useCallback(
+    async (
+      _sql: string,
+      config: VisualQueryConfig
+    ): Promise<QueryExecutionResult> => {
+      const res = await fetch('/api/data/visual-query/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config }),
+      });
 
-    try {
-      // For demo purposes, just return sample data
-      // In a real implementation, this would execute the SQL against your data source
-      const sampleData = queryDataSync(sql);
-      const endTime = performance.now();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          err.message ||
+            err.error ||
+            `Query execution failed (HTTP ${res.status})`
+        );
+      }
 
-      return {
-        data: sampleData.data.slice(0, 100), // Limit to first 100 rows for demo
-        columns: sampleData.columns,
-        totalRows: sampleData.data.length,
-        executionTime: endTime - startTime,
-        sql
-      };
-    } catch (error) {
-      throw new Error(`Query execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, []);
+      return (await res.json()) as QueryExecutionResult;
+    },
+    []
+  );
 
   // Save current query
   const saveQuery = useCallback((query: VisualQueryConfig, sql: string) => {
@@ -182,12 +232,41 @@ function VisualQueryPageContent() {
     }
   }, []);
 
-  if (isLoading) {
+  if (isLoading || schemaLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-[var(--bg-primary)]">
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
           <span className="text-[var(--text-secondary)]">Loading Visual Query Builder...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (schemaError) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="max-w-md text-center space-y-3">
+          <AlertCircle className="w-8 h-8 text-accent-red mx-auto" />
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Failed to load data sources</h2>
+          <p className="text-sm text-[var(--text-secondary)]">{schemaError}</p>
+          <p className="text-xs text-[var(--text-muted)]">
+            You may not be authenticated, or the schema endpoint is unavailable. Try reloading.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (schema.length === 0) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+        <div className="max-w-md text-center space-y-3">
+          <Database className="w-8 h-8 text-[var(--text-muted)] mx-auto" />
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">No accessible data sources</h2>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Your role doesn&apos;t have access to any data sources. Contact your administrator to request access.
+          </p>
         </div>
       </div>
     );
@@ -292,7 +371,7 @@ function VisualQueryPageContent() {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <VisualQueryBuilder
-          schema={SAMPLE_SCHEMA}
+          schema={schema}
           initialQuery={currentQuery}
           onSave={saveQuery}
           onExecute={executeQuery}

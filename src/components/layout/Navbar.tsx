@@ -13,10 +13,12 @@ import { Tooltip } from '@/components/ui/Tooltip';
 
 const NAV_ITEMS = [
   { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard },
-  // Data tools deferred — pages exist but hidden from nav until fully tested
+  // VQB is now secure + permission-aware + audit-transparent (see
+  // /api/data/visual-query/execute). Playground and Explorer remain
+  // deferred until their own QA passes.
+  { href: '/data/visual-query', label: 'Query Builder', icon: Zap },
   // { href: '/data/playground', label: 'Query Playground', icon: Database },
   // { href: '/data/explorer', label: 'Data Explorer', icon: Search },
-  // { href: '/data/visual-query', label: 'Visual Query Builder', icon: Zap },
   { href: '/glossary', label: 'Glossary', icon: BookOpen },
   { href: '/about', label: 'About', icon: Info },
 ];

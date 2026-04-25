@@ -111,6 +111,80 @@ export interface QueryExecutionResult {
   totalRows: number;
   executionTime: number;
   sql?: string;
+  audit?: QueryAuditReport;
+}
+
+/**
+ * Full audit trail for a Visual Query Builder execution. Returned by the
+ * server so the user can validate exactly what SQL ran, which security
+ * policies were applied, and which columns were masked.
+ *
+ * This is the "trust panel" surfaced to data analytics owners.
+ */
+export interface QueryAuditReport {
+  // ─── What the user built ─────────────────────────────────────────
+  /** SQL generated from the user's VisualQueryConfig (pre-security) */
+  userSql: string;
+
+  // ─── What actually ran on the server ─────────────────────────────
+  /** Final SQL executed against the data source, after RLS injection */
+  executedSql: string;
+  /** True when executedSql differs from userSql (RLS modified the query) */
+  wasModified: boolean;
+
+  // ─── Security layer breakdown ────────────────────────────────────
+  appliedPolicies: AppliedPolicyInfo[];
+  maskedColumns: MaskedColumnInfo[];
+  accessLevel: 'FULL' | 'FILTERED' | 'NONE';
+  /** Identity + attributes the RLS engine saw for this request */
+  securityContext: {
+    userId: string;
+    userRole: string;
+    department?: string;
+    region?: string;
+    hasFinancialAccess: boolean;
+    hasPiiAccess: boolean;
+  };
+
+  // ─── Execution metadata ──────────────────────────────────────────
+  /** Which backend actually answered — real Snowflake or sample data */
+  dataSource: 'snowflake' | 'sample';
+  /** Served from Redis cache vs. freshly executed */
+  fromCache: boolean;
+  /** Wall-clock execution time in milliseconds */
+  executionTimeMs: number;
+  /** Rows returned after RLS + masking */
+  rowCount: number;
+  /** Source identifier the query ran against (e.g. "mrr_by_month") */
+  source: string;
+  /** Row limit that was enforced (post-cap) */
+  rowLimit: number;
+  /** ISO timestamp when the query ran (server clock) */
+  executedAt: string;
+  /**
+   * Features that could not be evaluated in the current backend. Only ever
+   * populated in sample-data mode — the JS evaluator does not support JOINs
+   * or custom formulas. Empty when running against Snowflake.
+   */
+  skippedFeatures?: string[];
+}
+
+export interface AppliedPolicyInfo {
+  id: string;
+  name: string;
+  description: string;
+  /** Substituted SQL condition that was injected into the WHERE clause */
+  resolvedCondition: string;
+  priority: number;
+}
+
+export interface MaskedColumnInfo {
+  /** Column name in the result set */
+  column: string;
+  /** Sensitivity level that triggered masking (e.g. PII, FINANCIAL) */
+  sensitivityLevel: string;
+  /** Which masking rule applied (FULL_MASK, PARTIAL_MASK, HASH, REDACT, NULL) */
+  maskingType: string;
 }
 
 export interface SchemaInfo {

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Code, Play, Save, Plus, Trash2, Eye, Settings, Database, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ShieldCheck, Play, Save, Plus, Trash2, Eye, Database, AlertCircle } from 'lucide-react';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ColumnPicker } from './ColumnPicker';
 import { FilterBuilder } from './FilterBuilder';
 import { FormulaBar } from './FormulaBar';
+import { QueryAuditPanel } from './QueryAuditPanel';
 import { visualToSQL, validateVisualQuery, estimateQueryComplexity } from '@/lib/data/visual-to-sql';
 import type {
   VisualQueryConfig,
@@ -23,7 +24,17 @@ interface VisualQueryBuilderProps {
   schema: TableConfig[];
   initialQuery?: VisualQueryConfig;
   onSave?: (query: VisualQueryConfig, sql: string) => void;
-  onExecute?: (sql: string) => Promise<QueryExecutionResult>;
+  /**
+   * Called to execute the current query. Receives both the client-generated
+   * SQL (for display/UX) and the full VisualQueryConfig (so the caller can
+   * send the config to a server that regenerates SQL authoritatively and
+   * applies RLS/masking). The server is the source of truth for SQL — the
+   * `sql` argument is advisory only and MUST NOT be trusted for execution.
+   */
+  onExecute?: (
+    sql: string,
+    config: VisualQueryConfig
+  ) => Promise<QueryExecutionResult>;
   className?: string;
 }
 
@@ -54,8 +65,30 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
   });
   const [activeFormula, setActiveFormula] = useState<string | null>(null);
 
-  // Debounced execution for live preview
-  const [executeTimeoutId, setExecuteTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  // Debounce timer lives in a ref (not state) — mutating it shouldn't
+  // trigger re-renders, and the effect closure's cleanup handles invalidation.
+  const executeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track whether the user has intentionally modified the query. While the
+  // query is still "pristine" (only contains our auto-selected first table),
+  // we suppress the red validation banner so a fresh canvas doesn't look
+  // broken.
+  const isPristine =
+    query.columns.length === 0 &&
+    query.aggregations.length === 0 &&
+    query.formulas.length === 0 &&
+    query.filters.length === 0 &&
+    query.joins.length === 0;
+
+  // Sync initialQuery from the parent when it arrives async (e.g. the page
+  // loads schema, then sets currentQuery from URL params). We only overwrite
+  // if the user hasn't started editing — respecting any in-progress work.
+  useEffect(() => {
+    if (initialQuery && isPristine && query.id === '') {
+      setQuery(initialQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   // Initialize query with first table if empty
   useEffect(() => {
@@ -207,7 +240,7 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
     setState(prev => ({ ...prev, isExecuting: true }));
 
     try {
-      const result = await onExecute(generatedSQL);
+      const result = await onExecute(generatedSQL, query);
       setState(prev => ({
         ...prev,
         results: result,
@@ -220,24 +253,29 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
     }
   }, [onExecute, generatedSQL, validationErrors, query]);
 
-  // Auto-execute with debouncing for live preview
+  // Auto-execute with debouncing for live preview. We wait until the user
+  // has actually selected at least one column/agg/formula before firing —
+  // otherwise a fresh canvas triggers a 400 round-trip just because the
+  // first table got auto-added.
   useEffect(() => {
-    if (!onExecute || validationErrors.length > 0) return;
+    if (!onExecute) return;
+    if (validationErrors.length > 0) return;
+    if (isPristine) return;
 
-    if (executeTimeoutId) {
-      clearTimeout(executeTimeoutId);
+    if (executeTimeoutRef.current) {
+      clearTimeout(executeTimeoutRef.current);
     }
 
     const timeoutId = setTimeout(() => {
       executeQuery();
     }, 500); // 500ms debounce
 
-    setExecuteTimeoutId(timeoutId);
+    executeTimeoutRef.current = timeoutId;
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
     };
-  }, [query, validationErrors, executeQuery, onExecute]);
+  }, [query, validationErrors, executeQuery, onExecute, isPristine]);
 
   const handleSave = () => {
     if (onSave && validationErrors.length === 0) {
@@ -265,7 +303,7 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
             <div className="flex items-center gap-3">
               <Database className="w-5 h-5 text-muted" />
               <h2 className="text-lg font-semibold">Visual Query Builder</h2>
-              {validationErrors.length > 0 && (
+              {validationErrors.length > 0 && !isPristine && (
                 <div className="flex items-center gap-1 text-accent-red">
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-sm">{validationErrors.length} error(s)</span>
@@ -273,17 +311,26 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setState(prev => ({ ...prev, showSqlPreview: !prev.showSqlPreview }))}
-                className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                  state.showSqlPreview
-                    ? 'bg-accent-blue/10 text-accent-blue border border-accent-blue/30'
-                    : 'bg-card hover:bg-card-hover border border-border'
-                }`}
-              >
-                <Code className="w-4 h-4" />
-                View SQL
-              </button>
+              <Tooltip content="See the SQL, applied security policies, and execution details">
+                <button
+                  onClick={() => setState(prev => ({ ...prev, showSqlPreview: !prev.showSqlPreview }))}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                    state.showSqlPreview
+                      ? 'bg-accent-blue/10 text-accent-blue border border-accent-blue/30'
+                      : 'bg-card hover:bg-card-hover border border-border'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Audit
+                  {state.results?.audit && (
+                    state.results.audit.wasModified ||
+                      state.results.audit.appliedPolicies.length > 0 ||
+                      state.results.audit.maskedColumns.length > 0
+                  ) && (
+                    <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-accent-amber" aria-hidden />
+                  )}
+                </button>
+              </Tooltip>
               <button
                 onClick={executeQuery}
                 disabled={state.isExecuting || validationErrors.length > 0}
@@ -489,24 +536,15 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
           </div>
         </div>
 
-        {/* SQL Preview Panel */}
+        {/* Audit panel — shows generated SQL, executed SQL, applied
+            security policies, masked columns, and execution metadata.
+            Designed for data analytics owners to validate exactly what
+            the server runs on their behalf. */}
         {state.showSqlPreview && (
-          <div className="border-t border-border">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium">Generated SQL</h3>
-                <button
-                  onClick={() => navigator.clipboard?.writeText(generatedSQL)}
-                  className="text-sm text-muted hover:text-foreground"
-                >
-                  Copy
-                </button>
-              </div>
-              <pre className="p-3 bg-background border border-border rounded-md text-sm overflow-x-auto">
-                <code>{generatedSQL}</code>
-              </pre>
-            </div>
-          </div>
+          <QueryAuditPanel
+            audit={state.results?.audit}
+            fallbackSql={generatedSQL}
+          />
         )}
 
         {/* Results Preview */}
@@ -552,8 +590,9 @@ export const VisualQueryBuilder: React.FC<VisualQueryBuilderProps> = ({
           </div>
         )}
 
-        {/* Validation Errors */}
-        {validationErrors.length > 0 && (
+        {/* Validation Errors — suppressed on a pristine canvas where
+            "no columns selected" is an expected empty state, not an error. */}
+        {validationErrors.length > 0 && !isPristine && (
           <div className="border-t border-border bg-accent-red/5">
             <div className="p-4">
               <div className="flex items-center gap-2 mb-2">

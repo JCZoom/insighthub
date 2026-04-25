@@ -318,24 +318,27 @@ export function runDeterministicChecks(
     if (isNonData) continue;
 
     const source = widget.dataConfig?.source;
+    let sourceKnown = false;
 
     // D-01: Valid data source
     if (source) {
-      if (isValidSource(source)) {
+      sourceKnown = isValidSource(source);
+      if (sourceKnown) {
         results.push({ checkId: 'D-01', passed: true, severity: 'FAIL', message: `Data source "${source}" is valid`, widgetId: widget.id });
       } else {
+        // Downgrade to WARN — source may be valid in Snowflake but not in the sample registry
         results.push({
           checkId: 'D-01',
           passed: false,
-          severity: 'FAIL',
-          message: `Unknown data source "${source}" — not in the source registry`,
+          severity: 'WARN',
+          message: `Data source "${source}" is not in the sample registry — field-level checks skipped`,
           widgetId: widget.id,
           field: source,
         });
       }
     }
 
-    // D-06: Valid aggregation
+    // D-06: Valid aggregation (function name always checked; field check skipped if source unknown)
     if (widget.dataConfig?.aggregation) {
       const agg = widget.dataConfig.aggregation;
       if (!(VALID_AGGREGATION_FUNCTIONS as readonly string[]).includes(agg.function)) {
@@ -347,7 +350,7 @@ export function runDeterministicChecks(
           widgetId: widget.id,
           field: agg.function,
         });
-      } else if (source && isValidSource(source) && !isValidField(source, agg.field)) {
+      } else if (sourceKnown && source && !isValidField(source, agg.field)) {
         results.push({
           checkId: 'D-06',
           passed: false,
@@ -361,8 +364,8 @@ export function runDeterministicChecks(
       }
     }
 
-    // D-07: Valid groupBy
-    if (widget.dataConfig?.groupBy && source && isValidSource(source)) {
+    // D-07: Valid groupBy (skip if source unknown)
+    if (widget.dataConfig?.groupBy && source && sourceKnown) {
       const sourceFields = getFieldsForSource(source);
       for (const field of widget.dataConfig.groupBy) {
         if (!sourceFields.includes(field)) {
@@ -378,8 +381,8 @@ export function runDeterministicChecks(
       }
     }
 
-    // D-08: Source-field mapping (check aggregation.field, groupBy, orderBy)
-    if (source && isValidSource(source)) {
+    // D-08: Source-field mapping (skip if source unknown)
+    if (source && sourceKnown) {
       const sourceFields = getFieldsForSource(source);
       const referencedFields: string[] = [];
       if (widget.dataConfig?.aggregation?.field) referencedFields.push(widget.dataConfig.aggregation.field);
@@ -434,8 +437,8 @@ export function runDeterministicChecks(
       }
     }
 
-    // D-11: Chart-data compatibility
-    if (source && isValidSource(source)) {
+    // D-11: Chart-data compatibility (skip if source unknown)
+    if (source && sourceKnown) {
       const isCategoricalChart = (CATEGORICAL_CHART_TYPES as readonly string[]).includes(widget.type);
       const isTimeSeriesChart = (TIME_SERIES_CHART_TYPES as readonly string[]).includes(widget.type);
 

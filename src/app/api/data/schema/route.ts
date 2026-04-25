@@ -3,12 +3,12 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics } from '@/lib/auth/permissions';
 import { getAvailableSources } from '@/lib/data/sample-data';
 import { getDataSourcesWithProvider } from '@/lib/data/snowflake-data-provider';
+import { isSnowflakeConfigured } from '@/lib/snowflake/config';
 import type {
   DataSource,
   DataTable,
   DataColumn,
   SchemaResponse,
-  SchemaRequest
 } from '@/types/data-explorer';
 
 // Mock schema data extracted from sample data generators
@@ -244,7 +244,9 @@ function generateSampleValues(columnName: string, dataType: string): unknown[] {
   return ['N/A'];
 }
 
-async function buildSchemaWithPermissions(user: any): Promise<DataSource[]> {
+async function buildSchemaWithPermissions(
+  user: Parameters<typeof canAccessDataSourceWithMetrics>[0]
+): Promise<DataSource[]> {
   const schemaData = generateSchemaFromSampleData();
   const glossaryTerms = getMockGlossaryTerms();
   const availableSources = getAvailableSources();
@@ -343,8 +345,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filterByCategory = searchParams.get('category');
 
-    // Build schema with permissions using Snowflake or sample data provider
-    let schema = await getDataSourcesWithProvider(user);
+    // Build schema with permissions.
+    //
+    // When Snowflake is configured, use the real provider which introspects
+    // INFORMATION_SCHEMA. When running on sample data, use the in-file
+    // builder which has proper column-level metadata (types, glossary links,
+    // sample values, PK/FK flags). The generic provider's sample fallback
+    // returns columns: [] — unusable for the Visual Query Builder.
+    let schema = isSnowflakeConfigured()
+      ? await getDataSourcesWithProvider(user)
+      : await buildSchemaWithPermissions(user);
 
     // Apply category filter if provided
     if (filterByCategory) {
