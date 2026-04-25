@@ -35,6 +35,10 @@ export enum AuditAction {
   // Version actions
   VERSION_SAVE = 'version.save',
   VERSION_REVERT = 'version.revert',
+
+  // Data classification actions (G-01 / Policy 3698 DC-02)
+  DATA_CLASSIFICATION_CHANGE = 'data.classification_change',
+  DATA_OWNER_CHANGE = 'data.owner_change',
 }
 
 // Resource types enum for type safety

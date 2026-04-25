@@ -4,6 +4,12 @@ import { getCurrentUser, canCreateDashboard } from '@/lib/auth/session';
 import { EMPTY_DASHBOARD_SCHEMA } from '@/types';
 import { logDashboardAction, AuditAction } from '@/lib/audit';
 import { withRateLimit, dashboardRateLimiter } from '@/lib/rate-limiter';
+import {
+  DATA_CLASSIFICATIONS,
+  DEFAULT_CLASSIFICATION,
+  canSetClassification,
+  type DataClassification,
+} from '@/lib/data/classification';
 import { z } from 'zod';
 
 const WidgetPositionSchema = z.object({
@@ -49,6 +55,10 @@ const CreateDashboardSchema = z.object({
   schema: DashboardSchemaValidator.optional(),
   isPublic: z.boolean().optional(),
   folderId: z.string().nullable().optional(),
+  // G-01 — explicit classification at creation; falls back to DEFAULT_CLASSIFICATION.
+  classification: z.enum(DATA_CLASSIFICATIONS).optional(),
+  // G-01 — optional override for the data owner. When omitted we use the creator.
+  dataOwnerId: z.string().nullable().optional(),
 });
 
 // GET /api/dashboards — list dashboards accessible by the current user
@@ -88,6 +98,8 @@ export async function GET(request: NextRequest) {
           include: {
             owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
             folder: { select: { id: true, name: true } },
+            // G-01: include the data owner so list views can show stewardship.
+            dataOwner: { select: { id: true, name: true, email: true } },
             // Alias appearances in other folders. We only select the folderId —
             // the client turns this into the list of "this dashboard also shows
             // up in these folders" for filtering and UI badges.
@@ -131,10 +143,23 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const { title, description, tags, schema, isPublic, folderId } = parseResult.data;
+      const { title, description, tags, schema, isPublic, folderId, classification: requestedClassification, dataOwnerId: requestedDataOwnerId } = parseResult.data;
 
       const dashboardSchema = schema || EMPTY_DASHBOARD_SCHEMA;
       const tagsStr = Array.isArray(tags) ? tags.join(',') : (tags || '');
+
+      // G-01: validate classification at creation. The default tier is
+      // USZOOM_RESTRICTED — only an ADMIN can create an object directly as
+      // PUBLIC.
+      const classification: DataClassification = requestedClassification ?? DEFAULT_CLASSIFICATION;
+      const classificationCheck = canSetClassification(user, DEFAULT_CLASSIFICATION, classification);
+      if (!classificationCheck.ok) {
+        return NextResponse.json({ error: classificationCheck.reason }, { status: 403 });
+      }
+      // dataOwner defaults to the creator. An explicit `null` keeps it unset;
+      // an explicit user id is honoured (caller is responsible for validity).
+      const dataOwnerId =
+        requestedDataOwnerId === null ? null : (requestedDataOwnerId ?? user.id);
 
       // If a folderId was supplied, make sure it belongs to the current user.
       // null / undefined means "create at root" (no primary folder).
@@ -156,6 +181,8 @@ export async function POST(request: NextRequest) {
           isPublic: isPublic || false,
           ownerId: user.id,
           folderId: folderId || null,
+          classification,
+          dataOwnerId,
           currentVersion: 1,
           versions: {
             create: {
@@ -168,6 +195,7 @@ export async function POST(request: NextRequest) {
         },
         include: {
           owner: { select: { id: true, name: true, email: true } },
+          dataOwner: { select: { id: true, name: true, email: true } },
           versions: { orderBy: { version: 'desc' }, take: 1 },
         },
       });
@@ -182,6 +210,8 @@ export async function POST(request: NextRequest) {
           description: dashboard.description,
           isPublic: dashboard.isPublic,
           tags: dashboard.tags,
+          classification: dashboard.classification,
+          dataOwnerId: dashboard.dataOwnerId,
         }
       );
 

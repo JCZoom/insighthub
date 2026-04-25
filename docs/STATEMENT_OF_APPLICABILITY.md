@@ -61,8 +61,8 @@ Every row justifies either **inclusion** ("why it applies and how") or **exclusi
 | A.5.9 | Inventory of information and other associated assets | Yes | ✅ Implemented | `docs/ASSET_REGISTER.md`. |
 | A.5.10 | Acceptable use of information and other associated assets | Yes | ✅ Implemented | USZoom Policy 3690 Acceptable Use; in-app deny-by-default permissions. |
 | A.5.11 | Return of assets | Yes | 📋 Organizational | Covered by USZoom HR policy 3703; InsightHub has no hardware asset issued to non-privileged users. |
-| A.5.12 | Classification of information | Yes | ❌ Planned | G-01 — data classification not yet wired into schema. |
-| A.5.13 | Labelling of information | Yes | ❌ Planned | Part of G-01 (classification badges on Dashboard/Widget/Glossary objects). |
+| A.5.12 | Classification of information | Yes | ✅ Implemented | `classification` field on `Dashboard` and `GlossaryTerm` (default `USZOOM_RESTRICTED`); validation + audit in `src/lib/data/classification.ts`; mapping in `docs/DATA_CLASSIFICATION_APPLIED.md`. Closed gap G-01 on 2026-04-25. |
+| A.5.13 | Labelling of information | Yes | ✅ Implemented | `ClassificationBadge` component (`src/components/classification/ClassificationBadge.tsx`) renders the label on dashboard cards (compact, non-default tiers) and in admin/editor views (full). GDPR export discloses each object's label. Closed gap G-01 on 2026-04-25. |
 | A.5.14 | Information transfer | Yes | ✅ Implemented | TLS in transit; SSH-over-Tailscale for admin access; encrypted S3 for backups (gap G-13 for cross-region isolation). |
 | A.5.15 | Access control | Yes | ✅ Implemented | `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/auth/permissions.ts`; 4-role RBAC + Permission Groups + MetricAccessRule. |
 | A.5.16 | Identity management | Yes | ✅ Implemented | `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/auth/config.ts:56-64` (domain restriction); Google Workspace SSO is authoritative. |

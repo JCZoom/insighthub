@@ -23,9 +23,22 @@ model User {
   auditLogs        AuditLog[]
   publishedWidgets WidgetTemplate[] @relation("publishedWidgets")
   permissionAssignments UserPermissionAssignment[]
+  // Data ownership (G-01 / Policy 3698) — reverse relations of dataOwner on
+  // classified objects. A dataOwner is the steward responsible for the
+  // classification decision; commonly the creator, but can be reassigned.
+  dataOwnedDashboards    Dashboard[]    @relation("dataOwner")
+  dataOwnedGlossaryTerms GlossaryTerm[] @relation("dataOwner")
 }
 
 // Role values: VIEWER, CREATOR, POWER_USER, ADMIN (plain String — not a Prisma enum)
+//
+// DataClassification values (used by Dashboard.classification and
+// GlossaryTerm.classification): PUBLIC, USZOOM_CONFIDENTIAL,
+// USZOOM_RESTRICTED (default), CUSTOMER_CONFIDENTIAL.
+// Per USZoom Policy 3698 (controls DC-01..03). New objects default to
+// USZOOM_RESTRICTED; only ADMIN can downgrade to PUBLIC.
+// Canonical helper: src/lib/data/classification.ts
+// Mapping documented in: docs/DATA_CLASSIFICATION_APPLIED.md
 
 model Dashboard {
   id             String             @id @default(cuid())
@@ -43,12 +56,18 @@ model Dashboard {
   tags           String             @default("")
   isTemplate     Boolean            @default(false)
   isPublic       Boolean            @default(false)
+  // G-01 Data Classification (Policy 3698) — see User comment for allowed values.
+  classification String             @default("USZOOM_RESTRICTED")
+  dataOwnerId    String?
+  dataOwner      User?              @relation("dataOwner", fields: [dataOwnerId], references: [id])
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   archivedAt     DateTime?
 
   @@index([ownerId])
   @@index([folderId])
+  @@index([dataOwnerId])
+  @@index([classification])
 }
 
 model DashboardVersion {
@@ -147,10 +166,16 @@ model GlossaryTerm {
   dataSource     String?
   lastReviewedAt DateTime?
   approvedBy     String?
+  // G-01 Data Classification (Policy 3698) — see User comment for allowed values.
+  classification String             @default("USZOOM_RESTRICTED")
+  dataOwnerId    String?
+  dataOwner      User?              @relation("dataOwner", fields: [dataOwnerId], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@index([category])
+  @@index([dataOwnerId])
+  @@index([classification])
 }
 
 model WidgetTemplate {

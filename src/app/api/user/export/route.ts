@@ -34,6 +34,12 @@ export async function GET() {
           description: true,
           tags: true,
           isPublic: true,
+          // G-01 / Policy 3698 — disclose how each dashboard is
+          // classified and who is its data owner. Required for
+          // GDPR Art. 15 transparency around the categories of
+          // personal data being processed and accountability.
+          classification: true,
+          dataOwnerId: true,
           createdAt: true,
           updatedAt: true,
           archivedAt: true,

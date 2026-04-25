@@ -5,6 +5,12 @@ import YAML from 'yaml';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser, canEditGlossary } from '@/lib/auth/session';
 import { logGlossaryAction, AuditAction } from '@/lib/audit';
+import {
+  DEFAULT_CLASSIFICATION,
+  canSetClassification,
+  isValidClassification,
+  type DataClassification,
+} from '@/lib/data/classification';
 
 interface GlossaryEntry {
   term: string;
@@ -78,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { term, definition, formula, category, examples, relatedTerms, dataSource } = body as {
+    const { term, definition, formula, category, examples, relatedTerms, dataSource, classification: requestedClassification, dataOwnerId: requestedDataOwnerId } = body as {
       term: string;
       definition: string;
       formula?: string;
@@ -86,11 +92,29 @@ export async function POST(request: NextRequest) {
       examples?: string;
       relatedTerms?: string[];
       dataSource?: string;
+      // G-01 — optional classification + data-owner overrides at creation.
+      classification?: string;
+      dataOwnerId?: string | null;
     };
 
     if (!term || !definition || !category) {
       return NextResponse.json({ error: 'term, definition, and category are required' }, { status: 400 });
     }
+
+    // G-01: validate + enforce classification rules at creation.
+    if (requestedClassification !== undefined && !isValidClassification(requestedClassification)) {
+      return NextResponse.json(
+        { error: 'Invalid classification value. Allowed: PUBLIC, USZOOM_CONFIDENTIAL, USZOOM_RESTRICTED, CUSTOMER_CONFIDENTIAL.' },
+        { status: 400 },
+      );
+    }
+    const classification: DataClassification = (requestedClassification as DataClassification | undefined) ?? DEFAULT_CLASSIFICATION;
+    const classificationCheck = canSetClassification(user, DEFAULT_CLASSIFICATION, classification);
+    if (!classificationCheck.ok) {
+      return NextResponse.json({ error: classificationCheck.reason }, { status: 403 });
+    }
+    const dataOwnerId =
+      requestedDataOwnerId === null ? null : (requestedDataOwnerId ?? user.id);
 
     const created = await prisma.glossaryTerm.create({
       data: {
@@ -103,6 +127,8 @@ export async function POST(request: NextRequest) {
         dataSource: dataSource || null,
         approvedBy: user.name,
         lastReviewedAt: new Date(),
+        classification,
+        dataOwnerId,
       },
     });
 
@@ -114,6 +140,7 @@ export async function POST(request: NextRequest) {
       {
         term: created.term,
         category: created.category,
+        classification: created.classification,
         definition: created.definition.substring(0, 100) + (created.definition.length > 100 ? '...' : ''),
       }
     );

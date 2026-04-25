@@ -60,7 +60,7 @@ Each row references the corresponding gap in `docs/COMPLIANCE_GAPS.md` (`G-NN`) 
 
 | Risk ID | Description | Impact | Likelihood | Raw | Treatment | Owner | Status | Residual rating | Linked gap | Last reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **R-001** | Data classification absent — no structured way to apply retention/encryption/access by sensitivity | 4 | 4 | **16** | Mitigate | Jeff Coy | Open | — | G-01 | 2026-04-24 |
+| **R-001** | Data classification absent — no structured way to apply retention/encryption/access by sensitivity | 4 | 4 | **16** | Mitigate | Jeff Coy | Closed 2026-04-25 (G-01 implemented; see `docs/DATA_CLASSIFICATION_APPLIED.md`) | 2 (residual: framework in place; sensitivity-scaled retention lands with G-05) | G-01 | 2026-04-25 |
 | **R-002** | MFA not enforced at application layer — reliant entirely on Google Workspace config | 4 | 3 | **12** | Mitigate | Jeff Coy | Open | — | G-02 | 2026-04-24 |
 | **R-003** | Production backups reside on same host as primary database — host compromise = both lost | 5 | 2 | **10** | Mitigate | Jeff Coy | In Progress (code shipped 2026-04-24, AWS setup pending operator) | 4 (after operator runs `scripts/setup-backup-isolation.sh`) | G-13 | 2026-04-24 |
 | **R-004** | Secrets copied to production via scp from `.env.local`; no rotation policy; flagged in red-team H-1 | 4 | 3 | **12** | Mitigate | Jeff Coy | Open | — | G-36 | 2026-04-24 |

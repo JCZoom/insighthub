@@ -26,13 +26,16 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3698 Data Classification · controls DC-01, DC-02, DC-03
 - **Audit risk:** HIGH
 - **Effort:** M
-- **Why it matters:** Policy 3698 is the foundation that almost every other policy depends on (encryption, retention, access control are all sensitivity-scaled). Without it, you cannot answer *"is this data Customer Confidential?"* in an audit.
-- **Remediation:**
-  1. Add a `classification` field (enum `CUSTOMER_CONFIDENTIAL` / `USZOOM_RESTRICTED` / `USZOOM_CONFIDENTIAL` / `PUBLIC`) to `Dashboard`, `GlossaryTerm`, and (when real data is connected) Snowflake source metadata.
-  2. Add a `dataOwner` FK to `User` on the same models.
-  3. Surface classification as a visible badge in the UI (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/components/` — dashboard cards and widget editor).
-  4. Default classification to `USZOOM_RESTRICTED` for new objects; require an Admin to downgrade to `PUBLIC`.
-  5. Write `docs/DATA_CLASSIFICATION_APPLIED.md` documenting how InsightHub's data maps to the 4-tier framework.
+- **Status (2026-04-25):** ✅ **Closed.**
+- **Evidence:**
+  1. Schema fields `classification` (default `USZOOM_RESTRICTED`) and `dataOwnerId` (FK to `User`) added to both `Dashboard` and `GlossaryTerm` in [`prisma/schema.prisma`](../prisma/schema.prisma); existing rows backfilled via `prisma db push`.
+  2. Canonical helper [`src/lib/data/classification.ts`](../src/lib/data/classification.ts) defines the 4-tier set, sensitivity ranking, validation (`canSetClassification`), display metadata, and retention guidance.
+  3. Dashboard CRUD (`src/app/api/dashboards/route.ts` + `[id]/route.ts`) and Glossary CRUD (`src/app/api/glossary/route.ts` + `[id]/route.ts`) accept and validate `classification` and `dataOwnerId`; downgrades to `PUBLIC` are blocked for non-admin callers.
+  4. Two new audit actions emitted on transitions: `data.classification_change` and `data.owner_change` (see [`src/lib/audit.ts`](../src/lib/audit.ts)).
+  5. UI badge component [`src/components/classification/ClassificationBadge.tsx`](../src/components/classification/ClassificationBadge.tsx) — compact form on dashboard cards (default tier suppressed), full form in editor and admin views.
+  6. GDPR export (`src/app/api/user/export/route.ts`) discloses classification and data-owner per dashboard.
+  7. Mapping documented in [`docs/DATA_CLASSIFICATION_APPLIED.md`](DATA_CLASSIFICATION_APPLIED.md).
+- **Phase 3 follow-on:** when Snowflake source metadata is connected, propagate classification from the Snowflake catalog into widget data-source records. Tracked under **R-030** until then.
 
 ### G-02 — MFA Not Enforced at the Application Layer
 - **Policy:** 3692 Authentication & Password · AUTH-02, AUTH-06; 3691 Access Control · AC-05

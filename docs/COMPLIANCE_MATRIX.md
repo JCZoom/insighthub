@@ -73,10 +73,10 @@
 
 | # | Control | Status | Evidence |
 |---|---|---|---|
-| DC-01 | Four-tier classification (Customer Confidential / USZoom Restricted / USZoom Confidential / Public) | ❌ | No classification tags on Prisma models or dashboards. See gap `G-01`. |
-| DC-02 | System classified by highest-sensitivity data it stores | ❌ | No system-level classification documented. InsightHub stores `SampleCustomer` with email/name/revenue — would be Customer Confidential if not synthetic. See gap `G-01`. |
-| DC-03 | Every data set and system has a designated owner | ❌ | No owner metadata on `Dashboard`, `GlossaryTerm`, or data sources. See gap `G-04`. |
-| DC-04 | All data is private by default; public requires formal approval | ⚠️ | `Dashboard.isPublic = false` by default (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/prisma/schema.prisma:45`), but no approval workflow for flipping it. |
+| DC-01 | Four-tier classification (Customer Confidential / USZoom Restricted / USZoom Confidential / Public) | ✅ | `classification` field on `Dashboard` and `GlossaryTerm`, default `USZOOM_RESTRICTED`. Canonical helper `src/lib/data/classification.ts`. Mapping documented in `docs/DATA_CLASSIFICATION_APPLIED.md`. Closed gap `G-01`. |
+| DC-02 | System classified by highest-sensitivity data it stores | ✅ | InsightHub system-level classification documented as `USZOOM_RESTRICTED` today (synthetic seed data only); will rise to `CUSTOMER_CONFIDENTIAL` automatically when Snowflake source metadata propagates classification under Phase 3. Per-object classification audit-logged via `data.classification_change` action. Closed gap `G-01`. |
+| DC-03 | Every data set and system has a designated owner | ✅ | `dataOwnerId` FK to `User` on `Dashboard` and `GlossaryTerm` (`prisma/schema.prisma`); defaults to creator on insert; changes audit-logged via `data.owner_change` action. Closed gap `G-01`. |
+| DC-04 | All data is private by default; public requires formal approval | ⚠️ | `Dashboard.isPublic = false` by default (`prisma/schema.prisma`); downgrade to `PUBLIC` classification now requires `role === 'ADMIN'` (enforced by `canSetClassification` in `src/lib/data/classification.ts`), but no human-readable approval-workflow record yet. |
 
 ---
 

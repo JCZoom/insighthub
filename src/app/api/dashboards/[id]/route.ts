@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
 import { hasFeaturePermission } from '@/lib/auth/permissions';
-import { logDashboardAction, AuditAction } from '@/lib/audit';
+import { logDashboardAction, createAuditLog, AuditAction, ResourceType } from '@/lib/audit';
 import { withRateLimit, dashboardRateLimiter } from '@/lib/rate-limiter';
+import {
+  canSetClassification,
+  coerceClassification,
+  isDowngrade,
+  isValidClassification,
+  type DataClassification,
+} from '@/lib/data/classification';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -28,6 +35,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
         include: {
           owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          // G-01: surface the data owner alongside the regular owner.
+          dataOwner: { select: { id: true, name: true, email: true } },
           versions: {
             orderBy: { version: 'desc' },
             take: 1,
@@ -64,14 +73,25 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       const { id } = await context.params;
       const user = await getCurrentUser();
       const body = await request.json();
-      const { title, description, tags, isPublic, isTemplate } = body as {
+      const { title, description, tags, isPublic, isTemplate, classification, dataOwnerId } = body as {
         title?: string;
         description?: string;
         tags?: string[] | string;
         isPublic?: boolean;
         isTemplate?: boolean;
+        // G-01 — optional classification + data-owner updates.
+        classification?: string;
+        dataOwnerId?: string | null;
       };
       const tagsStr = tags !== undefined ? (Array.isArray(tags) ? tags.join(',') : tags) : undefined;
+
+      // G-01: validate classification value if supplied.
+      if (classification !== undefined && !isValidClassification(classification)) {
+        return NextResponse.json(
+          { error: `Invalid classification value. Allowed: PUBLIC, USZOOM_CONFIDENTIAL, USZOOM_RESTRICTED, CUSTOMER_CONFIDENTIAL.` },
+          { status: 400 },
+        );
+      }
 
       // Check if user has permission to manage templates when isTemplate is being modified
       if (isTemplate !== undefined) {
@@ -100,6 +120,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'Dashboard not found or insufficient permissions' }, { status: 404 });
       }
 
+      // G-01: enforce classification transition rule before writing.
+      let nextClassification: DataClassification | undefined;
+      if (classification !== undefined) {
+        nextClassification = classification as DataClassification;
+        const currentClassification = coerceClassification(existing.classification);
+        const check = canSetClassification(user, currentClassification, nextClassification);
+        if (!check.ok) {
+          return NextResponse.json({ error: check.reason }, { status: 403 });
+        }
+      }
+
       const dashboard = await prisma.dashboard.update({
         where: { id },
         data: {
@@ -108,9 +139,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           ...(tagsStr !== undefined && { tags: tagsStr }),
           ...(isPublic !== undefined && { isPublic }),
           ...(isTemplate !== undefined && { isTemplate }),
+          ...(nextClassification !== undefined && { classification: nextClassification }),
+          ...(dataOwnerId !== undefined && { dataOwnerId }),
         },
         include: {
           owner: { select: { id: true, name: true, email: true } },
+          dataOwner: { select: { id: true, name: true, email: true } },
         },
       });
 
@@ -121,6 +155,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       if (tagsStr !== undefined) changedFields.push('tags');
       if (isPublic !== undefined) changedFields.push('isPublic');
       if (isTemplate !== undefined) changedFields.push('isTemplate');
+      if (nextClassification !== undefined) changedFields.push('classification');
+      if (dataOwnerId !== undefined) changedFields.push('dataOwnerId');
 
       await logDashboardAction(
         user.id,
@@ -132,6 +168,43 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           oldTitle: existing.title !== dashboard.title ? existing.title : undefined,
         }
       );
+
+      // G-01 / Policy 3698 DC-02: dedicated audit entry for classification
+      // changes so they can be queried independently from the noisy stream
+      // of regular dashboard updates.
+      if (
+        nextClassification !== undefined &&
+        coerceClassification(existing.classification) !== nextClassification
+      ) {
+        await createAuditLog({
+          userId: user.id,
+          action: AuditAction.DATA_CLASSIFICATION_CHANGE,
+          resourceType: ResourceType.DASHBOARD,
+          resourceId: id,
+          metadata: {
+            from: existing.classification,
+            to: nextClassification,
+            isDowngrade: isDowngrade(
+              coerceClassification(existing.classification),
+              nextClassification,
+            ),
+            title: dashboard.title,
+          },
+        });
+      }
+      if (dataOwnerId !== undefined && existing.dataOwnerId !== dataOwnerId) {
+        await createAuditLog({
+          userId: user.id,
+          action: AuditAction.DATA_OWNER_CHANGE,
+          resourceType: ResourceType.DASHBOARD,
+          resourceId: id,
+          metadata: {
+            from: existing.dataOwnerId,
+            to: dataOwnerId,
+            title: dashboard.title,
+          },
+        });
+      }
 
       return NextResponse.json({ dashboard });
     } catch (error) {

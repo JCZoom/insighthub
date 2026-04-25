@@ -445,6 +445,9 @@ export function GalleryPage() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ? d.folderAliases.map((a: any) => a.folderId).filter(Boolean)
               : [],
+            // G-01 Data Classification — passed through to DashboardCard so
+            // it can render the compact ClassificationBadge.
+            classification: d.classification,
           }),
         );
         // Merge: user-created dashboards + templates (skip dupes by id)

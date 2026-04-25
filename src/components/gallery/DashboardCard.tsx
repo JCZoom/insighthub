@@ -8,6 +8,7 @@ import { relativeTime } from '@/lib/utils';
 import { DashboardThumbnail } from './DashboardThumbnail';
 import { ShareModal } from './ShareModal';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { ClassificationBadge } from '@/components/classification/ClassificationBadge';
 
 export interface DashboardCardData {
   id: string;
@@ -29,6 +30,11 @@ export interface DashboardCardData {
   } | null;
   // IDs of folders this dashboard is aliased into (in addition to its primary folderId).
   aliasFolderIds?: string[];
+  // G-01 Data Classification (Policy 3698). The card renders this with
+  // the compact ClassificationBadge, which suppresses the default tier
+  // (USZOOM_RESTRICTED) so the gallery isn't visually noisy. Only
+  // PUBLIC, USZOOM_CONFIDENTIAL, and CUSTOMER_CONFIDENTIAL are shown.
+  classification?: string;
 }
 
 interface DashboardCardProps {
@@ -238,6 +244,12 @@ export function DashboardCard({ dashboard, viewMode = 'grid', isSelected, viewin
               </div>
             </Tooltip>
           )}
+          {/* G-01 Classification overlay — only renders for non-default tiers
+              (PUBLIC / USZOOM_CONFIDENTIAL / CUSTOMER_CONFIDENTIAL). Stacks
+              below the alias badge when both are present. */}
+          <div className={`absolute ${isViewingAlias ? 'top-7' : 'top-2'} left-2 z-10`}>
+            <ClassificationBadge classification={dashboard.classification} size="compact" />
+          </div>
           {/* Favorite button */}
           <Tooltip content={dashboard.isFavorite ? 'Remove from favorites' : 'Add to favorites'} side="left">
           <button
