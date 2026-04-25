@@ -29,8 +29,10 @@ def load_pat() -> str:
     pat = os.environ.get("ASANA_PERSONAL_ACCESS_TOKEN")
     if pat:
         return pat
-    # Prefer .env (canonical) over .env.local (may be stale).
-    for candidate in (".env", ".env.local"):
+    # .env.local is the canonical file; .env is a symlink to it (see .env.local
+    # header). Both candidates resolve to the same file in normal setups; we try
+    # both for safety in case the symlink was lost.
+    for candidate in (".env.local", ".env"):
         envfile = REPO_ROOT / candidate
         if not envfile.exists():
             continue
