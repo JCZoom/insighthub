@@ -3,6 +3,7 @@ import { executeQueryWithRLS } from '../snowflake/row-level-security';
 import { applyDataSecurity } from '../snowflake/data-security';
 import { getSnowflakeDataSources } from '../snowflake/schema';
 import { queryData as querySampleData, getAvailableSources } from './sample-data';
+import { isFreshworksSource, FreshworksDataProvider } from './freshworks-data-provider';
 import type { SessionUser } from '@/lib/auth/session';
 import type { SampleDataResult } from './sample-data';
 import type { DataSource } from '@/types/data-explorer';
@@ -21,7 +22,7 @@ export interface DataProviderResult {
   executionTime: number;
   totalRows: number;
   fromCache: boolean;
-  dataSource: 'snowflake' | 'sample';
+  dataSource: 'snowflake' | 'sample' | 'freshworks';
   accessLevel?: 'FULL' | 'FILTERED' | 'NONE';
   isFiltered?: boolean;
   appliedPolicies?: string[];
@@ -292,7 +293,20 @@ export class SnowflakeDataProvider {
 }
 
 /**
- * Main function to query data with automatic provider selection
+ * Main function to query data with automatic provider selection.
+ *
+ * Routing logic:
+ *   1. Freshworks sources (e.g. `freshsales_*`, `freshdesk_*`, `freshcaller_*`,
+ *      `freshchat_*`) → `FreshworksDataProvider.queryData(...)`. These bypass
+ *      Snowflake entirely; the connector layer handles cache, audit, and
+ *      role-based redaction internally.
+ *   2. Everything else → `SnowflakeDataProvider.queryData(...)`, which itself
+ *      falls back to sample data when Snowflake is not configured.
+ *
+ * The `groupBy` and `options` parameters do not currently apply to the
+ * Freshworks path — Freshworks pre-shapes its 17 registered sources at the
+ * provider layer (each is essentially a fixed query). If we ever need
+ * dynamic group-by over Freshworks data we'll add it there.
  */
 export async function queryDataWithProvider(
   source: string,
@@ -300,6 +314,23 @@ export async function queryDataWithProvider(
   groupBy?: string[],
   options?: DataQueryOptions
 ): Promise<DataProviderResult> {
+  if (isFreshworksSource(source)) {
+    const fwResult = await FreshworksDataProvider.queryData(source, user);
+    return {
+      data: fwResult.data,
+      columns: fwResult.columns,
+      executionTime: fwResult.executionTime,
+      totalRows: fwResult.totalRows,
+      fromCache: fwResult.fromCache,
+      dataSource: 'freshworks',
+      // Freshworks sources are auto-classified CUSTOMER_CONFIDENTIAL; access
+      // gating happens earlier (in the route handler via canAccessDataSourceWithMetrics).
+      // If we got here, the user has FULL access to the underlying category.
+      accessLevel: 'FULL',
+      isFiltered: fwResult.isFiltered,
+      appliedPolicies: ['freshworks.classification:CUSTOMER_CONFIDENTIAL'],
+    };
+  }
   return SnowflakeDataProvider.queryData(source, user, groupBy, options);
 }
 

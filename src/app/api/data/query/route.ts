@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryData, getAvailableSources } from '@/lib/data/sample-data';
 import { queryDataWithProvider } from '@/lib/data/snowflake-data-provider';
+import { listFreshworksSources, FreshworksDataProvider } from '@/lib/data/freshworks-data-provider';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics, getCategoryForSource, resolveUserPermissions } from '@/lib/auth/permissions';
 import type { SessionUser } from '@/lib/auth/session';
@@ -187,8 +188,24 @@ export async function GET() {
     // Authenticate user
     const user = await getCurrentUser();
 
-    // Get all available sources
-    const allSources = getAvailableSources();
+    // Build the catalog of all data sources known across providers:
+    //   1. Sample-data sources (the legacy seed catalog).
+    //   2. Freshworks suite sources, but only those whose underlying product
+    //      is configured (e.g. if FRESHCALLER_API_KEY is missing we omit
+    //      `freshcaller_*` entries entirely so users don't see broken options).
+    //
+    // Snowflake sources are intentionally NOT enumerated here yet — when the
+    // Snowflake activation conversation lands, add them via the same pattern.
+    const sampleSources = getAvailableSources();
+    const productAvailability = FreshworksDataProvider.productAvailability();
+    const freshworksSources = listFreshworksSources().filter(name => {
+      if (name.startsWith('freshsales_')) return productAvailability.freshsales;
+      if (name.startsWith('freshdesk_')) return productAvailability.freshdesk;
+      if (name.startsWith('freshcaller_')) return productAvailability.freshcaller;
+      if (name.startsWith('freshchat_')) return productAvailability.freshchat;
+      return false;
+    });
+    const allSources = Array.from(new Set([...sampleSources, ...freshworksSources]));
 
     // Filter sources based on user permissions with access level details
     const sourcesWithAccess = [];

@@ -63,6 +63,10 @@ export function WidgetConfigPanel({ widgetId, onClose }: WidgetConfigPanelProps)
   const { schema, updateWidget } = useDashboardStore();
   const widget = schema.widgets.find(w => w.id === widgetId);
   const [tab, setTab] = useState<Tab>('general');
+  // Local fallback catalog (sample-data only). Used until the API catalog
+  // (which includes Freshworks suite sources gated by product configuration)
+  // returns from useDataSourcePermissions inside <DataTab>. The DataTab itself
+  // prefers the API result when loaded — see `availableSources` there.
   const dataSources = useRef(getAvailableSources().filter((s, i, arr) => arr.indexOf(s) === i && !s.startsWith('sample_')).sort()).current;
 
   // Close on Escape
@@ -329,11 +333,17 @@ function DataTab({
   const { allowedSources, sourcesWithAccess, loading, error } = useDataSourcePermissions();
   const currentSourceAccess = useDataSourceAccess(widget.dataConfig.source);
 
-  // Filter data sources to only show allowed ones, but keep current selection even if restricted
-  const availableSources = loading ? dataSources : allowedSources;
-  const allSources = dataSources.filter(s =>
-    availableSources.includes(s) || s === widget.dataConfig.source
-  );
+  // Catalog construction: prefer the API-driven catalog (which now includes
+  // Freshworks suite sources gated on per-product configuration) once it's
+  // loaded. Fall back to the local sample-data list while the request is in
+  // flight so the dropdown isn't empty on first render. Always include the
+  // currently-selected source even if it's restricted, so the user doesn't
+  // see their selection disappear after a permission revoke.
+  const allSources = (loading ? dataSources : allowedSources).slice();
+  if (widget.dataConfig.source && !allSources.includes(widget.dataConfig.source)) {
+    allSources.push(widget.dataConfig.source);
+  }
+  allSources.sort();
 
   const sourceOptions = allSources.map((s) => {
     const sourceAccess = sourcesWithAccess.find(sa => sa.name === s);

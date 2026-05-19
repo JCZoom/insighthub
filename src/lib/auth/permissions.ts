@@ -1,12 +1,26 @@
 import prisma from '@/lib/db/prisma';
 import { type SessionUser } from '@/lib/auth/session';
 
-// Data categories that map from glossary + data sources
+// Data categories that map from glossary + data sources.
+//
+// NOTE on Freshworks suite (added 2026-05-19): rather than introduce a brand-
+// new permission category for the 4 Freshworks products, we map them onto the
+// closest existing categories so the existing RBAC rules (Sales, Support
+// access-level grants) continue to work unchanged. The substring matcher
+// `getCategoryForSource()` will resolve each Freshworks source name to the
+// right bucket via brand-prefix matching:
+//   - freshsales_*   → Sales       (CRM = sales pipeline data)
+//   - freshdesk_*    → Support     (helpdesk tickets)
+//   - freshcaller_*  → Support     (customer-service voice channel)
+//   - freshchat_*    → Support     (customer-service messaging)
+// Every Freshworks source carries its own CUSTOMER_CONFIDENTIAL classification
+// at the data-provider layer (see freshworks-data-provider.ts), independent of
+// these category buckets.
 export const DATA_CATEGORIES = {
   Revenue: ['sample_revenue', 'mrr_by_month', 'revenue_by_month', 'revenue_by_type', 'revenue', 'mrr'],
   Retention: ['churn_by_region', 'churn_by_month', 'churn_by_plan', 'churn_rate', 'churn'],
-  Support: ['sample_tickets', 'tickets_by_category', 'tickets_by_month', 'tickets_by_team', 'tickets'],
-  Sales: ['sample_deals', 'deals_pipeline', 'deals_by_source', 'deals', 'sales', 'pipeline'],
+  Support: ['sample_tickets', 'tickets_by_category', 'tickets_by_month', 'tickets_by_team', 'tickets', 'freshdesk', 'freshcaller', 'freshchat'],
+  Sales: ['sample_deals', 'deals_pipeline', 'deals_by_source', 'deals', 'sales', 'pipeline', 'freshsales'],
   Product: ['sample_usage', 'usage_by_feature', 'usage_by_month', 'usage', 'feature_usage'],
   Operations: ['kpi_summary', 'overall_kpi', 'metrics', 'kpis'],
   CustomerPII: ['sample_customers', 'customers', 'customer_growth', 'customers_by_plan', 'customers_by_region']
