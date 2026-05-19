@@ -98,6 +98,13 @@ jobs:
           name: nextjs-build
           path: .next/
           retention-days: 1
+          # `.next/` is a hidden directory (leading dot). upload-artifact@v4
+          # defaults to skipping hidden files since v4.4.0, which causes the
+          # entire build output to be silently dropped — the action exits 0
+          # with a `##[warning]No files were found with the provided path`,
+          # the next job's download-artifact then 404s. This flag forces it
+          # to include everything under `.next/`.
+          include-hidden-files: true
 
   # ── E2E tests ─────────────────────────────────────────────
   e2e:
