@@ -1,0 +1,33 @@
+=== probe-jeff-dashboards.sh  →  http://localhost:3000
+
+PASS  freshdesk_open_ticket_count
+PASS  freshdesk_overdue_ticket_count
+PASS  freshcaller_calls_today
+PASS  freshchat_active_conversations
+PASS  freshdesk_tickets_by_status
+PASS  freshcaller_calls_by_status
+PASS  freshchat_conversations_by_status
+PASS  freshdesk_recent_tickets
+PASS  freshcaller_recent_calls
+PASS  freshchat_recent_conversations
+PASS  freshdesk_agents
+PASS  freshsales_pipeline_value
+PASS  freshsales_open_deal_count
+PASS  freshsales_deals_by_stage
+PASS  freshsales_top_deals
+PASS  freshsales_contacts_recent
+PASS  freshsales_accounts_recent
+PASS  platform_user_count
+PASS  platform_dashboards_total
+PASS  platform_dashboards_created_30d
+PASS  platform_active_users_7d
+PASS  platform_users_by_role
+PASS  platform_classification_distribution
+PASS  platform_audit_events_by_type_30d
+PASS  platform_dashboards_created_by_month
+PASS  platform_glossary_term_count
+PASS  platform_audit_events_today
+PASS  platform_recent_audit_events
+PASS  platform_glossary_by_category
+
+✅ 29/29 sources passed
