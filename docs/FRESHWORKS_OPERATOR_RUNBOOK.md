@@ -29,7 +29,7 @@ There are 4 API keys (one per product) and 4 domain values (Freshchat is hostnam
 On the production EC2 host, the Freshworks credentials live in a **dedicated file** separate from the rest of `.env.local`:
 
 ```
-/opt/insighthub/.env.freshworks  (mode 0600, owned by ubuntu:ubuntu)
+/opt/insighthub/.env.freshworks  (mode 0600, owned by jeffreycoy:jeffreycoy)
 ```
 
 The systemd unit (`infra/insighthub.service`) loads BOTH files via:
@@ -48,8 +48,8 @@ EnvironmentFile=/opt/insighthub/.env.freshworks
 1. SSH to the EC2 host via Tailscale (no plain SSH per Policy 3690 AC-04).
 2. Create / edit the file:
    ```bash
-   sudo install -m 0600 -o ubuntu -g ubuntu /dev/null /opt/insighthub/.env.freshworks
-   sudo -u ubuntu nano /opt/insighthub/.env.freshworks
+   sudo install -m 0600 -o jeffreycoy -g jeffreycoy /dev/null /opt/insighthub/.env.freshworks
+   sudo -u jeffreycoy nano /opt/insighthub/.env.freshworks
    ```
 3. Paste the variables you need (one per line, no quotes, no scheme on domain values):
    ```
