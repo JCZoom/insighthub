@@ -30,6 +30,7 @@
 import { PrismaClient } from '@prisma/client';
 import type { DashboardSchema } from '@/types';
 import { JEFF_SUPPORT_OPS_DASHBOARD } from './dashboards/jeff-support-ops';
+import { JEFF_SALES_PIPELINE_DASHBOARD } from './dashboards/jeff-sales-pipeline';
 
 const prisma = new PrismaClient();
 
@@ -52,6 +53,7 @@ interface SeedDashboard {
 
 const DASHBOARDS: readonly SeedDashboard[] = [
   JEFF_SUPPORT_OPS_DASHBOARD,
+  JEFF_SALES_PIPELINE_DASHBOARD,
 ];
 
 async function ensureUser() {
