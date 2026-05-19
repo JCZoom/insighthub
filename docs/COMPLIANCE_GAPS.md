@@ -3,6 +3,7 @@
 > **Generated:** 2026-04-24
 > **Source:** Mapping of `policies_USZoom_2026-04-24/*.pdf` against the current InsightHub codebase.
 > **Companion:** `docs/COMPLIANCE_MATRIX.md` has the full control-by-control evidence.
+> **Last production deploy:** 2026-05-19 ~17:25 ET (commit `8e024ba`) via **CI-driven self-hosted runner** (Track B Phase 1) — first deploy on the new auditable pipeline. Earlier same-day deploy `46d000f` shipped the Tier-1 closures; today's later deploy added memory hardening + the CI gate that produced this code path. Operator no longer holds an SSH key on the deploy box; deploys require a GitHub-environment approval and produce a workflow log row pinned to the `github.sha`.
 
 ## How this document is organized
 
