@@ -371,8 +371,8 @@ export async function purgeFreshworksCache(
   let deleted = 0;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { flushFreshworksCache } = require('@/lib/integrations/freshworks/cache');
-    deleted = await flushFreshworksCache();
+    const { flushAllFreshworksCaches } = require('@/lib/integrations/freshworks/shared/cache');
+    deleted = await flushAllFreshworksCaches();
   } catch (err) {
     // Cache module unavailable or Redis not configured — treat as no-op.
     // eslint-disable-next-line no-console

@@ -1,28 +1,24 @@
 /**
- * Freshsales connector — read-time audit logging.
+ * Freshworks suite — shared audit emitters.
  *
- * Every Freshsales API read that returns customer-confidential data must
- * leave a record in the audit log:
- *   - WHO made the request (userId)
- *   - WHAT resource type (contacts | deals | accounts)
- *   - HOW MANY rows returned (no row contents — never log PII)
- *   - WHEN (createdAt auto)
- *
- * Per the Game Plan §3.2 contract: **no PII in the log**. We capture row
- * counts and resource identifiers only. The audit log itself is also
- * subject to retention policy (G-06, 365d default).
+ * Every product's read/override/rate-limit events flow through these
+ * helpers. The product name is captured in the audit resourceId so
+ * compliance queries can filter "show me every Freshdesk read by VIEWER X
+ * in the last 30 days."
  *
  * Compliance refs:
- *   - Policy 3698 DC-02 (every access to CC data is logged)
- *   - Policy 3699 DD-05 (every destructive op is logged)
+ *   - Policy 3698 DC-02 (every CC read logged)
+ *   - Policy 3699 DD-05 (every destructive op logged)
  *   - Gap G-08 (audit consistency)
  */
 
 import { createAuditLog, AuditAction, ResourceType } from '@/lib/audit';
+import type { FreshworksProduct } from './errors';
 
 export interface FreshworksReadAuditPayload {
   userId: string;
-  resource: 'contacts' | 'deals' | 'accounts';
+  product: FreshworksProduct;
+  resource: string;
   /** Row count returned (NOT contents). */
   count: number;
   /** Cache hit/miss for telemetry. */
@@ -32,19 +28,18 @@ export interface FreshworksReadAuditPayload {
 }
 
 /**
- * Log a Freshsales read operation.
+ * Log a read operation against any Freshworks product.
  *
  * Best-effort: a failed audit write is logged to stderr but does NOT raise.
- * The downstream caller's response is already in flight by the time this
- * runs; we don't want to crash a successful read because of an audit hiccup.
  */
 export async function auditFreshworksRead(p: FreshworksReadAuditPayload): Promise<void> {
   await createAuditLog({
     userId: p.userId,
     action: AuditAction.FRESHWORKS_READ,
     resourceType: ResourceType.SYSTEM,
-    resourceId: `freshworks:${p.resource}`,
+    resourceId: `${p.product}:${p.resource}`,
     metadata: {
+      product: p.product,
       count: p.count,
       cacheHit: p.cacheHit,
       filter: p.filter ?? null,
@@ -54,11 +49,12 @@ export async function auditFreshworksRead(p: FreshworksReadAuditPayload): Promis
 
 /**
  * Log an admin override that unmasked PII for a VIEWER-role user on a
- * specific widget. This is a high-signal compliance event.
+ * specific widget. High-signal compliance event.
  */
 export async function auditFreshworksUnmaskOverride(args: {
   adminUserId: string;
   targetUserId: string;
+  product: FreshworksProduct;
   widgetId: string;
   reason: string;
 }): Promise<void> {
@@ -68,6 +64,7 @@ export async function auditFreshworksUnmaskOverride(args: {
     resourceType: ResourceType.SYSTEM,
     resourceId: `widget:${args.widgetId}`,
     metadata: {
+      product: args.product,
       targetUserId: args.targetUserId,
       reason: args.reason,
     },
@@ -75,19 +72,19 @@ export async function auditFreshworksUnmaskOverride(args: {
 }
 
 /**
- * Log a rate-limit rejection. We expect this to be rare under the 60/min
- * ceiling but the signal is useful when tuning the limiter or detecting
- * runaway dashboards.
+ * Log a rate-limit rejection. The product name flows through so we can
+ * tune per-product caps.
  */
 export async function auditFreshworksRateLimited(args: {
   userId: string;
+  product: FreshworksProduct;
   resource: string;
 }): Promise<void> {
   await createAuditLog({
     userId: args.userId,
     action: AuditAction.FRESHWORKS_RATE_LIMITED,
     resourceType: ResourceType.SYSTEM,
-    resourceId: `freshworks:${args.resource}`,
-    metadata: {},
+    resourceId: `${args.product}:${args.resource}`,
+    metadata: { product: args.product },
   });
 }

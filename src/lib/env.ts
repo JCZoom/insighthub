@@ -150,6 +150,62 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     example: '60',
     validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0 && n <= 100; },
   },
+  // ── Freshdesk (support tickets) ────────────────────────────────────────────
+  FRESHDESK_API_KEY: {
+    required: false,
+    description: 'Freshdesk API key (Freshworks support module). Stored CC; never logged.',
+    example: 'YOUR_FRESHDESK_API_KEY',
+  },
+  FRESHDESK_DOMAIN: {
+    required: false,
+    description: 'Freshdesk tenant domain, e.g. mytenant.freshdesk.com.',
+    example: 'mytenant.freshdesk.com',
+  },
+  FRESHDESK_RATE_LIMIT_PER_MIN: {
+    required: false,
+    description: 'Max Freshdesk API calls per minute (default: 40; Freshdesk free tier is 50/min).',
+    example: '40',
+    validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0 && n <= 50; },
+  },
+  // ── Freshcaller (voice / calls) ────────────────────────────────────────────
+  FRESHCALLER_API_KEY: {
+    required: false,
+    description: 'Freshcaller API key. Stored CC; never logged. Custom auth header (X-Api-Auth).',
+    example: 'YOUR_FRESHCALLER_API_KEY',
+  },
+  FRESHCALLER_DOMAIN: {
+    required: false,
+    description: 'Freshcaller tenant domain, e.g. mytenant.freshcaller.com.',
+    example: 'mytenant.freshcaller.com',
+  },
+  FRESHCALLER_RATE_LIMIT_PER_MIN: {
+    required: false,
+    description: 'Max Freshcaller API calls per minute (default: 25; Freshcaller starter is 30/min).',
+    example: '25',
+    validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0 && n <= 30; },
+  },
+  // ── Freshchat (messaging) ──────────────────────────────────────────────────
+  FRESHCHAT_API_KEY: {
+    required: false,
+    description: 'Freshchat API token (Bearer). Stored CC; never logged.',
+    example: 'YOUR_FRESHCHAT_API_KEY',
+  },
+  FRESHCHAT_DOMAIN: {
+    required: false,
+    description: 'Freshchat tenant domain (UI host), e.g. mytenant.freshchat.com. Used for diagnostics; API calls go to api.freshchat.com.',
+    example: 'mytenant.freshchat.com',
+  },
+  FRESHCHAT_API_HOST: {
+    required: false,
+    description: 'Freshchat API host override (default: api.freshchat.com). Most tenants use the default.',
+    example: 'api.freshchat.com',
+  },
+  FRESHCHAT_RATE_LIMIT_PER_MIN: {
+    required: false,
+    description: 'Max Freshchat API calls per minute (default: 60). Bound by PII-volume policy, not vendor quota.',
+    example: '60',
+    validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0 && n <= 180; },
+  },
 } as const;
 
 // ── Validation ────────────────────────────────────────────
@@ -273,6 +329,22 @@ export const env = {
   FRESHSALES_RATE_LIMIT_PER_MIN: parseInt(process.env.FRESHSALES_RATE_LIMIT_PER_MIN || '60', 10),
   FRESHSALES_CONFIGURED:
     !!process.env.FRESHSALES_API_KEY && !!process.env.FRESHSALES_DOMAIN,
+  FRESHDESK_API_KEY: process.env.FRESHDESK_API_KEY || '',
+  FRESHDESK_DOMAIN: process.env.FRESHDESK_DOMAIN || '',
+  FRESHDESK_RATE_LIMIT_PER_MIN: parseInt(process.env.FRESHDESK_RATE_LIMIT_PER_MIN || '40', 10),
+  FRESHDESK_CONFIGURED:
+    !!process.env.FRESHDESK_API_KEY && !!process.env.FRESHDESK_DOMAIN,
+  FRESHCALLER_API_KEY: process.env.FRESHCALLER_API_KEY || '',
+  FRESHCALLER_DOMAIN: process.env.FRESHCALLER_DOMAIN || '',
+  FRESHCALLER_RATE_LIMIT_PER_MIN: parseInt(process.env.FRESHCALLER_RATE_LIMIT_PER_MIN || '25', 10),
+  FRESHCALLER_CONFIGURED:
+    !!process.env.FRESHCALLER_API_KEY && !!process.env.FRESHCALLER_DOMAIN,
+  FRESHCHAT_API_KEY: process.env.FRESHCHAT_API_KEY || '',
+  FRESHCHAT_DOMAIN: process.env.FRESHCHAT_DOMAIN || '',
+  FRESHCHAT_API_HOST: process.env.FRESHCHAT_API_HOST || 'api.freshchat.com',
+  FRESHCHAT_RATE_LIMIT_PER_MIN: parseInt(process.env.FRESHCHAT_RATE_LIMIT_PER_MIN || '60', 10),
+  FRESHCHAT_CONFIGURED:
+    !!process.env.FRESHCHAT_API_KEY,
 } as const;
 
 // ── Documentation Helper ──────────────────────────────────

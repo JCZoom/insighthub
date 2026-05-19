@@ -1,58 +1,70 @@
 /**
- * Freshsales / Freshworks CRM integration — public surface.
+ * Freshworks suite — unified public surface.
  *
- * Importers should pull from `@/lib/integrations/freshworks` rather than the
- * individual submodules. This barrel is the stable contract; the internals
- * can be refactored without breaking callers.
+ * The suite covers 4 products under the Freshworks umbrella:
+ *   - Freshsales (CRM)
+ *   - Freshdesk (support tickets)
+ *   - Freshcaller (voice / calls)
+ *   - Freshchat (live chat / messaging)
+ *
+ * Each product has its own subdirectory with `config.ts`, `client.ts`,
+ * `redact.ts`, and `index.ts`. Cross-cutting plumbing (HTTP, rate-limit,
+ * cache, audit, errors, shared maskers) lives in `shared/`.
+ *
+ * Most callers should import from this barrel. Heavy consumers can drill
+ * into `freshworks/<product>` directly.
  */
 
-export {
-  isFreshsalesConfigured,
-  getFreshsalesConfig,
-  describeConfigForLog,
-  type FreshsalesConfig,
-} from './config';
+// ── Product barrels ─────────────────────────────────────────────────────────
+
+export * from './freshsales';
+export * from './freshdesk';
+export * from './freshcaller';
+export * from './freshchat';
+
+// ── Shared error hierarchy ──────────────────────────────────────────────────
 
 export {
-  listContacts,
-  listDeals,
-  listAccounts,
-  describeFreshsalesClient,
+  FreshworksError,
+  FreshworksNotConfiguredError,
+  FreshworksRateLimitError,
+  // Back-compat aliases for the pre-refactor commit:
   FreshsalesError,
   FreshsalesNotConfiguredError,
   FreshsalesRateLimitError,
-  type ListContactsParams,
-  type ListDealsParams,
-  type ListAccountsParams,
-} from './client';
+  type FreshworksProduct,
+} from './shared/errors';
+
+// ── Shared cache helpers (retention purge, demo Purge button) ───────────────
 
 export {
-  flushFreshworksCache,
+  flushAllFreshworksCaches,
+  flushProductCache,
+  flushFreshworksCache, // back-compat alias for flushAllFreshworksCaches
   isFreshworksCacheAvailable,
   buildCacheKey,
-} from './cache';
+  PRODUCT_CACHE_PREFIX,
+} from './shared/cache';
+
+// ── Shared redaction (for callers who roll their own resource shapes) ───────
 
 export {
-  redactContact,
-  redactDeal,
-  redactAccount,
-  redactContacts,
-  redactDeals,
-  redactAccounts,
   shouldMaskForRole,
+  unmaskedByDefault,
   maskEmail,
   maskPhone,
   maskName,
   maskFreeText,
+  maskUrl,
+  scanAndMaskPiiFields,
   type UserRole,
-  type FreshsalesContact,
-  type FreshsalesDeal,
-  type FreshsalesAccount,
-} from './redact';
+} from './shared/redact';
+
+// ── Shared audit emitters ───────────────────────────────────────────────────
 
 export {
   auditFreshworksRead,
   auditFreshworksUnmaskOverride,
   auditFreshworksRateLimited,
   type FreshworksReadAuditPayload,
-} from './audit';
+} from './shared/audit';

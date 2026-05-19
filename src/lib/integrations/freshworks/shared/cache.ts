@@ -1,26 +1,25 @@
 /**
- * Freshsales connector — Redis cache.
+ * Freshworks suite — shared Redis cache.
  *
- * Top-tier hardening (per Game Plan §3.2 amendment, 2026-05-19 09:16 ET):
- *   **TTL = 60 seconds.** PII + customer chat content must not sit in Redis
- *   for the conventional 5-minute cache window. 60 s gives meaningful
- *   rate-limit relief (a refreshing dashboard hits Redis instead of the API)
- *   without creating a stale-data exposure surface.
+ * Each product gets its own key namespace so flushes can be scoped:
+ *   freshsales  → `fw-sales:*`
+ *   freshdesk   → `fw-desk:*`
+ *   freshcaller → `fw-call:*`
+ *   freshchat   → `fw-chat:*`
  *
- * Key shape: `fw:<resource>:<filter-fingerprint>`
- *   - `fw:contacts:all` — full contact list (rare, expensive)
- *   - `fw:deals:stage=open` — filtered deal list
- *   - `fw:account:<id>` — single account by id
- *
- * The `fw:` prefix is also what `purgeFreshworksCache()` in
- * `src/lib/data/retention.ts:343-427` uses for bulk-wipe. Keep them
- * consistent.
+ * **TTL = 60 seconds** for ALL products (Game Plan §3 amendment 09:16 ET).
+ * PII + chat content + ticket bodies + call recordings metadata must not
+ * sit in Redis for the conventional 5-minute cache window. 60 s gives
+ * meaningful rate-limit relief without creating a stale-data exposure
+ * surface.
  *
  * Compliance refs:
  *   - Policy 3700 DR-01 (bounded retention)
- *   - Policy 3698 DC-02 (CC tier data, see Freshsales asset INFO-25)
- *   - Gap G-05 closure
+ *   - Policy 3698 DC-02 (CC-tier data across all 4 products)
+ *   - Gap G-05 closure (retention automation)
  */
+
+import type { FreshworksProduct } from './errors';
 
 // Optional Redis client — match the established pattern in `src/lib/redis/client.ts`
 // (try/require to keep ioredis a soft dep).
@@ -33,11 +32,19 @@ try {
 }
 
 import { getRedisConfig, buildRedisConnectionOptions, isRedisConfigured } from '@/lib/redis/config';
-import { getFreshsalesConfig } from './config';
 
-const KEY_PREFIX = 'fw:';
+/** Map a product to its cache key prefix (single source of truth). */
+export const PRODUCT_CACHE_PREFIX: Record<FreshworksProduct, string> = {
+  freshsales: 'fw-sales:',
+  freshdesk: 'fw-desk:',
+  freshcaller: 'fw-call:',
+  freshchat: 'fw-chat:',
+};
 
-/** Lazy-initialized singleton client for the Freshsales cache. */
+/** Combined prefix matcher for cross-product flushes (retention purge). */
+export const FRESHWORKS_PREFIX_MATCHER = 'fw-*';
+
+/** Lazy-initialized singleton client shared across all products. */
 let freshworksRedis: any = null;
 let initAttempted = false;
 
@@ -62,18 +69,11 @@ function getClient(): any {
   return freshworksRedis;
 }
 
-/** Whether the cache is usable right now. */
 export function isFreshworksCacheAvailable(): boolean {
   return getClient() !== null;
 }
 
-/**
- * Compute a stable, opaque key fragment from an arbitrary filter object.
- *
- * We sort keys to make the result canonical, then JSON-stringify, then
- * collapse to a fixed-length-ish slug. This is NOT a security-critical
- * hash (no PII goes through it) — just a cache key.
- */
+/** Canonical filter-fingerprint for cache keys. */
 function fingerprintFilter(filter: Record<string, unknown> | undefined): string {
   if (!filter || Object.keys(filter).length === 0) return 'all';
   const sortedKeys = Object.keys(filter).sort();
@@ -90,29 +90,28 @@ function fingerprintFilter(filter: Record<string, unknown> | undefined): string 
 }
 
 /**
- * Build a fully-qualified cache key.
+ * Build a fully-qualified cache key for a product + resource + filter.
  *
- * Example: `fw:deals:stage=open&owner=42`
+ * Example: `fw-desk:tickets:status=open&priority=high`
  */
 export function buildCacheKey(
+  product: FreshworksProduct,
   resource: string,
   filter?: Record<string, unknown>
 ): string {
-  return `${KEY_PREFIX}${resource}:${fingerprintFilter(filter)}`;
+  return `${PRODUCT_CACHE_PREFIX[product]}${resource}:${fingerprintFilter(filter)}`;
 }
 
 /**
  * Get-or-load with TTL.
  *
  * If Redis is unavailable, the loader is called every time (no-op cache).
- * If the key is present, the JSON-parsed value is returned and `hit=true`.
- * Otherwise the loader runs, the result is cached, and `hit=false`.
- *
  * Errors from Redis are swallowed — a failed cache must never break the
- * underlying read. The caller still gets correct data from the loader.
+ * underlying read.
  */
 export async function getOrLoad<T>(
   key: string,
+  ttlSeconds: number,
   loader: () => Promise<T>
 ): Promise<{ value: T; hit: boolean }> {
   const client = getClient();
@@ -121,7 +120,6 @@ export async function getOrLoad<T>(
     return { value, hit: false };
   }
 
-  // Try the cache first.
   try {
     const cached = await client.get(key);
     if (cached) {
@@ -133,52 +131,39 @@ export async function getOrLoad<T>(
     }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn(`[freshworks-cache] GET ${key} failed; falling through to loader.`, err);
+    console.warn(`[freshworks-cache] GET ${key} failed; falling through.`, err);
   }
 
   const value = await loader();
 
-  // Best-effort SET; bound the TTL strictly to the connector config.
   try {
-    const ttl = getFreshsalesConfig().cacheTtlSeconds;
-    await client.set(key, JSON.stringify(value), 'EX', ttl);
+    await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn(`[freshworks-cache] SET ${key} failed; result returned uncached.`, err);
+    console.warn(`[freshworks-cache] SET ${key} failed; result uncached.`, err);
   }
 
   return { value, hit: false };
 }
 
-/**
- * Delete all cache entries for the Freshsales connector.
- *
- * Used by:
- *   - `purgeFreshworksCache()` in `src/lib/data/retention.ts`
- *   - The demo retention story (live wipe + re-fetch)
- *
- * Returns the count of keys deleted, or 0 if Redis is unavailable.
- */
-export async function flushFreshworksCache(): Promise<number> {
+/** Delete every cache entry whose key starts with the given prefix. */
+async function flushByPrefix(prefix: string): Promise<number> {
   const client = getClient();
   if (!client) return 0;
-
   const keys: string[] = [];
   let cursor = '0';
   try {
     do {
-      const [next, batch] = await client.scan(cursor, 'MATCH', `${KEY_PREFIX}*`, 'COUNT', 100);
+      const [next, batch] = await client.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 100);
       cursor = next;
       if (batch?.length) keys.push(...batch);
     } while (cursor !== '0');
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('[freshworks-cache] SCAN failed during flush.', err);
+    console.warn(`[freshworks-cache] SCAN ${prefix}* failed.`, err);
     return 0;
   }
-
   if (keys.length === 0) return 0;
-
   let deleted = 0;
   for (let i = 0; i < keys.length; i += 500) {
     const chunk = keys.slice(i, i + 500);
@@ -187,8 +172,30 @@ export async function flushFreshworksCache(): Promise<number> {
       deleted += typeof count === 'number' ? count : 0;
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.warn('[freshworks-cache] DEL chunk failed; continuing.', err);
+      console.warn('[freshworks-cache] DEL chunk failed.', err);
     }
   }
   return deleted;
 }
+
+/** Flush a single product's cache. */
+export async function flushProductCache(product: FreshworksProduct): Promise<number> {
+  return flushByPrefix(PRODUCT_CACHE_PREFIX[product]);
+}
+
+/**
+ * Flush ALL Freshworks-suite caches across every product.
+ * Used by the retention purge endpoint and the demo Purge button.
+ *
+ * Implemented as a SCAN over the combined `fw-*` prefix matcher so we don't
+ * issue 4 separate SCANs.
+ */
+export async function flushAllFreshworksCaches(): Promise<number> {
+  return flushByPrefix('fw-');
+}
+
+/**
+ * Backwards-compat name preserved for callers that already wired against the
+ * pre-refactor module. New code should use `flushAllFreshworksCaches()`.
+ */
+export const flushFreshworksCache = flushAllFreshworksCaches;
