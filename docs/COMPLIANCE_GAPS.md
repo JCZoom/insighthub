@@ -41,7 +41,7 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3692 Authentication & Password · AUTH-02, AUTH-06; 3691 Access Control · AC-05
 - **Audit risk:** HIGH
 - **Effort:** M
-- **Status (2026-05-19):** ✅ **Closed.** Full scope shipped: AMR check + admin gate + persisted timestamp + admin-UI surface.
+- **Status (2026-05-19):** ✅ **Closed.** Full scope shipped: AMR check + admin gate + persisted timestamp + admin-UI surface. **Deployed to production EC2 2026-05-19 15:42 ET** (commit `46d000f`); `User.mfaVerifiedAt` column verified on prod SQLite post-deploy.
 - **Why it matters:** Policy 3692 says *"For systems storing customer PII and other regulated data, MFA must be enforced: users should not be able to disable the second factor and retain access."*
 - **Evidence:**
   1. New AMR parser `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/auth/mfa.ts` (`parseIdTokenAMR`, `requiresMfa`, `MFA_AMR_VALUES`). Recognizes `mfa`, `otp`, `hwk`, `swk`, `sms`, `tel`, `fpt`, `face`, `iris` per RFC 8176. MFA-required roles: ADMIN, POWER_USER.
@@ -64,19 +64,22 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3701 Encryption · ENC-01, ENC-04
 - **Audit risk:** MED
 - **Effort:** S
-- **Status (2026-05-19):** ✅ **Closed.**
+- **Status (2026-05-19):** ✅ **Closed.** **Deployed to production EC2 2026-05-19 15:42 ET** (commit `46d000f`); `curl -sI https://dashboards.jeffcoy.net` returns `Strict-Transport-Security: max-age=63072000; includeSubDomains` from both nginx and the Next.js middleware layer.
+- **Architecture (revised 2026-05-19 post-deploy):** TLS hardening is delivered by **two complementary nginx includes** stacked in the HTTPS server block:
+  - `/etc/letsencrypt/options-ssl-nginx.conf` (Certbot-managed) — pins `ssl_protocols TLSv1.2 TLSv1.3;`, the Mozilla intermediate cipher list, `ssl_prefer_server_ciphers off`, session-cache + 1440m timeout, and `ssl_session_tickets off`. Satisfies ENC-01.
+  - `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx-tls-options.conf` (InsightHub-managed, deployed to `/etc/nginx/snippets/insighthub-tls.conf`) — adds OCSP stapling + HSTS on top. Satisfies ENC-04.
+- **Why the split:** initially our snippet duplicated the protocol/cipher/session directives; deploy failed with `nginx -t` reporting `ssl_session_timeout directive is duplicate` because Certbot already injects them. The snippet was trimmed to just the directives Certbot does NOT provide. Header block of the snippet documents this so a future operator doesn't re-add the duplicates and re-break the deploy.
 - **Evidence:**
-  1. New TLS hardening include `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx-tls-options.conf` pins `ssl_protocols TLSv1.2 TLSv1.3;` and the Mozilla intermediate cipher list (every accepted cipher provides AES-128-GCM or stronger with perfect forward secrecy — satisfies ENC-01).
-  2. HSTS enforced via `Strict-Transport-Security: max-age=63072000; includeSubDomains` in the same snippet (satisfies ENC-04).
-  3. OCSP stapling on, session tickets off (forward-secrecy preservation).
-  4. Deploy script `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/scripts/ec2-deploy.sh:155-175` idempotently uploads the snippet to `/etc/nginx/snippets/insighthub-tls.conf` and injects the `include` directive into the HTTPS server block. Certbot preserves the include across cert renewals.
-  5. Production-side `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx.conf:1-22` documents the install + verification procedure (curl HSTS check, openssl protocol downgrade test, nmap cipher enum, annual SSL Labs scan).
-  6. Stakeholder-readable rationale + annual review checklist documented in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/docs/TLS_CONFIGURATION.md`.
-- **Pending operator action (post-deploy, today 2026-05-19 evening):**
-  1. Run `./scripts/ec2-deploy.sh` to push the snippet.
-  2. Verify with `curl -sI https://dashboards.jeffcoy.net | grep -i strict-transport`.
-  3. Run SSL Labs scan, save result PDF to `docs/evidence/ssllabs-2026-05-19.pdf`, link from `docs/TLS_CONFIGURATION.md`.
-- **Recurring control:** Asana annual task "TLS / SSL Labs review" — to be created in evening doc pass.
+  1. Snippet at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx-tls-options.conf`:
+     - `ssl_stapling on; ssl_stapling_verify on;` + resolver pinned to 1.1.1.1 + 8.8.8.8 (OCSP).
+     - `add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;` (2-year HSTS — ENC-04).
+     - Note: Let's Encrypt has been phasing OCSP URLs out of issued certs since 2024, so `ssl_stapling` currently logs a benign "no OCSP responder URL" warning on this host. Directive stays for forward-compat with future cert providers and a no-op on the current cert.
+  2. Certbot include (verified on production via `cat /etc/letsencrypt/options-ssl-nginx.conf` 2026-05-19): provides `TLSv1.2+TLSv1.3` + Mozilla intermediate ciphers — every accepted cipher provides AES-128-GCM or stronger with perfect forward secrecy.
+  3. Deploy script `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/scripts/ec2-deploy.sh:163-183` idempotently uploads the snippet and injects the `include` directive into the HTTPS server block. Certbot preserves the include across cert renewals.
+  4. Stakeholder-readable rationale + annual review checklist documented in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/docs/TLS_CONFIGURATION.md`.
+- **Pending operator action:**
+  1. Run SSL Labs scan on `dashboards.jeffcoy.net`, save result PDF to `docs/evidence/ssllabs-2026-05-19.pdf`, link from `docs/TLS_CONFIGURATION.md`. Target grade: **A+** (HSTS bonus). **Due 2026-05-22** (Asana task `ssllabs-annual-review` to be created).
+- **Recurring control:** Asana annual task "TLS / SSL Labs review" — to be created in `/asana-sync` workflow run.
 
 ### G-04 — No Asset Register
 - **Policy:** 12737 Asset Management · AM-01–AM-03
@@ -97,7 +100,7 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3700 Retention · DR-01–DR-03 · 3699 Disposal · DD-04
 - **Audit risk:** HIGH (GDPR-relevant)
 - **Effort:** M
-- **Status (2026-05-19):** ✅ **Closed.**
+- **Status (2026-05-19):** ✅ **Closed.** **Deployed to production EC2 2026-05-19 15:42 ET** (commit `46d000f`); `/api/admin/retention` endpoint live on prod, daily cron pending operator install (see Pending operator action below).
 - **Evidence:**
   1. Four bounded retention functions in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts`:
      - `purgeChatMessages` (default 90d) — existing, now extended with `dryRun` + meta-audit
@@ -121,7 +124,7 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3700 Data Retention · DR-01 (every data class needs a bounded retention period)
 - **Audit risk:** LOW (missing a **maximum** bound), MED if logs contain PII
 - **Effort:** S
-- **Status (2026-05-19):** ✅ **Closed.**
+- **Status (2026-05-19):** ✅ **Closed.** **Deployed to production EC2 2026-05-19 15:42 ET** (commit `46d000f`); `purgeAuditLogs(365)` reachable via `POST /api/admin/retention` with `target: 'audit'`.
 - **Evidence:**
   1. New `purgeAuditLogs(retentionDays = 365, opts)` exported from `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts:151-199`. Default 365d; override via `AUDIT_LOG_RETENTION_DAYS` env var.
   2. Function supports `dryRun: true` for preview-without-delete (admin UI + cron verification pattern).
@@ -149,7 +152,7 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3699 Disposal · DD-05
 - **Audit risk:** MED
 - **Effort:** S
-- **Status (2026-05-19):** ✅ **Closed.**
+- **Status (2026-05-19):** ✅ **Closed.** **Deployed to production EC2 2026-05-19 15:42 ET** (commit `46d000f`); `auditedDelete<T>()` wrapper + dashboard-share DELETE fix are live.
 - **Audit-of-the-audit (full delete-site inventory done 2026-05-19):**
   | Delete site | Audit before 2026-05-19 | Status |
   |---|---|---|
