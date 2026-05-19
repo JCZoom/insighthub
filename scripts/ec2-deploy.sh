@@ -95,14 +95,23 @@ echo "[6/9] Installing dependencies & building..."
 ssh "$EC2_HOST" "cd $APP_DIR && npm ci --production=false 2>&1 | tail -3"
 echo "  ✓ Dependencies installed"
 
-# Create prisma/.env so Prisma CLI can find DATABASE_URL (absolute path)
 DB_PATH="$APP_DIR/prisma/dev.db"
-ssh "$EC2_HOST" "echo 'DATABASE_URL=file:$DB_PATH' > $APP_DIR/prisma/.env"
+# Do NOT create prisma/.env — .env.local already defines DATABASE_URL, and a
+# differing value in prisma/.env makes Prisma CLI hard-error with
+# "There is a conflict between env var in .env and prisma/.env", which causes
+# `prisma db push` to silently no-op (the exit code is non-zero but the
+# previous `| tail -5` hid it; the resulting schema drift surfaces only when
+# seed/runtime queries hit columns that should exist). Removed 2026-05-19.
+ssh "$EC2_HOST" "rm -f $APP_DIR/prisma/.env"
 
 ssh "$EC2_HOST" "cd $APP_DIR && npx prisma generate 2>&1 | tail -3"
 echo "  ✓ Prisma client generated"
 
-ssh "$EC2_HOST" "cd $APP_DIR && DATABASE_URL='file:$DB_PATH' npx prisma db push --accept-data-loss 2>&1 | tail -5"
+# Run db push with strict error checking — must exit 0 or the deploy aborts.
+if ! ssh "$EC2_HOST" "cd $APP_DIR && DATABASE_URL='file:$DB_PATH' npx prisma db push --accept-data-loss" 2>&1 | tail -10; then
+    echo "  ✗ prisma db push FAILED. Aborting deploy before build."
+    exit 1
+fi
 echo "  ✓ Database schema pushed"
 
 ssh "$EC2_HOST" "cd $APP_DIR && npm run build 2>&1 | tail -10"

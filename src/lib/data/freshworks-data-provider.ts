@@ -50,13 +50,11 @@ import {
   type FreshdeskTicket,
   isFreshcallerConfigured,
   listCalls,
-  listFreshcallerUsers,
   freshcallerCallStatus,
   freshcallerCallPhone,
   type FreshcallerCall,
   isFreshchatConfigured,
   listConversations,
-  listFreshchatUsers,
   type FreshchatConversation,
 } from '@/lib/integrations/freshworks';
 import type { SessionUser } from '@/lib/auth/session';

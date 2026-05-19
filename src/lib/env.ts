@@ -134,9 +134,8 @@ const ENV_VARS: Record<string, EnvVarDef> = {
   },
   FRESHSALES_DOMAIN: {
     required: false,
-    description: 'Freshsales tenant domain, e.g. uszoom.myfreshworks.com (no scheme, no trailing slash).',
+    description: 'Freshsales tenant domain, e.g. uszoom.myfreshworks.com. Scheme + trailing slash are tolerated and stripped by shared/domain.ts normalizeDomain() at call time; the strict validator that previously lived here caused production boot failures and was inconsistent with FRESHDESK/FRESHCALLER/FRESHCHAT (none of which run a strict check). Removed 2026-05-19.',
     example: 'uszoom.myfreshworks.com',
-    validate: (v) => !v.includes('://') && !v.endsWith('/'),
   },
   FRESHSALES_CACHE_TTL_SECONDS: {
     required: false,
