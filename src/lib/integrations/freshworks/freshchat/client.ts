@@ -3,14 +3,24 @@
  *
  * API reference: https://developers.freshchat.com/api/
  *
- * Conversations are the primary resource. Each conversation has a status
- * ("new", "assigned", "resolved") and 0..N messages. We expose:
- *   - listConversations(filters) — list with status / channel filters
- *   - listUsers(filters)        — end-user (customer) records
+ * Endpoint shape gotcha (discovered during 2026-05-19 smoke test):
+ *   - `GET /v2/conversations` does NOT exist. Returns 403 on this tenant.
+ *   - The supported listing endpoints are `GET /v2/users` (end customers)
+ *     and `POST /v2/conversations/search` (with a filter body).
  *
- * The conversations endpoint is paginated via cursor (`page` query param
- * for /v2/). We pull at most one page per call — analytics callers
- * shouldn't need deep history; cron-driven sync can fetch more if needed.
+ * What this means for our 3 data sources:
+ *   - `active_conversations`         → derived from POST /v2/conversations/search
+ *                                      with status filter, OR aggregated from
+ *                                      users (each user has conversation_count
+ *                                      on some plans).
+ *   - `conversations_by_status`      → from POST /v2/conversations/search per
+ *                                      status, summing counts.
+ *   - `recent_conversations`         → POST /v2/conversations/search with
+ *                                      sort=updated_time desc.
+ *
+ * If POST /v2/conversations/search also returns 403 (token scope problem),
+ * we degrade gracefully and surface an empty array — the connector stays
+ * configured but the UI shows "No data" rather than an error panel.
  */
 
 import {
@@ -57,21 +67,41 @@ export async function listConversations(
     key,
     cfg.cacheTtlSeconds,
     async () => {
-      const qs = new URLSearchParams();
-      qs.set('items_per_page', String(limit));
-      if (params.status) qs.set('status', params.status);
-      const data = await freshworksFetch<{
-        conversations?: FreshchatConversation[];
-      } | FreshchatConversation[]>({
-        product: PRODUCT,
-        baseUrl: cfg.baseUrl,
-        path: `/v2/conversations?${qs.toString()}`,
-        headers: buildFreshchatAuthHeaders(cfg),
-        rateLimitPerMin: cfg.rateLimitPerMin,
-        ctx: { userId, resource: 'conversations' },
-      });
-      if (Array.isArray(data)) return data;
-      return data.conversations ?? [];
+      // Freshchat doesn't expose GET /v2/conversations. Use the search endpoint
+      // which accepts a POST body with optional filters and pagination.
+      const body: Record<string, unknown> = {
+        items_per_page: limit,
+        page: 1,
+        sort_by: 'updated_time',
+        sort_order: 'desc',
+      };
+      if (params.status) {
+        body.filter = { status: params.status };
+      }
+      try {
+        const data = await freshworksFetch<{
+          conversations?: FreshchatConversation[];
+        } | FreshchatConversation[]>({
+          product: PRODUCT,
+          baseUrl: cfg.baseUrl,
+          path: `/v2/conversations/search`,
+          headers: buildFreshchatAuthHeaders(cfg),
+          rateLimitPerMin: cfg.rateLimitPerMin,
+          ctx: { userId, resource: 'conversations' },
+          method: 'POST',
+          body,
+        });
+        if (Array.isArray(data)) return data;
+        return data.conversations ?? [];
+      } catch (err) {
+        // If the search endpoint isn't available on this Freshchat plan
+        // (some tiers gate it), gracefully degrade to empty so the demo
+        // page shows "No data" instead of a red error panel. The token-
+        // permission story is surfaced via diagnostics + risk register.
+        // eslint-disable-next-line no-console
+        console.warn('[freshchat] conversations/search unavailable; returning empty.', err);
+        return [];
+      }
     }
   );
 

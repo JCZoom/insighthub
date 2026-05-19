@@ -51,6 +51,8 @@ import {
   isFreshcallerConfigured,
   listCalls,
   listFreshcallerUsers,
+  freshcallerCallStatus,
+  freshcallerCallPhone,
   type FreshcallerCall,
   isFreshchatConfigured,
   listConversations,
@@ -559,7 +561,8 @@ export class FreshworksDataProvider {
     const calls = await this.fetchCalls(userId, role);
     const counts = new Map<string, number>();
     for (const c of calls) {
-      const label = c.status ?? 'unknown';
+      // Use the resolver that tolerates Freshcaller's varying field names.
+      const label = freshcallerCallStatus(c);
       counts.set(label, (counts.get(label) ?? 0) + 1);
     }
     const rows = Array.from(counts.entries())
@@ -592,8 +595,8 @@ export class FreshworksDataProvider {
       .slice(0, 10);
     const rows = top.map((c) => ({
       id: c.id,
-      phone_number: c.phone_number ?? null,
-      status: c.status ?? 'unknown',
+      phone_number: freshcallerCallPhone(c),
+      status: freshcallerCallStatus(c),
       duration_s: c.call_duration ?? c.bill_duration ?? null,
       created_at: c.created_at ?? null,
     }));

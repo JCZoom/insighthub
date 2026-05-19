@@ -21,33 +21,70 @@ import {
 
 export interface FreshcallerCall {
   id: number | string;
-  /** "Inbound" or "Outbound" */
   bill_duration?: number | null;
   call_duration?: number | null;
-  /** "completed" | "missed" | "abandoned" | "voicemail" | ... */
+  /**
+   * Status. Freshcaller's response shape varies across API versions and
+   * sometimes the field appears as `call_status`, `status`, `disposition`,
+   * or under a nested `call_attributes.status`. We tolerate all of them
+   * at the field-accessor level (see `freshcallerCallStatus()` helper).
+   */
   status?: string | null;
+  call_status?: string | null;
+  disposition?: string | null;
+  call_state?: string | null;
+  call_attributes?: { status?: string | null } | null;
   /** Direction: 1 inbound, 2 outbound (varies by API version). */
   direction?: number | string | null;
+  call_type?: string | null;
   /** Customer phone number. */
   phone_number?: string | null;
-  /** Caller name if known. */
+  caller_phone_number?: string | null;
+  incoming_phone_number?: string | null;
   caller_name?: string | null;
-  /** Agent who handled the call. */
   user_id?: number | null;
-  /** Queue / group id. */
   queue_id?: number | null;
   created_at?: string | null;
   ended_at?: string | null;
-  /** Recording URL (signed). */
   recording_url?: string | null;
   voicemail_transcript?: string | null;
   [k: string]: unknown;
+}
+
+/**
+ * Resolve a call's status from whichever field the active Freshcaller API
+ * version uses. Returns 'unknown' only if no field is populated.
+ */
+export function freshcallerCallStatus(c: FreshcallerCall): string {
+  return (
+    c.status ??
+    c.call_status ??
+    c.disposition ??
+    c.call_state ??
+    c.call_attributes?.status ??
+    'unknown'
+  );
+}
+
+/**
+ * Resolve a call's customer-side phone number from whichever field the
+ * active API version uses.
+ */
+export function freshcallerCallPhone(c: FreshcallerCall): string | null {
+  return (
+    c.phone_number ??
+    c.caller_phone_number ??
+    c.incoming_phone_number ??
+    null
+  );
 }
 
 export function redactCall<T extends FreshcallerCall>(c: T, role: UserRole): T {
   if (!shouldMaskForRole(role)) return c;
   let out: T = { ...c };
   if (out.phone_number != null) out.phone_number = maskPhone(out.phone_number);
+  if (out.caller_phone_number != null) out.caller_phone_number = maskPhone(out.caller_phone_number);
+  if (out.incoming_phone_number != null) out.incoming_phone_number = maskPhone(out.incoming_phone_number);
   if (out.caller_name != null) out.caller_name = '***';
   if (out.voicemail_transcript != null) {
     out.voicemail_transcript = maskFreeText(out.voicemail_transcript);
