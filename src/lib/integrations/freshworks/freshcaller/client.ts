@@ -29,6 +29,7 @@ import { buildCacheKey, getOrLoad } from '../shared/cache';
 import { auditFreshworksRead } from '../shared/audit';
 import { FreshworksNotConfiguredError } from '../shared/errors';
 import { rateLimitWindowSize } from '../shared/rate-limit';
+import { logRowKeysOnce } from '../shared/dev-introspect';
 import type { UserRole } from '../shared/redact';
 
 const PRODUCT = 'freshcaller' as const;
@@ -74,8 +75,10 @@ export async function listCalls(
       ctx: { userId, resource: 'calls' },
     });
     // Tolerate both shapes (bare array or { calls: [...] }).
-    if (Array.isArray(data)) return data;
-    return data.calls ?? [];
+    const calls = Array.isArray(data) ? data : (data.calls ?? []);
+    // Dev-mode field-name peek (no values logged, one-shot per process).
+    logRowKeysOnce(PRODUCT, 'calls', calls[0]);
+    return calls;
   });
 
   auditFreshworksRead({

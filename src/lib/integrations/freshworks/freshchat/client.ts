@@ -40,6 +40,7 @@ import { buildCacheKey, getOrLoad } from '../shared/cache';
 import { auditFreshworksRead } from '../shared/audit';
 import { FreshworksNotConfiguredError } from '../shared/errors';
 import { rateLimitWindowSize } from '../shared/rate-limit';
+import { logRowKeysOnce } from '../shared/dev-introspect';
 import type { UserRole } from '../shared/redact';
 
 const PRODUCT = 'freshchat' as const;
@@ -91,15 +92,22 @@ export async function listConversations(
           method: 'POST',
           body,
         });
-        if (Array.isArray(data)) return data;
-        return data.conversations ?? [];
+        const convos = Array.isArray(data) ? data : (data.conversations ?? []);
+        // Dev-mode field peek — and crucially, log the WRAPPER keys too
+        // so we see if Freshchat returns { conversations: [...] } vs.
+        // { results: [...] } vs. { items: [...] }.
+        if (!Array.isArray(data)) {
+          logRowKeysOnce(PRODUCT, 'conversations/search.wrapper', data);
+        }
+        logRowKeysOnce(PRODUCT, 'conversations', convos[0]);
+        return convos;
       } catch (err) {
         // If the search endpoint isn't available on this Freshchat plan
         // (some tiers gate it), gracefully degrade to empty so the demo
-        // page shows "No data" instead of a red error panel. The token-
-        // permission story is surfaced via diagnostics + risk register.
+        // page shows "No data" instead of a red error panel. Log loudly so
+        // we can diagnose why we got zero results.
         // eslint-disable-next-line no-console
-        console.warn('[freshchat] conversations/search unavailable; returning empty.', err);
+        console.warn('[freshchat] conversations/search FAILED; returning empty. Cause:', err);
         return [];
       }
     }

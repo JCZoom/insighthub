@@ -87,6 +87,62 @@ async function discoverViewId(
   }
 }
 
+// ── Stage lookup table (Freshsales returns deal_stage_id as a foreign key) ──
+//
+// To display the stage name on a deal we need the stage table. The selector
+// endpoint returns all configured deal stages for the tenant. Cached for the
+// connector lifetime; stages rarely change.
+
+let dealStageMapCache: Map<number, string> | null = null;
+
+interface FreshsalesDealStage {
+  id: number;
+  name?: string | null;
+  position?: number | null;
+}
+
+export async function getDealStageMap(
+  cfg: FreshsalesConfig,
+  userId: string
+): Promise<Map<number, string>> {
+  if (dealStageMapCache) return dealStageMapCache;
+  try {
+    const data = await freshworksFetch<{ deal_stages?: FreshsalesDealStage[] }>({
+      product: PRODUCT,
+      baseUrl: cfg.baseUrl,
+      path: `/crm/sales/api/selector/deal_stages`,
+      headers: buildFreshsalesAuthHeaders(cfg),
+      rateLimitPerMin: cfg.rateLimitPerMin,
+      ctx: { userId, resource: 'deal_stages' },
+    });
+    const map = new Map<number, string>();
+    for (const s of data.deal_stages ?? []) {
+      if (typeof s.id === 'number' && s.name) map.set(s.id, s.name);
+    }
+    dealStageMapCache = map;
+    return map;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[freshsales] could not load deal_stages selector; stages will display as raw IDs.', err);
+    dealStageMapCache = new Map();
+    return dealStageMapCache;
+  }
+}
+
+/**
+ * Enrich a deal with a `_stage_name` field derived from the stage lookup.
+ * Non-mutating — returns a shallow copy.
+ */
+export function enrichDealWithStageName<T extends FreshsalesDeal>(
+  deal: T,
+  stageMap: Map<number, string>
+): T & { _stage_name: string } {
+  const raw = deal as unknown as Record<string, unknown>;
+  const stageId = typeof raw.deal_stage_id === 'number' ? raw.deal_stage_id : null;
+  const name = stageId != null ? stageMap.get(stageId) : undefined;
+  return { ...deal, _stage_name: name ?? (stageId != null ? `Stage ${stageId}` : 'Unknown') };
+}
+
 export interface ListContactsParams {
   limit?: number;
   query?: string;
@@ -156,15 +212,25 @@ export async function listDeals(
     const qs = new URLSearchParams();
     qs.set('per_page', String(limit));
     if (params.stage) qs.set('q', params.stage);
-    const data = await freshworksFetch<{ deals?: FreshsalesDeal[] }>({
-      product: PRODUCT,
-      baseUrl: cfg.baseUrl,
-      path: `/crm/sales/api/deals/view/${viewId}?${qs.toString()}`,
-      headers: buildFreshsalesAuthHeaders(cfg),
-      rateLimitPerMin: cfg.rateLimitPerMin,
-      ctx: { userId, resource: 'deals' },
-    });
-    return data.deals ?? [];
+    // Include the embedded deal_stage + owner so we don't need a second
+    // round-trip for every dashboard render. Freshsales accepts comma-
+    // separated values.
+    qs.set('include', 'deal_stage,owner,primary_contact');
+    const [data, stageMap] = await Promise.all([
+      freshworksFetch<{ deals?: FreshsalesDeal[] }>({
+        product: PRODUCT,
+        baseUrl: cfg.baseUrl,
+        path: `/crm/sales/api/deals/view/${viewId}?${qs.toString()}`,
+        headers: buildFreshsalesAuthHeaders(cfg),
+        rateLimitPerMin: cfg.rateLimitPerMin,
+        ctx: { userId, resource: 'deals' },
+      }),
+      getDealStageMap(cfg, userId),
+    ]);
+    const deals = data.deals ?? [];
+    // Enrich each deal with a `_stage_name` (synthetic field) that the data
+    // provider can read without doing a second lookup.
+    return deals.map((d) => enrichDealWithStageName(d, stageMap));
   });
 
   auditFreshworksRead({

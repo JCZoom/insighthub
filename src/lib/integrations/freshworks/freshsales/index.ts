@@ -14,6 +14,8 @@ export {
   listDeals,
   listAccounts,
   describeFreshsalesClient,
+  getDealStageMap,
+  enrichDealWithStageName,
   type ListContactsParams,
   type ListDealsParams,
   type ListAccountsParams,

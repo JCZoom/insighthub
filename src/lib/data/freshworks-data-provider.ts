@@ -209,11 +209,45 @@ export class FreshworksDataProvider {
   private static dealOpen(d: FreshsalesDeal): boolean {
     // Heuristic: any deal not explicitly named/staged 'won' or 'lost' is "open".
     // The real Freshsales API exposes a `is_deal_lost` / `is_deal_won` flag on
-    // each deal object — we honor those when present, else fall back to name.
+    // each deal object — we honor those when present, else fall back to the
+    // enriched `_stage_name` (added by enrichDealWithStageName at fetch time).
     const raw = d as unknown as Record<string, unknown>;
     if (raw.is_deal_won === true || raw.is_deal_lost === true) return false;
-    const stage = String(raw.deal_stage_name ?? raw.stage ?? '').toLowerCase();
+    const stage = String(raw._stage_name ?? raw.deal_stage_name ?? raw.stage ?? '').toLowerCase();
     return !(stage.includes('won') || stage.includes('lost') || stage.includes('closed'));
+  }
+
+  /**
+   * Read a Freshsales deal's amount from whichever field shape the tenant uses.
+   *
+   * Freshsales returns `amount` as either:
+   *   - a plain number (older tenants)
+   *   - a localized currency object: { value: '12345.00', currency: 'USD' }
+   *   - undefined (open deals often have no amount estimate)
+   */
+  private static dealAmount(d: FreshsalesDeal): number {
+    const raw = d as unknown as Record<string, unknown>;
+    const a: unknown = raw.amount;
+    if (typeof a === 'number' && Number.isFinite(a)) return a;
+    if (typeof a === 'string') {
+      const n = parseFloat(a);
+      if (Number.isFinite(n)) return n;
+    }
+    if (a && typeof a === 'object' && 'value' in (a as Record<string, unknown>)) {
+      const v = (a as Record<string, unknown>).value;
+      if (typeof v === 'number') return v;
+      if (typeof v === 'string') {
+        const n = parseFloat(v);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return 0;
+  }
+
+  /** Read the human-friendly stage name for a deal (post-enrichment). */
+  private static dealStage(d: FreshsalesDeal): string {
+    const raw = d as unknown as Record<string, unknown>;
+    return String(raw._stage_name ?? raw.deal_stage_name ?? raw.stage ?? 'Unknown');
   }
 
   private static finish(
@@ -243,8 +277,7 @@ export class FreshworksDataProvider {
     const deals = await listDeals(userId, role, { limit: 100 });
     const counts = new Map<string, number>();
     for (const d of deals) {
-      const raw = d as unknown as Record<string, unknown>;
-      const stage = String(raw.deal_stage_name ?? raw.stage ?? 'Unknown');
+      const stage = this.dealStage(d);
       counts.set(stage, (counts.get(stage) ?? 0) + 1);
     }
     const rows = Array.from(counts.entries())
@@ -287,7 +320,7 @@ export class FreshworksDataProvider {
     const deals = await listDeals(userId, role, { limit: 100 });
     const total = deals
       .filter((d) => this.dealOpen(d))
-      .reduce((sum, d) => sum + (typeof d.amount === 'number' ? d.amount : 0), 0);
+      .reduce((sum, d) => sum + this.dealAmount(d), 0);
     return this.finish(
       [{ value: total, label: 'Pipeline ($, open)' }],
       [
@@ -307,19 +340,16 @@ export class FreshworksDataProvider {
     const deals = await listDeals(userId, role, { limit: 100 });
     const top = deals
       .filter((d) => this.dealOpen(d))
-      .sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0))
+      .sort((a, b) => this.dealAmount(b) - this.dealAmount(a))
       .slice(0, 10);
-    const rows = top.map((d) => {
-      const raw = d as unknown as Record<string, unknown>;
-      return {
-        id: d.id,
-        name: d.name ?? '(no name)',
-        amount: d.amount ?? 0,
-        stage: raw.deal_stage_name ?? raw.stage ?? 'Unknown',
-        primary_contact: d.primary_contact?.display_name ?? null,
-        expected_close: d.expected_close ?? null,
-      };
-    });
+    const rows = top.map((d) => ({
+      id: d.id,
+      name: d.name ?? '(no name)',
+      amount: this.dealAmount(d),
+      stage: this.dealStage(d),
+      primary_contact: d.primary_contact?.display_name ?? null,
+      expected_close: d.expected_close ?? null,
+    }));
     return this.finish(
       rows,
       [
