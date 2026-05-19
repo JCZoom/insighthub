@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { withAuth } from 'next-auth/middleware';
 
 export default withAuth(
-  function middleware(request: NextRequest) {
+  function middleware() {
     const response = NextResponse.next();
 
     // Security Headers
@@ -12,13 +11,11 @@ export default withAuth(
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('X-XSS-Protection', '1; mode=block');
 
-    // HSTS Header for HTTPS (only in production)
-    if (request.nextUrl.protocol === 'https:') {
-      response.headers.set(
-        'Strict-Transport-Security',
-        'max-age=63072000; includeSubDomains; preload'
-      );
-    }
+    // HSTS is set at the edge (nginx) — see infra/nginx-tls-options.conf.
+    // Setting it here too produced a duplicate response header which SSL Labs
+    // graded as `hstsPolicy: invalid` ("server provided more than one HSTS
+    // header"), capping the cert at A-. Single source of truth = nginx.
+    // Closes evidence note P-01 in docs/evidence/smoke-test-2026-05-19-track-b.md.
 
     // Content Security Policy
     // - 'unsafe-eval' only in dev (Next.js hot reload); removed in production

@@ -9,7 +9,7 @@
 
 ## What we enforce, in one paragraph
 
-InsightHub's public hostname (`dashboards.jeffcoy.net`) only accepts **TLS 1.2 and TLS 1.3**. All older protocols (SSL 2/3, TLS 1.0, TLS 1.1) are rejected at the Nginx layer. The cipher suite is pinned to the **Mozilla intermediate** baseline — every accepted cipher provides AES-128-GCM or stronger and perfect forward secrecy. HSTS is set to **2 years with `includeSubDomains`**, OCSP stapling is on, and session tickets are off. This satisfies USZoom Encryption Policy 3701 controls ENC-01 and ENC-04.
+InsightHub's public hostname (`dashboards.jeffcoy.net`) only accepts **TLS 1.2 and TLS 1.3**. All older protocols (SSL 2/3, TLS 1.0, TLS 1.1) are rejected at the Nginx layer. The cipher suite is pinned to the **Mozilla intermediate** baseline — every accepted cipher provides AES-128-GCM or stronger and perfect forward secrecy. HSTS is set to **2 years with `includeSubDomains`**, session tickets are off, and the `Server` response header is suppressed (`server_tokens off`). OCSP stapling is **not in use** (Let's Encrypt deprecated OCSP in 2025 — see the dedicated note in `infra/nginx-tls-options.conf`); SSL Labs treats this as informational, not a grade deduction. This satisfies USZoom Encryption Policy 3701 controls ENC-01 and ENC-04.
 
 ## Where the config lives
 
@@ -46,9 +46,17 @@ Two different mechanisms:
 
 Disabling tickets is the right call for any system handling regulated data. Minor perf cost, big posture win.
 
-### Why include OCSP stapling?
+### Why we are NOT doing OCSP stapling
 
-Without stapling, every client TLS handshake triggers a separate OCSP request from the client to the CA's revocation responder. Two problems: (a) latency, (b) the CA learns which sites every visitor is hitting. Stapling moves that revocation check to our server, which queries the CA periodically and "staples" the proof to the handshake. Faster, more private, no downside.
+Historically, OCSP stapling was best practice — without it, every client TLS handshake triggers a separate OCSP request from the client to the CA's revocation responder, which leaks browsing patterns to the CA and adds handshake latency. Stapling moved that lookup to the server.
+
+In May 2024, Let's Encrypt announced they would stop issuing OCSP responses, completing the transition by mid-2026. Certs from their newer intermediates (`E8` and successors) **no longer carry an OCSP responder URL** in the Authority Information Access extension — there is literally nothing to staple. CRL-based revocation has replaced OCSP for LE-issued certs.
+
+If we configure `ssl_stapling on` against such a cert, nginx logs a warning at config-test time (`"ssl_stapling" ignored, no OCSP responder URL`) and silently does nothing. We removed the directives to avoid the noisy warning and the false impression that stapling is active.
+
+Per the SSL Labs grading guide, OCSP stapling is **not a grade-affecting factor** — its absence does not block A+. Verified against `dashboards.jeffcoy.net` on 2026-05-19: the only A+ blocker was a duplicate HSTS response header, addressed at the same deploy.
+
+If we ever switch to a CA that still issues OCSP responders (commercial vendors like DigiCert, Sectigo), re-enable per the commented-out block in `infra/nginx-tls-options.conf`.
 
 ## How we verify it
 
