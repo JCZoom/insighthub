@@ -59,7 +59,13 @@ test.describe('Dashboards API', () => {
     const body = await res.json();
     if (body.dashboards.length >= 2) {
       const titles = body.dashboards.map((d: { title: string }) => d.title);
-      const sorted = [...titles].sort((a: string, b: string) => a.localeCompare(b));
+      // Match SQLite's default BINARY collation used by Prisma's
+      // `orderBy: { title: 'asc' }` in src/app/api/dashboards/route.ts.
+      // BINARY is case-SENSITIVE lexicographic byte order ('A' < 'a'),
+      // which is what plain `Array.prototype.sort()` does on strings.
+      // localeCompare would be case-INSENSITIVE and disagree on mixed-case titles.
+      // Tier-2 follow-on: change API to use case-insensitive sort (better UX).
+      const sorted = [...titles].sort();
       expect(titles).toEqual(sorted);
     }
   });

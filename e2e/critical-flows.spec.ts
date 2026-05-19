@@ -79,7 +79,14 @@ test.describe('Dashboard Lifecycle', () => {
 
     if (res.ok()) {
       const body = await res.json();
-      expect(body.version.versionNumber).toBe(2);
+      // POST /api/dashboards/[id]/versions returns the Prisma DashboardVersion
+      // row directly under `body.version`, whose increment column is named
+      // `version` (see src/app/api/dashboards/[id]/versions/route.ts:90 +
+      // prisma/schema.prisma — DashboardVersion.version). Earlier this test
+      // asserted `versionNumber`, a field name that does not exist on the
+      // response shape. After Create-Dashboard left this at version=1, the
+      // POST should produce version=2.
+      expect(body.version.version).toBe(2);
     }
   });
 
