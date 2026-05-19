@@ -2,24 +2,31 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser, isAdmin } from '@/lib/auth/session';
 import {
   describeFreshsalesClient,
-  isFreshworksCacheAvailable,
+  describeFreshdeskClient,
+  describeFreshcallerClient,
+  describeFreshchatClient,
   isFreshsalesConfigured,
+  isFreshdeskConfigured,
+  isFreshcallerConfigured,
+  isFreshchatConfigured,
+  isFreshworksCacheAvailable,
 } from '@/lib/integrations/freshworks';
 
 /**
  * GET /api/admin/freshworks/diagnostics
  *
- * Admin-only safe-to-log snapshot of the Freshworks connector state.
+ * Admin-only snapshot of the entire Freshworks suite connector state.
  *
- * Returns:
+ * For each of the 4 products (Freshsales / Freshdesk / Freshcaller /
+ * Freshchat) we return:
  *   - configured: whether env vars are present
- *   - cacheAvailable: whether Redis is reachable
- *   - clientDescription: redacted (no raw API key) connector state
+ *   - client: redacted (no raw API key) connector state
  *
- * The connector is meant to be invisible most of the time. This endpoint
- * exists so that when something looks wrong on the demo, we have a single
- * place to point at and say "yes the connector is configured and the cache
- * is connected" before we go deeper.
+ * Plus suite-wide:
+ *   - cacheAvailable: whether Redis is reachable
+ *
+ * Never returns raw API keys; key field is always rendered as
+ * `<first-4>…<last-2>`.
  */
 export async function GET() {
   let user;
@@ -33,9 +40,25 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    configured: isFreshsalesConfigured(),
     cacheAvailable: isFreshworksCacheAvailable(),
-    client: describeFreshsalesClient(),
+    products: {
+      freshsales: {
+        configured: isFreshsalesConfigured(),
+        client: describeFreshsalesClient(),
+      },
+      freshdesk: {
+        configured: isFreshdeskConfigured(),
+        client: describeFreshdeskClient(),
+      },
+      freshcaller: {
+        configured: isFreshcallerConfigured(),
+        client: describeFreshcallerClient(),
+      },
+      freshchat: {
+        configured: isFreshchatConfigured(),
+        client: describeFreshchatClient(),
+      },
+    },
     asOf: new Date().toISOString(),
   });
 }

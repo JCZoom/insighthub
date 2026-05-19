@@ -1,4 +1,27 @@
 /**
- * Freshcaller — public surface (stub).
+ * Freshcaller — public surface for the product.
  */
-export {};
+
+export {
+  isFreshcallerConfigured,
+  getFreshcallerConfig,
+  describeFreshcallerConfigForLog,
+  type FreshcallerConfig,
+} from './config';
+
+export {
+  listCalls,
+  listUsers as listFreshcallerUsers,
+  describeFreshcallerClient,
+  type ListCallsParams,
+  type ListUsersParams as ListFreshcallerUsersParams,
+} from './client';
+
+export {
+  redactCall,
+  redactCalls,
+  redactUser as redactFreshcallerUser,
+  redactUsers as redactFreshcallerUsers,
+  type FreshcallerCall,
+  type FreshcallerUser,
+} from './redact';
