@@ -50,6 +50,8 @@ rsync -az --delete \
     --exclude='prisma/dev.db' \
     --exclude='prisma/dev.db-journal' \
     --exclude='.env.local' \
+    --exclude='.env.freshworks' \
+    --exclude='.env.freshworks.*' \
     --exclude='.DS_Store' \
     --exclude='__pycache__' \
     "$PROJECT_DIR/" "$EC2_HOST:$APP_DIR/"
@@ -138,7 +140,13 @@ Type=exec
 User=jeffreycoy
 Group=jeffreycoy
 WorkingDirectory=$APP_DIR
+# Two env files: the primary .env.local (deploy-managed) and the isolated
+# .env.freshworks (operator-managed, never copied by this script). The
+# leading '-' on the second one makes it optional — first-deploy on a
+# fresh host can succeed before the operator has provisioned the Freshworks
+# credentials. See docs/FRESHWORKS_OPERATOR_RUNBOOK.md.
 EnvironmentFile=$APP_DIR/.env.local
+EnvironmentFile=-$APP_DIR/.env.freshworks
 Environment=NODE_ENV=production
 Environment=PORT=$PORT
 Environment=DATABASE_URL=file:$APP_DIR/prisma/dev.db

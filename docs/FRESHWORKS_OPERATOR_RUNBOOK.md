@@ -89,7 +89,7 @@ We rotate Freshworks tokens on a **90-day cadence** AND on any compromise event.
 1. **Generate the new token in the vendor console** (Freshsales / Freshdesk / Freshcaller / Freshchat — links above). Do not delete the old token yet.
 2. SSH to the EC2 host:
    ```bash
-   sudo -u ubuntu nano /opt/insighthub/.env.freshworks
+   sudo -u jeffreycoy nano /opt/insighthub/.env.freshworks
    # Replace the relevant FRESH*_API_KEY=... line. Save.
    ```
 3. Restart the service:

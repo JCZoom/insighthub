@@ -39,6 +39,9 @@ yarn-error.log*
 .env.*.local
 .env.backup*
 .env.*.backup*
+# Freshworks suite isolated credential file (see docs/FRESHWORKS_OPERATOR_RUNBOOK.md)
+.env.freshworks
+.env.freshworks.*
 
 # SQLite database
 prisma/dev.db
