@@ -9,6 +9,7 @@ import {
 import type { WidgetConfig } from '@/types';
 import { Tooltip as UITooltip } from '@/components/ui/Tooltip';
 import { queryDataSync } from '@/lib/data/sample-data';
+import { useWidgetData } from '@/hooks/useWidgetData';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 import { exportToCSV, exportToPNG } from '@/lib/export-utils';
 
@@ -82,9 +83,11 @@ const FRIENDLY_NAMES: Record<string, string> = {
   'kpi_summary': 'Key Metrics Summary',
 };
 
-function generateDetailSections(config: WidgetConfig): DetailSection[] {
+function generateDetailSections(
+  config: WidgetConfig,
+  primaryData: Record<string, unknown>[]
+): DetailSection[] {
   const source = config.dataConfig.source;
-  const { data: primaryData } = queryDataSync(source, config.dataConfig.groupBy);
   const sections: DetailSection[] = [];
 
   // Summary stats from primary data
@@ -366,9 +369,18 @@ type TabId = 'insights' | 'data';
 
 export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProps) {
   const [activeTab, setActiveTab] = useState<TabId>('insights');
-  const sections = generateDetailSections(config);
   const source = config.dataConfig.source;
-  const { data: primaryData } = queryDataSync(source, config.dataConfig.groupBy);
+
+  // Route through the same provider hook the canvas widget uses, so
+  // Freshworks sources hit the live API + audit + classification path
+  // instead of substring-matching to a sample-data generator. Sample
+  // sources still resolve synchronously inside the hook (no flash).
+  const { data: primaryData, loading: primaryLoading } = useWidgetData(
+    source,
+    config.dataConfig.groupBy,
+    config.dataConfig.limit,
+  );
+  const sections = generateDetailSections(config, primaryData);
 
   // Close on Escape
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -461,6 +473,11 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
         <div className="p-6">
           {activeTab === 'insights' && (
             <div className="space-y-6">
+              {primaryLoading && primaryData.length === 0 && (
+                <p className="text-sm text-[var(--text-muted)] text-center py-8 animate-pulse">
+                  Loading live data…
+                </p>
+              )}
               {sections.map((section, i) => (
                 <div key={i}>
                   <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">{section.title}</h3>
@@ -472,7 +489,7 @@ export function WidgetDetailOverlay({ config, onClose }: WidgetDetailOverlayProp
                   )}
                 </div>
               ))}
-              {sections.length === 0 && (
+              {!primaryLoading && sections.length === 0 && (
                 <p className="text-sm text-[var(--text-muted)] text-center py-8">
                   No additional detail data available for this widget type.
                 </p>
