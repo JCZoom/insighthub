@@ -107,6 +107,27 @@ export const SOURCE_FIELD_REGISTRY: Record<string, string[]> = {
   freshchat_recent_conversations: [
     'conversation_id', 'status', 'channel_id', 'assigned_agent_id', 'updated_time',
   ],
+  // ── Platform Health (Prisma-backed, USZOOM_RESTRICTED) ─────────────────
+  // Single-row KPI sources follow the same 5-field PoP contract as the
+  // Freshworks KPIs (value, label, previous_value, comparison_label,
+  // comparison_unavailable_reason). Chart and table sources have their
+  // own columns. Field shapes are the source of truth from
+  // src/lib/data/platform-health-data-provider.ts (each method's
+  // `columns` argument). Verification D-06/D-08 walks this map.
+  platform_user_count: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  platform_users_by_role: ['role', 'count'],
+  platform_active_users_7d: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  platform_dashboards_total: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  platform_dashboards_created_30d: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  platform_dashboards_created_by_month: ['month', 'count'],
+  platform_classification_distribution: ['classification', 'count'],
+  platform_glossary_term_count: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  platform_glossary_by_category: ['category', 'count'],
+  platform_audit_events_today: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  platform_audit_events_by_type_30d: ['action', 'count'],
+  platform_recent_audit_events: [
+    'id', 'action', 'resource_type', 'resource_id', 'name', 'user_id', 'created_at',
+  ],
 };
 
 // ── Valid Enums ────────────────────────────────────────────

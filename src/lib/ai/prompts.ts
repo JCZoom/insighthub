@@ -247,6 +247,109 @@ const DATA_SOURCES: DataSource[] = [
 - Time scope: recent activity (server-sorted). Do NOT add a filter.
 - Best widget: table.`,
     permissionLevel: 'sensitive'
+  },
+  // ── Platform Health (LIVE, Postgres-backed) ──────────────────────────────
+  // Internal application metrics: users, dashboards, audit activity,
+  // glossary coverage, classification distribution. Classification
+  // USZOOM_RESTRICTED. All KPI sources return honest period-over-period
+  // numbers computed from immutable createdAt fields — no fabrication.
+  // Time scope is BAKED IN to the source name (today, 7d, 30d, by_month);
+  // do NOT add date filters on top.
+  {
+    name: 'platform_user_count',
+    description: `### platform_user_count (LIVE Platform Health)
+- Single-row KPI: { value (int), label (text), previous_value (int), comparison_label (text), comparison_unavailable_reason (text|null) }
+- Total InsightHub user count with honest 7-day-ago comparison.
+- Best widget: kpi_card.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_users_by_role',
+    description: `### platform_users_by_role (LIVE Platform Health)
+- Rows: { role (text), count (int) }, sorted by count desc.
+- Current-state distribution. Role is mutable and not change-tracked, so this is a chart only — never a KPI with a comparison pill.
+- Best widgets: bar_chart, pie_chart, donut_chart.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_active_users_7d',
+    description: `### platform_active_users_7d (LIVE Platform Health)
+- Single-row KPI: { value (int), label (text), previous_value (int), comparison_label (text), comparison_unavailable_reason (null) }
+- Distinct users with any audit-log activity in the last 7 days, vs prior 7 days. Honest comparison.
+- Best widget: kpi_card.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_dashboards_total',
+    description: `### platform_dashboards_total (LIVE Platform Health)
+- Single-row KPI: { value (int), label (text), previous_value (int), comparison_label (text), comparison_unavailable_reason (null) }
+- Active (non-archived) dashboard count with honest 7-day-ago comparison.
+- Best widget: kpi_card.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_dashboards_created_30d',
+    description: `### platform_dashboards_created_30d (LIVE Platform Health)
+- Single-row KPI: { value (int), label (text), previous_value (int), comparison_label (text), comparison_unavailable_reason (null) }
+- Dashboards created in the last 30 days, vs the prior 30. Useful for spotting builder velocity changes.
+- Best widget: kpi_card.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_dashboards_created_by_month',
+    description: `### platform_dashboards_created_by_month (LIVE Platform Health)
+- Rows: { month (text 'YYYY-MM'), count (int) }, 12 buckets oldest first.
+- Empty months are included with count=0 (not omitted) — a defensible "the bucket is empty" answer, not a fabrication.
+- Best widgets: line_chart, bar_chart, area_chart.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_classification_distribution',
+    description: `### platform_classification_distribution (LIVE Platform Health)
+- Rows: { classification (text), count (int) }, sorted by count desc.
+- Current-state distribution of dashboards by data-classification label. Classification is mutable and not change-tracked — chart only, never a KPI comparison.
+- Best widgets: pie_chart, donut_chart, bar_chart.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_glossary_term_count',
+    description: `### platform_glossary_term_count (LIVE Platform Health)
+- Single-row KPI: { value (int), label (text), previous_value (int), comparison_label (text), comparison_unavailable_reason (null) }
+- Total glossary terms with honest 7-day-ago comparison.
+- Best widget: kpi_card.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_glossary_by_category',
+    description: `### platform_glossary_by_category (LIVE Platform Health)
+- Rows: { category (text), count (int) }.
+- Current-state glossary coverage by category.
+- Best widgets: bar_chart, pie_chart.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_audit_events_today',
+    description: `### platform_audit_events_today (LIVE Platform Health)
+- Single-row KPI: { value (int), label (text), previous_value (int), comparison_label (text), comparison_unavailable_reason (null) }
+- Audit events recorded today (UTC) vs yesterday (UTC). Honest comparison.
+- Best widget: kpi_card.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_audit_events_by_type_30d',
+    description: `### platform_audit_events_by_type_30d (LIVE Platform Health)
+- Rows: { action (text), count (int) }, sorted by count desc.
+- Audit events grouped by action type, last 30 days. Useful for spotting login spikes, retention runs, permission changes.
+- Best widgets: bar_chart, pie_chart.`,
+    permissionLevel: 'standard'
+  },
+  {
+    name: 'platform_recent_audit_events',
+    description: `### platform_recent_audit_events (LIVE Platform Health)
+- Rows: { id (text), action (text), resource_type (text), resource_id (text), name (text), user_id (text), created_at (text ISO) }
+- 25 most recent audit events with the actor's display name. \`name\` is redacted to [REDACTED] for users without FULL CustomerPII access.
+- Best widget: table.`,
+    permissionLevel: 'standard'
   }
 ];
 

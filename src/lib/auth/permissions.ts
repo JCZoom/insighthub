@@ -22,7 +22,15 @@ export const DATA_CATEGORIES = {
   Support: ['sample_tickets', 'tickets_by_category', 'tickets_by_month', 'tickets_by_team', 'tickets', 'freshdesk', 'freshcaller', 'freshchat'],
   Sales: ['sample_deals', 'deals_pipeline', 'deals_by_source', 'deals', 'sales', 'pipeline', 'freshsales'],
   Product: ['sample_usage', 'usage_by_feature', 'usage_by_month', 'usage', 'feature_usage'],
-  Operations: ['kpi_summary', 'overall_kpi', 'metrics', 'kpis'],
+  // Operations covers app-level metrics — the legacy kpi_summary
+  // dashboard PLUS the post-2026-05-19 Platform Health sources
+  // (platform_user_count, platform_dashboards_total, etc.). The
+  // 'platform' substring matches every platform_* source name via the
+  // includes() check in getDataCategoryForSource(). ADMIN and
+  // POWER_USER default to FULL access; CREATOR and VIEWER are NONE
+  // (Platform Health surfaces internal app metadata, classified
+  // USZOOM_RESTRICTED, so non-power-users shouldn't see it by default).
+  Operations: ['kpi_summary', 'overall_kpi', 'metrics', 'kpis', 'platform'],
   CustomerPII: ['sample_customers', 'customers', 'customer_growth', 'customers_by_plan', 'customers_by_region']
 } as const;
 

@@ -3,6 +3,7 @@ import { queryData, getAvailableSources } from '@/lib/data/sample-data';
 import { queryDataWithProvider } from '@/lib/data/snowflake-data-provider';
 import { listFreshworksSources, FreshworksDataProvider } from '@/lib/data/freshworks-data-provider';
 import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
+import { listPlatformHealthSources } from '@/lib/data/platform-health-sources';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics, getCategoryForSource, resolveUserPermissions } from '@/lib/auth/permissions';
 import type { SessionUser } from '@/lib/auth/session';
@@ -219,7 +220,16 @@ export async function GET() {
       if (name.startsWith('freshchat_')) return productAvailability.freshchat;
       return false;
     });
-    const allSources = Array.from(new Set([...sampleSources, ...freshworksSources]));
+    // Platform Health: always available (same DB as the app). 12 honest,
+    // Prisma-backed sources covering users, dashboards, audit activity,
+    // glossary coverage, and classification distribution. Routed through
+    // the Operations data category for RBAC (see permissions.ts).
+    const platformHealthSources = [...listPlatformHealthSources()];
+    const allSources = Array.from(new Set([
+      ...sampleSources,
+      ...freshworksSources,
+      ...platformHealthSources,
+    ]));
 
     // Filter sources based on user permissions with access level details
     const sourcesWithAccess = [];

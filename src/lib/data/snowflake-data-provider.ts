@@ -4,6 +4,8 @@ import { applyDataSecurity } from '../snowflake/data-security';
 import { getSnowflakeDataSources } from '../snowflake/schema';
 import { queryData as querySampleData, getAvailableSources } from './sample-data';
 import { isFreshworksSource, FreshworksDataProvider } from './freshworks-data-provider';
+import { isPlatformHealthSource } from './platform-health-sources';
+import { PlatformHealthDataProvider } from './platform-health-data-provider';
 import type { SessionUser } from '@/lib/auth/session';
 import type { SampleDataResult } from './sample-data';
 import type { DataSource } from '@/types/data-explorer';
@@ -22,7 +24,7 @@ export interface DataProviderResult {
   executionTime: number;
   totalRows: number;
   fromCache: boolean;
-  dataSource: 'snowflake' | 'sample' | 'freshworks';
+  dataSource: 'snowflake' | 'sample' | 'freshworks' | 'platform_health';
   accessLevel?: 'FULL' | 'FILTERED' | 'NONE';
   isFiltered?: boolean;
   appliedPolicies?: string[];
@@ -295,18 +297,22 @@ export class SnowflakeDataProvider {
 /**
  * Main function to query data with automatic provider selection.
  *
- * Routing logic:
- *   1. Freshworks sources (e.g. `freshsales_*`, `freshdesk_*`, `freshcaller_*`,
- *      `freshchat_*`) → `FreshworksDataProvider.queryData(...)`. These bypass
- *      Snowflake entirely; the connector layer handles cache, audit, and
- *      role-based redaction internally.
- *   2. Everything else → `SnowflakeDataProvider.queryData(...)`, which itself
- *      falls back to sample data when Snowflake is not configured.
+ * Routing logic (checked in this order; prefixes are mutually exclusive,
+ * order is for clarity, not correctness):
+ *   1. Platform Health sources (`platform_*`) → `PlatformHealthDataProvider`
+ *      (Prisma-backed, internal counts: users, dashboards, audit activity,
+ *      glossary coverage, classification distribution). Honest PoP from
+ *      immutable `createdAt` fields on append-only tables.
+ *   2. Freshworks sources (`freshsales_*`, `freshdesk_*`, `freshcaller_*`,
+ *      `freshchat_*`) → `FreshworksDataProvider`. The connector layer
+ *      handles cache, audit, and role-based redaction internally.
+ *   3. Everything else → `SnowflakeDataProvider.queryData(...)`, which
+ *      itself falls back to sample data when Snowflake is not configured.
  *
  * The `groupBy` and `options` parameters do not currently apply to the
- * Freshworks path — Freshworks pre-shapes its 17 registered sources at the
- * provider layer (each is essentially a fixed query). If we ever need
- * dynamic group-by over Freshworks data we'll add it there.
+ * Freshworks or Platform Health paths — both pre-shape their registered
+ * sources at the provider layer (each is essentially a fixed query). If
+ * we ever need dynamic group-by over those, we'll add it there.
  */
 export async function queryDataWithProvider(
   source: string,
@@ -314,6 +320,14 @@ export async function queryDataWithProvider(
   groupBy?: string[],
   options?: DataQueryOptions
 ): Promise<DataProviderResult> {
+  if (isPlatformHealthSource(source)) {
+    // Platform Health returns a DataProviderResult shape directly — no
+    // wrapper translation needed. Internal data, classification
+    // USZOOM_RESTRICTED, no Freshworks-style PII redaction at provider
+    // layer (route handler's stripPiiFields still applies to the
+    // `name` field on platform_recent_audit_events).
+    return PlatformHealthDataProvider.queryData(source, user);
+  }
   if (isFreshworksSource(source)) {
     const fwResult = await FreshworksDataProvider.queryData(source, user);
     return {

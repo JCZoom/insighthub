@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { queryDataSync } from '@/lib/data/sample-data';
 import { isFreshworksSource } from '@/lib/data/freshworks-sources';
+import { isPlatformHealthSource } from '@/lib/data/platform-health-sources';
 
 /**
  * useWidgetData — fetch widget rows from the right data provider.
@@ -14,7 +15,12 @@ import { isFreshworksSource } from '@/lib/data/freshworks-sources';
  *      `freshchat_*`)  →  POST /api/data/query  →  FreshworksDataProvider
  *      (live, cached, audited, classified, RBAC-gated).
  *
- *   2. Everything else (sample-data sources, future Snowflake sources)  →
+ *   2. Platform Health sources (`platform_*`)  →  POST /api/data/query
+ *      →  PlatformHealthDataProvider (Prisma-backed; honest internal
+ *      counts of users, dashboards, audit activity, glossary coverage,
+ *      classification distribution).
+ *
+ *   3. Everything else (sample-data sources, future Snowflake sources) →
  *      sync `queryDataSync()` against the in-process sample-data
  *      generators. No network hop, no flash, no risk of regression in
  *      the >60 widgets that already work fine off sample data today.
@@ -24,9 +30,11 @@ import { isFreshworksSource } from '@/lib/data/freshworks-sources';
  *     async for them would introduce a loading flash and >60 unnecessary
  *     fetches per dashboard view, with zero benefit (the API would just
  *     re-run the same generator on the server).
- *   - Freshworks sources MUST go through the API because the secrets,
- *     vendor clients, audit logger, and 60-s server-side cache only
- *     exist server-side. Calling them from the browser is a non-starter.
+ *   - Freshworks + Platform Health sources MUST go through the API. For
+ *     Freshworks, vendor secrets, audit logger, and the 60-s server-side
+ *     cache only exist server-side. For Platform Health, the Prisma
+ *     client only exists server-side. Calling either from the browser
+ *     is a non-starter.
  *
  * Cache: client-side module-level Map, keyed by (source, groupBy, limit)
  * with a 30-s TTL. This is the *outer* cache; the FreshworksDataProvider
@@ -68,22 +76,32 @@ export interface UseWidgetDataResult {
   fromCache: boolean | null;
 }
 
+/**
+ * Predicate: this source must be fetched via POST /api/data/query
+ * (Freshworks or Platform Health). Anything else flows through the
+ * synchronous in-process sample-data generators.
+ */
+function requiresServerFetch(source: string): boolean {
+  return isFreshworksSource(source) || isPlatformHealthSource(source);
+}
+
 export function useWidgetData(
   source: string,
   groupBy?: string[],
   limit?: number,
 ): UseWidgetDataResult {
-  const isFreshworks = source ? isFreshworksSource(source) : false;
+  const isServerFetched = source ? requiresServerFetch(source) : false;
   const groupByKey = JSON.stringify(groupBy ?? []);
 
   // Initial state: for sample sources, populate synchronously from the
   // generator so the widget renders immediately with no loading flash.
-  // For Freshworks sources, start in loading state.
+  // For server-fetched sources (Freshworks + Platform Health), start in
+  // loading state unless we hit the client cache.
   const [state, setState] = useState<UseWidgetDataResult>(() => {
     if (!source) {
       return { data: [], loading: false, error: null, fetchedAt: null, fromCache: null };
     }
-    if (!isFreshworksSource(source)) {
+    if (!requiresServerFetch(source)) {
       try {
         const result = queryDataSync(source, groupBy);
         return {
@@ -97,7 +115,7 @@ export function useWidgetData(
         return { data: [], loading: false, error: null, fetchedAt: null, fromCache: null };
       }
     }
-    // Freshworks: check cache before declaring loading=true.
+    // Server-fetched: check cache before declaring loading=true.
     const cacheKey = `${source}|${groupByKey}|${limit ?? ''}`;
     const cached = CACHE.get(cacheKey);
     if (cached && Date.now() - cached.ts < TTL_MS) {
@@ -119,7 +137,7 @@ export function useWidgetData(
     }
 
     // Sample-data path: synchronous, no fetch.
-    if (!isFreshworks) {
+    if (!isServerFetched) {
       try {
         const result = queryDataSync(source, groupBy);
         setState({
@@ -141,7 +159,7 @@ export function useWidgetData(
       return;
     }
 
-    // Freshworks path: cached server fetch.
+    // Server-fetched path (Freshworks + Platform Health): cached server fetch.
     const cacheKey = `${source}|${groupByKey}|${limit ?? ''}`;
     const cached = CACHE.get(cacheKey);
     if (cached && Date.now() - cached.ts < TTL_MS) {
@@ -203,7 +221,7 @@ export function useWidgetData(
       cancelled = true;
     };
     // groupByKey is the serialized form; including it captures group-by changes.
-  }, [source, groupByKey, limit, isFreshworks]);
+  }, [source, groupByKey, limit, isServerFetched]);
 
   return state;
 }
