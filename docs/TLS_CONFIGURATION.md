@@ -90,6 +90,11 @@ Run on or before **2027-05-19**:
 - [ ] Bump the "Last reviewed" date in `infra/nginx-tls-options.conf` and this doc's "Annual review due" date.
 - [ ] Asana: close the recurring "Annual TLS / SSL Labs review" task; let it auto-recreate.
 
-## Baseline scan — first capture pending
+## Baseline scan — captured 2026-05-19
 
-The first SSL Labs scan will be run in the post-deploy verification step today (2026-05-19, evening). Result PDF will be saved to `docs/evidence/ssllabs-2026-05-19.pdf` and linked here. Until then, the baseline is documented by the source files and the deploy script.
+| Date | Grade | Evidence | Notes |
+|---|---|---|---|
+| 2026-05-19 13:25 ET | **A-** | `docs/evidence/ssllabs-2026-05-19-before-fix.json` | Initial scan after G-03 closure deploy. Deduction: `hstsPolicy: invalid` ("Server provided more than one HSTS header") — both Nginx and Next.js middleware were emitting HSTS. Pre-fix baseline. |
+| 2026-05-19 13:50 ET | **A+** | `docs/evidence/ssllabs-2026-05-19-after-fix.json` | After commit `3925f1e` removed HSTS from `middleware.ts`. Single header, `hstsPolicy: present`, no warnings. |
+
+The next SSL Labs scan should run on or before 2027-05-19 per the annual review checklist above. Save the new JSON next to these files using the same naming convention (`ssllabs-YYYY-MM-DD.json`).

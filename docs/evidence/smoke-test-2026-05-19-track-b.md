@@ -79,7 +79,9 @@ Home page returns 200. Public route ungated (intentional — the gallery landing
 
 These two cosmetic findings surfaced during smoke testing. Filed here so they don't get forgotten and so the audit trail shows we noticed them.
 
-### P-01 — Duplicate `Strict-Transport-Security` header
+> **Both polish items below were closed in commit `3925f1e` later the same day.** SSL Labs re-scan confirmed A+ at 2026-05-19 13:50 ET. Evidence: `docs/evidence/ssllabs-2026-05-19-after-fix.json`.
+
+### P-01 — Duplicate `Strict-Transport-Security` header — ✅ RESOLVED 2026-05-19
 
 ```
 strict-transport-security: max-age=63072000; includeSubDomains; preload   ← nginx (lowercased)
@@ -95,7 +97,7 @@ Strict-Transport-Security: max-age=63072000; includeSubDomains            ← Ne
 
 **Recommended fix:** drop the HSTS line from `middleware.ts` (let nginx own HSTS at the edge). Dev mode doesn't need HSTS — `npm run dev` is HTTP, browsers ignore HSTS on localhost. One-line change in `middleware.ts`. Verify after deploy: `curl -sI https://dashboards.jeffcoy.net | grep -ic 'strict-transport-security'` should return `1`.
 
-### P-02 — `Server:` header leaks nginx version
+### P-02 — `Server:` header leaks nginx version — ✅ RESOLVED 2026-05-19
 
 ```
 Server: nginx/1.24.0 (Ubuntu)
