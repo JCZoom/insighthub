@@ -139,90 +139,126 @@ jobs:
           path: e2e/playwright-report/
           retention-days: 7
 
-  # ── Deploy to EC2 (manual trigger only) ──────────────────
+  # ── Deploy to EC2 (manual trigger only, runs on self-hosted runner) ──
+  #
+  # Architecture (revised 2026-05-19): the deploy job runs on a self-hosted
+  # GitHub Actions runner installed directly on the production EC2 host.
+  # No SSH, no Tailscale, no network exposure — the deploy steps execute
+  # locally on the box that is being deployed to.
+  #
+  # Security model:
+  #   1. Trigger is workflow_dispatch only — no auto-deploy on push.
+  #   2. The `production` environment requires Jeff's explicit approval
+  #      before the job is allowed to run (Settings → Environments → production).
+  #   3. Self-hosted runner has the `insighthub-deploy` label so other
+  #      workflows (including any future fork PRs) cannot accidentally
+  #      target it; only this job, gated above, can.
+  #   4. Runner registers via outbound HTTPS to GitHub — no inbound
+  #      port exposure beyond what was already there for nginx.
+  #
+  # Effect on compliance gaps:
+  #   - G-36 (secrets-via-scp): closed. Deploy creds no longer live on
+  #     Jeff's laptop; the runner has a GitHub-issued auth credential
+  #     scoped to this repo only.
+  #   - Audit trail: every deploy is a GitHub Actions run with actor +
+  #     commit SHA + timestamp + full log retained 90 days.
+  #
+  # Out of scope (Tier-2 follow-on):
+  #   - Build still runs on EC2 (~1.2 GB peak). To move it off-box we'd
+  #     refactor to: build job uploads .next artifact → deploy job
+  #     downloads the artifact and just restarts the service. The
+  #     systemd MemoryHigh/Max limits on insighthub.service make the
+  #     build-on-prod blast radius bounded in the meantime.
   deploy:
     name: Deploy to EC2
     needs: e2e
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, insighthub-deploy]
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     environment: production
     steps:
       - uses: actions/checkout@v4
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ vars.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
       - name: Deploy
         run: |
-          EC2_USER="${{ vars.EC2_USER }}"
-          EC2_HOST="${{ vars.EC2_HOST }}"
+          set -e
           APP_DIR="${{ vars.APP_DIR }}"
           SITE_DOMAIN="${{ vars.SITE_DOMAIN }}"
           GIT_COMMIT="${{ github.sha }}"
 
-          echo "Deploying $GIT_COMMIT to $SITE_DOMAIN..."
+          echo "::group::Pre-flight"
+          echo "Deploying $GIT_COMMIT to $SITE_DOMAIN"
+          echo "Runner workspace: $(pwd)"
+          echo "Target APP_DIR:   $APP_DIR"
+          echo "::endgroup::"
 
-          # Pre-deploy backup
-          ssh $EC2_USER@$EC2_HOST "
-            mkdir -p $APP_DIR/backups &&
-            sqlite3 $APP_DIR/prisma/dev.db '.backup $APP_DIR/backups/pre-deploy-ci-$(date +%Y%m%d-%H%M%S).db' 2>/dev/null || true
-          "
+          echo "::group::Pre-deploy SQLite backup"
+          mkdir -p "$APP_DIR/backups"
+          sqlite3 "$APP_DIR/prisma/dev.db" \
+            ".backup $APP_DIR/backups/pre-deploy-ci-$(date +%Y%m%d-%H%M%S).db" 2>/dev/null \
+            || echo "(no DB to back up yet — first deploy?)"
+          ls -t "$APP_DIR/backups/" | head -5
+          echo "::endgroup::"
 
-          # Preserve previous build
-          ssh $EC2_USER@$EC2_HOST "
-            cd $APP_DIR &&
-            rm -rf .next-previous &&
-            cp -r .next .next-previous 2>/dev/null || true
-          "
+          echo "::group::Preserve previous build (rollback fallback)"
+          (cd "$APP_DIR" && rm -rf .next-previous && cp -r .next .next-previous 2>/dev/null || true)
+          echo "::endgroup::"
 
-          # Sync files
-          sudo apt-get update -qq && sudo apt-get install -y -qq rsync > /dev/null
+          echo "::group::Rsync code (runner workspace → APP_DIR)"
+          # Local rsync — runner and target are on the same box. We still
+          # preserve all the exclusions (don't clobber dev.db, .env.local,
+          # backups, the previous build, or any test artifacts).
           rsync -az --delete \
             --exclude '.git' --exclude 'node_modules' --exclude '.next' \
             --exclude '.next-previous' --exclude '.env.local' \
+            --exclude '.env.freshworks' \
             --exclude 'prisma/dev.db' --exclude 'prisma/dev.db-journal' \
             --exclude 'backups' --exclude 'e2e/test-results' \
             --exclude 'e2e/playwright-report' --exclude '.DS_Store' \
-            ./ $EC2_USER@$EC2_HOST:$APP_DIR/
+            ./ "$APP_DIR/"
+          echo "::endgroup::"
 
-          # Build and restart
-          ssh $EC2_USER@$EC2_HOST "
-            cd $APP_DIR &&
-            npm ci --production=false 2>&1 | tail -3 &&
-            DATABASE_URL='file:$APP_DIR/prisma/dev.db' npx prisma db push --accept-data-loss 2>&1 | tail -3 &&
-            GIT_COMMIT='$GIT_COMMIT' npm run build 2>&1 | tail -5 &&
-            cp -r public .next/standalone/public 2>/dev/null || true &&
-            cp -r .next/static .next/standalone/.next/static &&
-            cp -r glossary .next/standalone/glossary &&
-            cp -r prisma .next/standalone/prisma &&
-            ln -sf $APP_DIR/prisma/dev.db .next/standalone/prisma/dev.db 2>/dev/null || true &&
-            cp -r node_modules/.prisma .next/standalone/node_modules/.prisma 2>/dev/null || true &&
-            cp -r node_modules/@prisma .next/standalone/node_modules/@prisma 2>/dev/null || true &&
-            sudo systemctl set-environment GIT_COMMIT='$GIT_COMMIT' 2>/dev/null || true &&
-            sudo systemctl restart insighthub
-          "
+          echo "::group::npm ci + prisma + next build (in $APP_DIR)"
+          cd "$APP_DIR"
+          npm ci --production=false 2>&1 | tail -3
+          DATABASE_URL="file:$APP_DIR/prisma/dev.db" npx prisma db push --accept-data-loss 2>&1 | tail -3
+          GIT_COMMIT="$GIT_COMMIT" npm run build 2>&1 | tail -5
+          echo "::endgroup::"
 
-          # Health check with retry
+          echo "::group::Assemble standalone runtime"
+          cp -r public .next/standalone/public 2>/dev/null || true
+          cp -r .next/static .next/standalone/.next/static
+          cp -r glossary .next/standalone/glossary
+          cp -r prisma .next/standalone/prisma
+          ln -sf "$APP_DIR/prisma/dev.db" .next/standalone/prisma/dev.db 2>/dev/null || true
+          cp -r node_modules/.prisma .next/standalone/node_modules/.prisma 2>/dev/null || true
+          cp -r node_modules/@prisma .next/standalone/node_modules/@prisma 2>/dev/null || true
+          echo "::endgroup::"
+
+          echo "::group::Restart insighthub.service"
+          sudo systemctl set-environment GIT_COMMIT="$GIT_COMMIT" 2>/dev/null || true
+          sudo systemctl restart insighthub
+          echo "::endgroup::"
+
+          echo "::group::Health check (with retry)"
           sleep 5
           for i in 1 2 3 4 5; do
             if curl -sf --max-time 10 "https://$SITE_DOMAIN/api/health" > /dev/null; then
               echo "✅ Health check passed (attempt $i)"
-              echo "Deployed: https://$SITE_DOMAIN"
+              echo "Deployed: https://$SITE_DOMAIN ($GIT_COMMIT)"
               exit 0
             fi
-            echo "Attempt $i failed, retrying..."
+            echo "Attempt $i failed, retrying in 5s..."
             sleep 5
           done
+          echo "::endgroup::"
 
-          # Auto-rollback on failure
-          echo "❌ Health check failed — rolling back..."
-          ssh $EC2_USER@$EC2_HOST "
-            cd $APP_DIR &&
-            if [ -d .next-previous ]; then
-              rm -rf .next && mv .next-previous .next &&
-              sudo systemctl restart insighthub
-            fi
-          "
+          echo "::error::Health check failed after 5 attempts — rolling back"
+          cd "$APP_DIR"
+          if [ -d .next-previous ]; then
+            rm -rf .next && mv .next-previous .next
+            sudo systemctl restart insighthub
+            echo "::warning::Rollback complete — service restarted with previous build"
+          else
+            echo "::error::No previous build to roll back to"
+          fi
           exit 1
