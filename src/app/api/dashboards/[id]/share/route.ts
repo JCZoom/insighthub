@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db/prisma';
 import { getCurrentUser } from '@/lib/auth/session';
-import { logDashboardAction, AuditAction } from '@/lib/audit';
+import { logDashboardAction, AuditAction, auditedDelete, ResourceType } from '@/lib/audit';
 import { withRateLimit, dashboardRateLimiter } from '@/lib/rate-limiter';
 
 interface RouteContext {
@@ -90,6 +90,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       // Only owner or the user themselves can remove a share
       const dashboard = await prisma.dashboard.findFirst({
         where: { id, ownerId: user.id },
+        select: { id: true, title: true },
       });
 
       const isSelf = userId === user.id;
@@ -98,11 +99,28 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'Only the owner can remove shares' }, { status: 403 });
       }
 
-      await prisma.dashboardShare.deleteMany({
-        where: { dashboardId: id, userId },
+      // G-08: audit-before-delete. If the audit write fails, the delete is
+      // never attempted and the caller can retry — we never silently destroy
+      // a share row.
+      const result = await auditedDelete({
+        audit: {
+          userId: user.id,
+          action: AuditAction.DASHBOARD_UNSHARE,
+          resourceType: ResourceType.DASHBOARD,
+          resourceId: id,
+          metadata: {
+            dashboardTitle: dashboard?.title,
+            unsharedUserId: userId,
+            selfRemoval: isSelf,
+          },
+        },
+        execute: () =>
+          prisma.dashboardShare.deleteMany({
+            where: { dashboardId: id, userId },
+          }),
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, removed: result.count });
     } catch (error) {
       console.error('Remove share error:', error);
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

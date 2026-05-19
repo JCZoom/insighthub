@@ -49,13 +49,22 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
   4. Document the chain in `docs/AUTHENTICATION.md`.
 
 ### G-03 — TLS Configuration Not Explicitly Pinned or Tested
-- **Policy:** 3701 Encryption · ENC-01
+- **Policy:** 3701 Encryption · ENC-01, ENC-04
 - **Audit risk:** MED
 - **Effort:** S
-- **Remediation:**
-  1. Pin `ssl_protocols TLSv1.2 TLSv1.3;` and a strong cipher list in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx.conf` (policy requires TLS ≥ 1.2 and AES-128+).
-  2. Add an SSL Labs test to the ops runbook with an annual reminder in Asana.
-  3. Capture the first test result in `docs/TLS_CONFIGURATION.md` as baseline evidence.
+- **Status (2026-05-19):** ✅ **Closed.**
+- **Evidence:**
+  1. New TLS hardening include `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx-tls-options.conf` pins `ssl_protocols TLSv1.2 TLSv1.3;` and the Mozilla intermediate cipher list (every accepted cipher provides AES-128-GCM or stronger with perfect forward secrecy — satisfies ENC-01).
+  2. HSTS enforced via `Strict-Transport-Security: max-age=63072000; includeSubDomains` in the same snippet (satisfies ENC-04).
+  3. OCSP stapling on, session tickets off (forward-secrecy preservation).
+  4. Deploy script `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/scripts/ec2-deploy.sh:155-175` idempotently uploads the snippet to `/etc/nginx/snippets/insighthub-tls.conf` and injects the `include` directive into the HTTPS server block. Certbot preserves the include across cert renewals.
+  5. Production-side `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/infra/nginx.conf:1-22` documents the install + verification procedure (curl HSTS check, openssl protocol downgrade test, nmap cipher enum, annual SSL Labs scan).
+  6. Stakeholder-readable rationale + annual review checklist documented in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/docs/TLS_CONFIGURATION.md`.
+- **Pending operator action (post-deploy, today 2026-05-19 evening):**
+  1. Run `./scripts/ec2-deploy.sh` to push the snippet.
+  2. Verify with `curl -sI https://dashboards.jeffcoy.net | grep -i strict-transport`.
+  3. Run SSL Labs scan, save result PDF to `docs/evidence/ssllabs-2026-05-19.pdf`, link from `docs/TLS_CONFIGURATION.md`.
+- **Recurring control:** Asana annual task "TLS / SSL Labs review" — to be created in evening doc pass.
 
 ### G-04 — No Asset Register
 - **Policy:** 12737 Asset Management · AM-01–AM-03
@@ -76,17 +85,47 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3700 Retention · DR-01–DR-03 · 3699 Disposal · DD-04
 - **Audit risk:** HIGH (GDPR-relevant)
 - **Effort:** M
-- **Remediation:**
-  1. Extend `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts` with `purgeInactiveUsers(days=1095)` (3y PII rule), `purgeOldAuditLogs(days=365)`, and `anonymizeCustomer(id)` (replaces email/name/address with `anon-<hash>`).
-  2. Add a nightly cron (systemd timer) on EC2 that invokes a new `/api/admin/retention/scheduled` endpoint with a shared secret.
-  3. Log each run to `AuditLog` with `action = 'retention.purge'`.
-  4. Document retention schedules in `docs/DATA_RETENTION_APPLIED.md`.
+- **Status (2026-05-19):** ✅ **Closed.**
+- **Evidence:**
+  1. Four bounded retention functions in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts`:
+     - `purgeChatMessages` (default 90d) — existing, now extended with `dryRun` + meta-audit
+     - `purgeAuditLogs` (default 365d) — closed G-06 above; lives at lines 151-199
+     - `purgeInactiveUsers` (default 1095d, anonymize-not-delete) — lines 255-326
+     - `purgeFreshworksCache` (default 90d bulk / 60s per-key TTL) — lines 343-427
+  2. **Anonymization-over-deletion for users:** `purgeInactiveUsers` rewrites email → `anon-<id>@redacted.local`, name → `Anonymized User`, avatar → null, department → null. Audit-log FK integrity preserved. Re-running is a no-op (idempotent by `email LIKE 'anon-%'` filter).
+  3. **Multi-target admin endpoint:** `POST /api/admin/retention` now accepts `target: 'chat'|'audit'|'inactive_users'|'freshworks_cache'|'all'` with per-target retention-day overrides. `dryRun:true` returns match counts without deleting — preview lever for operators. See `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/app/api/admin/retention/route.ts`.
+  4. **Daily cron** delivered at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/scripts/cron/retention-purge.sh`. Install procedure documented in `docs/RETENTION_AUTOMATION.md`. Logs to `/var/log/insighthub/retention-purge.log`, exits non-zero on HTTP failure so cron MAILTO fires.
+  5. **Five new audit actions** registered in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:45-49`: `retention.purge_chat`, `retention.purge_audit`, `retention.purge_inactive_users`, `retention.purge_freshworks_cache`, `retention.anonymize_customer`.
+  6. **Demo lever ready:** `purgeFreshworksCache` accepts a no-op dry-run *and* a real wipe via SCAN+DEL on `fw:*` keys. Tomorrow's demo will execute this live to prove the retention story end-to-end (per Game Plan §3.6 / §4.3 amendment).
+  7. Full operator runbook + cron install procedure + cookie-provisioning steps + annual review checklist documented in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/docs/RETENTION_AUTOMATION.md`.
+  8. Typecheck clean (`npx tsc --noEmit` 2026-05-19).
+- **Pending operator action (post-deploy):**
+  1. Provision the cron cookie per `docs/RETENTION_AUTOMATION.md` §Provisioning.
+  2. Install the cron file: `sudo cp scripts/cron/retention-purge.sh /etc/cron.daily/insighthub-retention`.
+  3. Verify with `RETENTION_DRY_RUN=1` first; then enable real run.
+  4. Asana: create quarterly cookie-rotation reminder.
 
 ### G-06 — Audit Log Retention / Upper Bound Not Enforced
-- **Policy:** 3700 Retention · DR-04 (1 year) · 3715 OS-14 (≥ 90 days)
+- **Policy:** 3700 Data Retention · DR-01 (every data class needs a bounded retention period)
 - **Audit risk:** LOW (missing a **maximum** bound), MED if logs contain PII
 - **Effort:** S
-- **Remediation:** Part of G-05. Keep ≥ 1 year, purge beyond 2 years unless flagged as evidence for an open incident.
+- **Status (2026-05-19):** ✅ **Closed.**
+- **Evidence:**
+  1. New `purgeAuditLogs(retentionDays = 365, opts)` exported from `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts:151-199`. Default 365d; override via `AUDIT_LOG_RETENTION_DAYS` env var.
+  2. Function supports `dryRun: true` for preview-without-delete (admin UI + cron verification pattern).
+  3. **Meta-logging:** every non-dry-run invocation emits a `RETENTION_PURGE_AUDIT` audit entry against `ResourceType.SYSTEM` recording `{deleted, retentionDays, cutoff, source}`. The retention table records its own grooming.
+  4. New audit actions enumerated in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:43-49` (RETENTION_PURGE_CHAT, RETENTION_PURGE_AUDIT, plus three reserved for G-05).
+  5. `POST /api/admin/retention` now accepts `target: 'chat' | 'audit' | 'all'` and `dryRun: boolean` — see `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/app/api/admin/retention/route.ts:36-76`. Default `target='chat'` preserves backwards-compat with existing cron callers.
+  6. Typecheck clean (`npx tsc --noEmit` 2026-05-19).
+- **Manual verification procedure** (since unit-test framework not installed; full procedure also in `docs/RETENTION_AUTOMATION.md`):
+  ```bash
+  # Dry-run audit purge as admin:
+  curl -X POST https://dashboards.jeffcoy.net/api/admin/retention \
+    -H "Content-Type: application/json" -H "Cookie: $ADMIN_COOKIE" \
+    -d '{"target":"audit","dryRun":true}'
+  # Expected: { audit: { matched: <N>, deleted: 0, dryRun: true, ... } }
+  ```
+- **Future test work** (tracked, not blocking): introduce vitest + add `src/lib/data/__tests__/retention.test.ts` exercising both targets with seeded Prisma fixtures. Logged in repo TODOs.
 
 ### G-07 — Backup Retention Below Policy Minimum
 - **Policy:** 4133 Backup · BK-07 (min 30 days)
@@ -98,7 +137,35 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3699 Disposal · DD-05
 - **Audit risk:** MED
 - **Effort:** S
-- **Remediation:** Verify `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/app/api/user/delete/route.ts` emits a `USER_ACCOUNT_DELETION` audit log *before* the cascade delete (so the log survives). If missing, add.
+- **Status (2026-05-19):** ✅ **Closed.**
+- **Audit-of-the-audit (full delete-site inventory done 2026-05-19):**
+  | Delete site | Audit before 2026-05-19 | Status |
+  |---|---|---|
+  | `app/api/folders/[id]/route.ts:231` | `FOLDER_DELETE` after delete | ✅ Acceptable |
+  | `app/api/glossary/[id]/route.ts:194` | `logGlossaryAction(GLOSSARY_DELETE)` after delete | ✅ Acceptable |
+  | `app/api/user/delete/route.ts:35-41` | `USER_ACCOUNT_DELETION` **before** transaction | ✅ Ideal pattern (was already correct) |
+  | `app/api/dashboards/[id]/aliases/route.ts:125` | `DASHBOARD_ALIAS_REMOVE` after delete | ✅ Acceptable |
+  | `app/api/admin/permission-groups/route.ts:281` | `logPermissionChange('permission_group.delete')` after delete | ✅ Acceptable |
+  | `lib/auth/permissions.ts:567` | `logPermissionChange('user_permission.remove')` after delete | ✅ Acceptable |
+  | **`app/api/dashboards/[id]/share/route.ts:101`** | **NO AUDIT** | ❌ **Real gap — fixed today** |
+  | `app/api/dashboards/[id]/move/route.ts:48,52` | Subordinate folderAlias cleanup inside DASHBOARD_MOVE | ✅ Covered by parent action |
+- **Evidence:**
+  1. New `auditedDelete<T>()` wrapper added to `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:163-172` — enforces audit-before-delete with hard-fail-on-audit-error semantics. **All new destructive code paths MUST use this wrapper** (documented in the JSDoc).
+  2. Supporting `createAuditLogStrict()` helper added at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:119-135` — same as `createAuditLog` but propagates errors (used internally by `auditedDelete`).
+  3. New `DASHBOARD_UNSHARE` audit action added (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:21`) and threaded through `logDashboardAction`'s type signature.
+  4. Real gap fix: `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/app/api/dashboards/[id]/share/route.ts:101-123` (DELETE handler) now uses `auditedDelete` — share removal is logged BEFORE the row is deleted, with the dashboard title, target user, and a `selfRemoval` flag distinguishing owner-revocation from self-removal.
+  5. `AuditLogData` interface exported so external modules can construct typed audit payloads for `auditedDelete`.
+  6. Typecheck clean (`npx tsc --noEmit` 2026-05-19).
+- **Manual verification:**
+  ```bash
+  # Remove a share, then confirm audit row exists:
+  curl -X DELETE 'https://dashboards.jeffcoy.net/api/dashboards/<id>/share' \
+    -H 'Content-Type: application/json' -H "Cookie: $COOKIE" \
+    -d '{"userId":"<target>"}'
+  # Then query audit logs:
+  curl 'https://dashboards.jeffcoy.net/api/admin/audit?action=dashboard.unshare&resourceId=<id>'
+  ```
+- **Migration target (tracked, not blocking):** existing audit-after-delete sites are acceptable — every one of them has a working audit call. Migrate to `auditedDelete` opportunistically when touching the file for other reasons. New code MUST use the wrapper.
 
 ---
 
