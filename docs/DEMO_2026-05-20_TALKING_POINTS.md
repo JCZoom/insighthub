@@ -90,7 +90,25 @@ Open `/api/admin/audit?action=integration.freshworks.read&limit=20` and read 2-3
 
 Reference: `docs/FRESHWORKS_OPERATOR_RUNBOOK.md`.
 
-### 2g. The forward path to Snowflake (2 min)
+### 2g. Live build: Freshworks data inside the dashboard builder (3 min)
+
+> "The static `/demo/freshworks-suite` page you just saw was the contract test — a controlled environment that proves the connector layer works end-to-end. The real proof for an operator is: can a non-engineer build a dashboard against Freshworks data themselves, with the same controls applied automatically? Yes. Let me show you."
+
+Open `/dashboard/new` (or any existing dashboard in edit mode), click "Add Widget", switch to the **Data** tab, open the **Data Source** dropdown.
+
+> "Here are all 17 Freshworks suite sources — Freshsales (CRM), Freshdesk (support), Freshcaller (voice), Freshchat (messaging) — sitting alongside the sample-data sources. They appear here only because the per-product API key is configured on this server; if `FRESHCALLER_API_KEY` were missing, those entries would be omitted entirely."
+
+Pick `Freshsales Pipeline Value`. Set widget type to KPI Card. Set aggregation to Sum on field `pipeline_value`. Save.
+
+> "That widget is now hitting the Freshsales API live, with the same 60-second cache, the same `integration.freshworks.read` audit log entry, the same `CUSTOMER_CONFIDENTIAL` classification badge, and the same role-based masking we just demonstrated. The dashboard layer is unaware that this widget points at Freshworks instead of sample data — the connector layer handles every compliance-relevant detail."
+
+Open `/admin/audit?action=integration.freshworks.read&limit=5` in a second tab. Show the audit row from the widget render that just happened.
+
+> "RBAC enforcement is identical to any other source. A VIEWER without Sales-category access doesn't see Freshsales sources in this dropdown at all, and a direct API call from their session returns 403 with an audit entry."
+
+Reference: commit `4f46a0e` (`feat(builder): wire Freshworks suite into the dashboard builder`).
+
+### 2h. The forward path to Snowflake (2 min)
 
 > "What you just saw is the proof you asked me for. Freshworks data is more sensitive than what Snowflake will hold today (Freshchat alone has full message bodies). We're handling it correctly — classification, masking, audit, retention, token isolation, rate limiting, per-product blast-radius bounds."
 

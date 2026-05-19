@@ -54,6 +54,12 @@
 
 - [ ] **`12-rbac-403.png`** — VIEWER attempts to load an admin-only page (e.g. `/admin/users` or `/admin/audit`). Capture the 403 / "not authorized" UI page (or the network tab's 403 response). Demonstrates middleware-layer RBAC.
 
+### Live-build inside dashboard builder (from talking-points §2g)
+
+- [ ] **`13-builder-source-dropdown.png`** — Dashboard builder, **Data** tab open on a new widget, the data source dropdown expanded so all 17 Freshworks suite entries (`Freshsales *`, `Freshdesk *`, `Freshcaller *`, `Freshchat *`) are visible alongside the sample sources. Tightest evidence that the catalog merge worked.
+- [ ] **`14-builder-freshworks-widget-rendered.png`** — A widget you just configured pointing at e.g. `Freshsales Pipeline Value` with the live KPI value rendered. Capture the widget body + the classification badge + the value.
+- [ ] **`15-builder-audit-fired.png`** — `/admin/audit?action=integration.freshworks.read&limit=5` showing the row that fired when the widget above rendered. Take this **immediately after** capture 14 so the timestamp lines up.
+
 ---
 
 ## After capture
@@ -80,3 +86,6 @@ Don't burn time. Note the gap here, fall back to a verbal description during the
 |  | 10-retention-dryrun-response.png | |
 |  | 11-retention-purge-audit.png | |
 |  | 12-rbac-403.png | |
+|  | 13-builder-source-dropdown.png | |
+|  | 14-builder-freshworks-widget-rendered.png | |
+|  | 15-builder-audit-fired.png | |
