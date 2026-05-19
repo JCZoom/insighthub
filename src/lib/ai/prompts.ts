@@ -80,6 +80,172 @@ const DATA_SOURCES: DataSource[] = [
 - source (text: 'inbound', 'outbound', 'referral', 'partner')
 - region (text), created_at (date), closed_at (date, nullable), owner (text)`,
     permissionLevel: 'sensitive'
+  },
+  // ── Live Freshworks Integration Sources ─────────────────────────────────
+  // CUSTOMER_CONFIDENTIAL classification (per freshworks-data-provider.ts).
+  // These are LIVE, server-filtered sources — the source name itself encodes
+  // the time scope ("today", "recent", "active", "overdue", "open"). Do NOT
+  // add a created_at / updated_at filter on top — the source IS the filter.
+  // Prefer these over sample_* sources whenever the user mentions Freshworks,
+  // Freshsales, Freshdesk, Freshcaller, Freshchat, phone calls, live tickets,
+  // current pipeline, today's activity, or any real-time / right-now phrasing.
+  // ── Freshsales (live CRM) ────────────────────────────────────────────────
+  {
+    name: 'freshsales_pipeline_value',
+    description: `### freshsales_pipeline_value (LIVE Freshsales)
+- Single-row KPI: { value (number, USD), label (text) }
+- Returns the summed amount of all currently OPEN deals.
+- Time scope: live snapshot of open pipeline (server-filtered). Do NOT add a filter.
+- Best widget: kpi_card.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshsales_open_deal_count',
+    description: `### freshsales_open_deal_count (LIVE Freshsales)
+- Single-row KPI: { value (int), label (text) }
+- Count of currently OPEN deals (server-filtered).
+- Time scope: live snapshot. Do NOT add a filter.
+- Best widget: kpi_card.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshsales_deals_by_stage',
+    description: `### freshsales_deals_by_stage (LIVE Freshsales)
+- Rows: { stage (text), count (int) }, sorted by count desc.
+- Distribution of recent deals across pipeline stages (Prospect, Qualified, …, Won, Lost).
+- Time scope: most recent 100 deals across all stages. Do NOT add a filter.
+- Best widgets: bar_chart, pie_chart, donut_chart, funnel.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshsales_top_deals',
+    description: `### freshsales_top_deals (LIVE Freshsales)
+- Rows: { id (text), name (text), amount (number), stage (text), primary_contact (text), expected_close (text) }
+- Top 10 OPEN deals by amount.
+- Time scope: live snapshot. Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshsales_contacts_recent',
+    description: `### freshsales_contacts_recent (LIVE Freshsales)
+- Rows: { id (text), name (text), email (text), phone (text) }
+- 25 most recently updated contacts.
+- Time scope: recent activity (server-sorted). Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshsales_accounts_recent',
+    description: `### freshsales_accounts_recent (LIVE Freshsales)
+- Rows: { id (text), name (text), website (text), phone (text) }
+- 25 most recently updated accounts.
+- Time scope: recent activity. Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
+  },
+  // ── Freshdesk (live support tickets) ─────────────────────────────────────
+  {
+    name: 'freshdesk_open_ticket_count',
+    description: `### freshdesk_open_ticket_count (LIVE Freshdesk)
+- Single-row KPI: { value (int), label (text) }
+- Count of currently OPEN tickets (server-filtered).
+- Time scope: live snapshot. Do NOT add a status or created_at filter — server already filters open.
+- Best widget: kpi_card.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshdesk_overdue_ticket_count',
+    description: `### freshdesk_overdue_ticket_count (LIVE Freshdesk)
+- Single-row KPI: { value (int), label (text) }
+- Count of currently OVERDUE tickets (server-filtered).
+- Time scope: live snapshot. Do NOT add a filter.
+- Best widget: kpi_card.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshdesk_tickets_by_status',
+    description: `### freshdesk_tickets_by_status (LIVE Freshdesk)
+- Rows: { status (text), count (int) }, sorted by count desc.
+- Distribution of recent tickets by status (Open, Pending, Resolved, Closed, …).
+- Time scope: most recent 100 tickets. Do NOT add a filter.
+- Best widgets: bar_chart, pie_chart, donut_chart.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshdesk_recent_tickets',
+    description: `### freshdesk_recent_tickets (LIVE Freshdesk)
+- Rows: { id (number), subject (text), status (text), requester_email (text), due_by (text), updated_at (text) }
+- 10 most recently updated tickets (any status).
+- Time scope: recent activity (server-sorted). Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshdesk_agents',
+    description: `### freshdesk_agents (LIVE Freshdesk)
+- Rows: { id (number), name (text), email (text), available (text) }
+- Up to 50 support agents and their availability.
+- Time scope: live snapshot. Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
+  },
+  // ── Freshcaller (live voice / phone calls) ───────────────────────────────
+  {
+    name: 'freshcaller_calls_today',
+    description: `### freshcaller_calls_today (LIVE Freshcaller)
+- Single-row KPI: { value (int), label (text) }
+- Count of calls placed/received TODAY (UTC). Server-filtered to today.
+- Time scope: TODAY (UTC) — the source IS the filter. Do NOT add a created_at filter.
+- Use this whenever the user asks about "today's calls", "calls today", "today's phone activity", etc.
+- Best widget: kpi_card.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshcaller_calls_by_status',
+    description: `### freshcaller_calls_by_status (LIVE Freshcaller)
+- Rows: { status (text), count (int) }, sorted by count desc.
+- Distribution of recent calls by status (Completed, Missed, Ended, …).
+- Time scope: most recent 100 calls. Do NOT add a filter.
+- Best widgets: bar_chart, pie_chart, donut_chart.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshcaller_recent_calls',
+    description: `### freshcaller_recent_calls (LIVE Freshcaller)
+- Rows: { id (text), phone_number (text), status (text), duration_s (number), created_at (text) }
+- 10 most recent calls.
+- Time scope: recent activity (server-sorted). Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
+  },
+  // ── Freshchat (live customer messaging) ──────────────────────────────────
+  {
+    name: 'freshchat_active_conversations',
+    description: `### freshchat_active_conversations (LIVE Freshchat)
+- Single-row KPI: { value (int), label (text) }
+- Count of currently ACTIVE conversations (status = new or assigned). Server-filtered.
+- Time scope: live snapshot. Do NOT add a filter.
+- Best widget: kpi_card.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshchat_conversations_by_status',
+    description: `### freshchat_conversations_by_status (LIVE Freshchat)
+- Rows: { status (text), count (int) }, sorted by count desc.
+- Distribution of recent conversations by status.
+- Time scope: most recent 100 conversations. Do NOT add a filter.
+- Best widgets: bar_chart, pie_chart, donut_chart.`,
+    permissionLevel: 'sensitive'
+  },
+  {
+    name: 'freshchat_recent_conversations',
+    description: `### freshchat_recent_conversations (LIVE Freshchat)
+- Rows: { conversation_id (text), status (text), channel_id (text), assigned_agent_id (text), updated_time (text) }
+- 10 most recently updated conversations.
+- Time scope: recent activity (server-sorted). Do NOT add a filter.
+- Best widget: table.`,
+    permissionLevel: 'sensitive'
   }
 ];
 
@@ -182,6 +348,14 @@ ALWAYS use these pre-computed sources and their EXACT field names. Do NOT invent
 ### kpi_summary (for kpi_card widgets — single-row aggregate)
 Fields: total_customers, active_customers, mrr, arr, churn_rate, nrr, grr, gross_revenue_retention, avg_csat, open_tickets, avg_frt_minutes, pipeline_value, win_rate, avg_deal_size
 Example: \`{ "source": "kpi_summary", "aggregation": { "function": "avg", "field": "churn_rate" } }\`
+
+**Aggregation function allowlist (CRITICAL):** \`aggregation.function\` MUST be exactly one of:
+\`sum\`, \`avg\`, \`count\`, \`count_distinct\`, \`min\`, \`max\`, \`first\`, \`last\`, \`median\`.
+Do NOT emit \`"custom"\`, \`undefined\`, \`null\`, or any other value — those are rejected by the verifier
+and will cause the widget to render without data. For LIVE Freshworks KPI sources
+(\`freshcaller_calls_today\`, \`freshsales_pipeline_value\`, \`freshsales_open_deal_count\`,
+\`freshdesk_open_ticket_count\`, \`freshdesk_overdue_ticket_count\`, \`freshchat_active_conversations\`)
+the source already returns a single \`value\` row, so omit \`aggregation\` entirely OR use \`{ "function": "first", "field": "value" }\`.
 
 ### churn_by_month (monthly churn series)
 Fields: month, churn_rate, churned, active_start

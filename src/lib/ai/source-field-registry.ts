@@ -52,6 +52,56 @@ export const SOURCE_FIELD_REGISTRY: Record<string, string[]> = {
     'month', 'automated_savings', 'human_cost', 'total_cost',
     'conversations_automated',
   ],
+  // ── Raw sample tables (used by the AI builder via dataConfig.source) ────
+  // Field lists are the source of truth from src/lib/ai/prompts.ts § DATA_SOURCES.
+  sample_tickets: [
+    'id', 'customer_id', 'subject', 'category', 'priority', 'status', 'channel',
+    'created_at', 'resolved_at', 'first_response_minutes', 'satisfaction_score',
+    'agent', 'team',
+  ],
+  sample_subscriptions: [
+    'id', 'customer_id', 'plan', 'status', 'start_date', 'end_date',
+    'monthly_amount', 'add_ons',
+  ],
+  sample_usage: ['id', 'customer_id', 'feature', 'usage_count', 'usage_date'],
+  sample_customers: [
+    'id', 'name', 'email', 'company', 'plan', 'region', 'signup_date',
+    'cancelled_date', 'monthly_revenue', 'account_manager',
+  ],
+  sample_revenue: [
+    'id', 'customer_id', 'event_type', 'amount', 'event_date',
+    'plan_from', 'plan_to',
+  ],
+  sample_deals: [
+    'id', 'company', 'contact', 'stage', 'amount', 'probability', 'source',
+    'region', 'created_at', 'closed_at', 'owner',
+  ],
+  // ── Live Freshworks sources (CUSTOMER_CONFIDENTIAL) ────────────────────
+  // Field shapes are the source of truth from
+  // src/lib/data/freshworks-data-provider.ts (each method's `columns` array).
+  // ── Freshsales ─────────────────────────────────────────────────────────
+  freshsales_deals_by_stage: ['stage', 'count'],
+  freshsales_open_deal_count: ['value', 'label'],
+  freshsales_pipeline_value: ['value', 'label'],
+  freshsales_top_deals: ['id', 'name', 'amount', 'stage', 'primary_contact', 'expected_close'],
+  freshsales_contacts_recent: ['id', 'name', 'email', 'phone'],
+  freshsales_accounts_recent: ['id', 'name', 'website', 'phone'],
+  // ── Freshdesk ──────────────────────────────────────────────────────────
+  freshdesk_tickets_by_status: ['status', 'count'],
+  freshdesk_open_ticket_count: ['value', 'label'],
+  freshdesk_overdue_ticket_count: ['value', 'label'],
+  freshdesk_recent_tickets: ['id', 'subject', 'status', 'requester_email', 'due_by', 'updated_at'],
+  freshdesk_agents: ['id', 'name', 'email', 'available'],
+  // ── Freshcaller ────────────────────────────────────────────────────────
+  freshcaller_calls_today: ['value', 'label'],
+  freshcaller_calls_by_status: ['status', 'count'],
+  freshcaller_recent_calls: ['id', 'phone_number', 'status', 'duration_s', 'created_at'],
+  // ── Freshchat ──────────────────────────────────────────────────────────
+  freshchat_active_conversations: ['value', 'label'],
+  freshchat_conversations_by_status: ['status', 'count'],
+  freshchat_recent_conversations: [
+    'conversation_id', 'status', 'channel_id', 'assigned_agent_id', 'updated_time',
+  ],
 };
 
 // ── Valid Enums ────────────────────────────────────────────
@@ -63,8 +113,11 @@ export const VALID_WIDGET_TYPES = [
   'image', 'divider', 'map',
 ] as const;
 
+// Keep this in sync with the allowlist published in src/lib/ai/prompts.ts —
+// the prompt tells the LLM exactly these names, and D-06 enforces them.
 export const VALID_AGGREGATION_FUNCTIONS = [
-  'sum', 'avg', 'count', 'count_distinct', 'min', 'max', 'median', 'percentile',
+  'sum', 'avg', 'count', 'count_distinct', 'min', 'max',
+  'first', 'last', 'median', 'percentile',
 ] as const;
 
 /** Widget types that don't display data (no dataConfig verification needed) */
