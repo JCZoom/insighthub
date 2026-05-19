@@ -1,8 +1,22 @@
 #!/bin/bash
 # Deploy InsightHub to EC2 via Tailscale SSH
 #
+# ╔═══════════════════════════════════════════════════════════════════════╗
+# ║  DEPRECATED as the primary deploy path — 2026-05-19 (Track B Phase 1) ║
+# ║                                                                       ║
+# ║  Use ./deploy-ci.sh instead. It triggers the CI-driven pipeline,      ║
+# ║  approves the production-environment gate from the terminal, and      ║
+# ║  produces an audit log row pinned to the github.sha.                  ║
+# ║                                                                       ║
+# ║  This script is kept as a BREAK-GLASS fallback for the case where     ║
+# ║  GitHub Actions is unreachable (provider outage, runner offline)      ║
+# ║  AND production must be redeployed urgently. Using it bypasses CI     ║
+# ║  gates and the environment-approval audit trail, so document any      ║
+# ║  break-glass use in docs/INCIDENT_RESPONSE_RUNBOOK.md.                ║
+# ╚═══════════════════════════════════════════════════════════════════════╝
+#
 # Usage:
-#   ./deploy.sh                  # Normal deploy
+#   ./deploy.sh                  # Normal deploy (deprecated — use deploy-ci.sh)
 #   ./deploy.sh --skip-backup    # Skip pre-deploy DB backup
 #   ./deploy.sh --rollback       # Rollback to previous deploy
 #
@@ -11,6 +25,30 @@
 #   - SSH access to jeffreycoy@autoqa
 #
 set -euo pipefail
+
+# ── Break-glass acknowledgement ────────────────────────────────────────────
+# Make break-glass usage visible in the operator's terminal so it can't be
+# done by accident. Set SKIP_DEPRECATION_NOTICE=1 to suppress (e.g. when
+# this script is invoked from a wrapper that already enforces logging).
+if [[ "${SKIP_DEPRECATION_NOTICE:-0}" != "1" ]]; then
+    cat >&2 <<'BANNER'
+
+⚠ DEPRECATED PATH — this script bypasses CI and the production-environment
+  approval gate. The canonical deploy is ./deploy-ci.sh.
+
+  Continue only if GitHub Actions is unreachable AND prod must be
+  redeployed urgently. Document the reason in
+  docs/INCIDENT_RESPONSE_RUNBOOK.md after the deploy.
+
+BANNER
+    printf "  Type 'break-glass' to continue, anything else to abort: " >&2
+    read -r ack
+    if [[ "$ack" != "break-glass" ]]; then
+        echo "  aborted — run ./deploy-ci.sh instead" >&2
+        exit 0
+    fi
+    echo "" >&2
+fi
 
 EC2_USER="jeffreycoy"
 EC2_HOST="autoqa"
