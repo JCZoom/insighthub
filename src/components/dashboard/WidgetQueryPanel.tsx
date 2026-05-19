@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { WidgetConfig } from '@/types';
 import { queryDataSync } from '@/lib/data/sample-data';
+import { useWidgetData } from '@/hooks/useWidgetData';
 import { X, Copy, Check, Code2, Database, Table2, Clock, ChevronDown, ChevronUp, Download, BookOpen, ExternalLink } from 'lucide-react';
 import { Tooltip } from '@/components/ui/Tooltip';
 
@@ -82,17 +83,6 @@ function generateSQL(widget: WidgetConfig): string {
   return sql;
 }
 
-/** Generate a stable "last refreshed" timestamp based on widget id hash */
-function getLastRefreshed(widgetId: string): Date {
-  let hash = 0;
-  for (let i = 0; i < widgetId.length; i++) {
-    hash = ((hash << 5) - hash) + widgetId.charCodeAt(i);
-    hash |= 0;
-  }
-  const minutesAgo = Math.abs(hash % 180); // 0-180 minutes ago
-  return new Date(Date.now() - minutesAgo * 60 * 1000);
-}
-
 function getFreshnessColor(date: Date): string {
   const hoursAgo = (Date.now() - date.getTime()) / (1000 * 60 * 60);
   if (hoursAgo < 1) return 'text-accent-green';
@@ -117,7 +107,13 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
   const [showGlossary, setShowGlossary] = useState(false);
 
   const sql = useMemo(() => generateSQL(widget), [widget]);
-  const lastRefreshed = useMemo(() => getLastRefreshed(widget.id), [widget.id]);
+  // Honest freshness: read the real fetched_at from the same hook the
+  // widget renderer uses (deduplicates with the widget's own fetch via
+  // the shared client cache). Null while loading or on error.
+  const { fetchedAt: lastRefreshed, fromCache } = useWidgetData(
+    widget.dataConfig.source || '',
+    widget.dataConfig.groupBy,
+  );
 
   const dataResult = useMemo(() => {
     try {
@@ -212,7 +208,8 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
     router.push('/data/playground?import=widget');
   };
 
-  const freshnessColor = getFreshnessColor(lastRefreshed);
+  // Truth-by-default: only color/format when we have a real timestamp.
+  const freshnessColor = lastRefreshed ? getFreshnessColor(lastRefreshed) : 'text-[var(--text-muted)]';
 
   return (
     <>
@@ -262,10 +259,14 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
                 <div className="flex items-center gap-1 justify-end mb-1">
                   <Clock size={10} className={freshnessColor} />
                   <span className={`text-[10px] font-medium ${freshnessColor}`}>
-                    {formatTimeAgo(lastRefreshed)}
+                    {lastRefreshed ? formatTimeAgo(lastRefreshed) : 'unknown'}
                   </span>
                 </div>
-                <p className="text-[9px] text-[var(--text-muted)]">Last refreshed</p>
+                <p className="text-[9px] text-[var(--text-muted)]">
+                  {lastRefreshed
+                    ? `Fetched ${lastRefreshed.toLocaleString()}${fromCache === true ? ' (cached)' : ''}`
+                    : 'No fetch timestamp available'}
+                </p>
               </div>
             </div>
           </div>
@@ -466,4 +467,7 @@ export function WidgetQueryPanel({ widget, onClose }: WidgetQueryPanelProps) {
   );
 }
 
-export { generateSQL, getLastRefreshed, getFreshnessColor, formatTimeAgo };
+// `getLastRefreshed` was removed (2026-05-19): it returned a hash-fabricated
+// timestamp from widget id. The real fetched_at now flows through
+// useWidgetData. See DataFreshness for the truth-by-default consumer.
+export { generateSQL, getFreshnessColor, formatTimeAgo };

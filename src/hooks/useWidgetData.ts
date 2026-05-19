@@ -39,6 +39,10 @@ import { isFreshworksSource } from '@/lib/data/freshworks-sources';
 interface CacheEntry {
   data: Record<string, unknown>[];
   ts: number;
+  /** Server-asserted fetched_at (ISO) — honest as-of for the freshness widget. */
+  fetchedAt: Date | null;
+  /** Server-asserted: was THIS request served from a server-side cache. */
+  fromCache: boolean | null;
 }
 
 const CACHE = new Map<string, CacheEntry>();
@@ -48,6 +52,20 @@ export interface UseWidgetDataResult {
   data: Record<string, unknown>[];
   loading: boolean;
   error: string | null;
+  /**
+   * Honest "as-of" timestamp for the data. For Freshworks sources this is
+   * the server-side response time of the API call; for sample-data sources
+   * it is the local fetch time. Null when no fetch has completed (initial
+   * loading state). The DataFreshness widget renders only when this is set
+   * — we never fabricate a timestamp.
+   */
+  fetchedAt: Date | null;
+  /**
+   * True when the underlying API response was served from the server-side
+   * cache layer. Sample-data path is always `false` (no cache there).
+   * Surfaced in the DataFreshness tooltip for transparency.
+   */
+  fromCache: boolean | null;
 }
 
 export function useWidgetData(
@@ -62,27 +80,41 @@ export function useWidgetData(
   // generator so the widget renders immediately with no loading flash.
   // For Freshworks sources, start in loading state.
   const [state, setState] = useState<UseWidgetDataResult>(() => {
-    if (!source) return { data: [], loading: false, error: null };
+    if (!source) {
+      return { data: [], loading: false, error: null, fetchedAt: null, fromCache: null };
+    }
     if (!isFreshworksSource(source)) {
       try {
         const result = queryDataSync(source, groupBy);
-        return { data: result.data || [], loading: false, error: null };
+        return {
+          data: result.data || [],
+          loading: false,
+          error: null,
+          fetchedAt: new Date(),
+          fromCache: false,
+        };
       } catch {
-        return { data: [], loading: false, error: null };
+        return { data: [], loading: false, error: null, fetchedAt: null, fromCache: null };
       }
     }
     // Freshworks: check cache before declaring loading=true.
     const cacheKey = `${source}|${groupByKey}|${limit ?? ''}`;
     const cached = CACHE.get(cacheKey);
     if (cached && Date.now() - cached.ts < TTL_MS) {
-      return { data: cached.data, loading: false, error: null };
+      return {
+        data: cached.data,
+        loading: false,
+        error: null,
+        fetchedAt: cached.fetchedAt,
+        fromCache: cached.fromCache,
+      };
     }
-    return { data: [], loading: true, error: null };
+    return { data: [], loading: true, error: null, fetchedAt: null, fromCache: null };
   });
 
   useEffect(() => {
     if (!source) {
-      setState({ data: [], loading: false, error: null });
+      setState({ data: [], loading: false, error: null, fetchedAt: null, fromCache: null });
       return;
     }
 
@@ -90,12 +122,20 @@ export function useWidgetData(
     if (!isFreshworks) {
       try {
         const result = queryDataSync(source, groupBy);
-        setState({ data: result.data || [], loading: false, error: null });
+        setState({
+          data: result.data || [],
+          loading: false,
+          error: null,
+          fetchedAt: new Date(),
+          fromCache: false,
+        });
       } catch (err) {
         setState({
           data: [],
           loading: false,
           error: err instanceof Error ? err.message : 'Sample-data query failed',
+          fetchedAt: null,
+          fromCache: null,
         });
       }
       return;
@@ -105,11 +145,23 @@ export function useWidgetData(
     const cacheKey = `${source}|${groupByKey}|${limit ?? ''}`;
     const cached = CACHE.get(cacheKey);
     if (cached && Date.now() - cached.ts < TTL_MS) {
-      setState({ data: cached.data, loading: false, error: null });
+      setState({
+        data: cached.data,
+        loading: false,
+        error: null,
+        fetchedAt: cached.fetchedAt,
+        fromCache: cached.fromCache,
+      });
       return;
     }
 
-    setState((s) => ({ data: s.data, loading: true, error: null }));
+    setState((s) => ({
+      data: s.data,
+      loading: true,
+      error: null,
+      fetchedAt: s.fetchedAt,
+      fromCache: s.fromCache,
+    }));
     let cancelled = false;
 
     fetch('/api/data/query', {
@@ -121,11 +173,20 @@ export function useWidgetData(
         if (res.ok) return res.json();
         return res.text().then((t) => Promise.reject(new Error(`HTTP ${res.status}: ${t.slice(0, 200)}`)));
       })
-      .then((result: { data?: Record<string, unknown>[] }) => {
+      .then((result: {
+        data?: Record<string, unknown>[];
+        fetched_at?: string;
+        fromCache?: boolean;
+      }) => {
         if (cancelled) return;
         const rows = result.data || [];
-        CACHE.set(cacheKey, { data: rows, ts: Date.now() });
-        setState({ data: rows, loading: false, error: null });
+        // Parse the server-asserted fetched_at honestly. If the API didn't
+        // send one (older deploy, error path), fall back to current time —
+        // that is the moment we received the data, which is still honest.
+        const fetchedAt = result.fetched_at ? new Date(result.fetched_at) : new Date();
+        const fromCache = typeof result.fromCache === 'boolean' ? result.fromCache : null;
+        CACHE.set(cacheKey, { data: rows, ts: Date.now(), fetchedAt, fromCache });
+        setState({ data: rows, loading: false, error: null, fetchedAt, fromCache });
       })
       .catch((err: Error) => {
         if (cancelled) return;
@@ -133,6 +194,8 @@ export function useWidgetData(
           data: [],
           loading: false,
           error: err.message || 'Query failed',
+          fetchedAt: null,
+          fromCache: null,
         });
       });
 

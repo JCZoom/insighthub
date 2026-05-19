@@ -1129,7 +1129,7 @@ export function DashboardCanvas({ onToggleLibrary, isLibraryOpen, onToggleGlossa
                 {/* Data transparency footer: freshness badge + query icon (always on hover) */}
                 {widget.type !== 'text_block' && widget.type !== 'divider' && (
                   <div data-export-ignore="true" className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-[var(--bg-card)]/90 to-transparent rounded-b-xl">
-                    <DataFreshness widgetId={widget.id} />
+                    <DataFreshness source={widget.dataConfig.source || ''} groupBy={widget.dataConfig.groupBy} />
                     <Tooltip content="View query & data">
                       <button
                         onClick={(e) => { e.stopPropagation(); setQueryPanelWidget(widget); }}

@@ -277,11 +277,14 @@ export class FreshworksDataProvider {
   // with the reason in a tooltip — transparency over fabrication.
   //
   // Capability summary (verified against vendor API docs 2026-05-19):
-  //   - Freshcaller listCalls() supports `from=<ISO date>`  → PoP IS computable
-  //   - Freshdesk   listTickets() supports `updated_since`  → computable but
-  //     requires multi-call orchestration + `include=stats`; deferred (G-FW-PoP-2)
-  //   - Freshchat   listConversations() has NO date filter  → NOT computable
-  //   - Freshsales  listDeals() has NO date filter          → NOT computable
+  //   - Freshcaller listCalls() supports `from=<ISO date>`        → IMPLEMENTED
+  //     (callsToday)
+  //   - Freshdesk   listTickets() supports `updated_since` +
+  //                 `include=stats` for stats.resolved_at          → IMPLEMENTED
+  //     via fetchTicketsForPoP / wasTicketOpenAt / wasTicketOverdueAt
+  //     (openTicketCount, overdueTicketCount)
+  //   - Freshchat   listConversations() has NO date filter         → NOT computable
+  //   - Freshsales  listDeals() has NO date filter                 → NOT computable
   //
   // For sources where PoP is not computable from a single REST call, we set
   // `comparison_unavailable_reason` to a specific phrase. The long-term fix is
@@ -289,8 +292,6 @@ export class FreshworksDataProvider {
   // G-FW-PoP-1 in docs/AI_DASHBOARD_BUILDER_FINDINGS_2026-05-19.md.
   private static readonly POP_REASON_NO_DATE_FILTER =
     'Source API has no date filter — historical snapshot table required for honest PoP.';
-  private static readonly POP_REASON_NEEDS_MULTI_CALL =
-    'Honest PoP requires include=stats + wider updated_since window — not yet wired.';
 
   private static async openDealCount(
     userId: string,
@@ -444,6 +445,96 @@ export class FreshworksDataProvider {
     return listTickets(userId, role, { limit: 100, include: 'requester' });
   }
 
+  /**
+   * Honest dataset for open/overdue ticket PoP.
+   *
+   * Returns the dedup-merge of two API calls:
+   *   1. listTickets({ limit: 100, include: 'stats' }) — most-recently-updated
+   *      window, gives us currently-open tickets that have any activity.
+   *   2. listTickets({ limit: 100, include: 'stats', updated_since: T-PERIOD })
+   *      — wider catch-net for tickets resolved within the comparison
+   *      window (we need their `stats.resolved_at` to know whether they
+   *      were still open at T-PERIOD).
+   *
+   * `include=stats` is the critical addition over `fetchTickets()` — it
+   * gives us `stats.resolved_at` per ticket, which is the only honest way
+   * to know "was this ticket open at T-PERIOD".
+   *
+   * Known approximation: a currently-open ticket that has had NO activity
+   * in either window will not appear in the merged set (and therefore
+   * undercounts the "open at T-PERIOD" tally). This is rare for live
+   * support workflows but is recorded honestly via
+   * `comparison_unavailable_reason` when the response hits the API row cap.
+   *
+   * Per-API-call cost: 2 round-trips, but each is a separate cache key
+   * with the standard 60-s server TTL. A typical dashboard view triggers
+   * 0 fetches after warm-up.
+   */
+  private static async fetchTicketsForPoP(
+    userId: string,
+    role: UserRole,
+    periodMs: number
+  ): Promise<{
+    tickets: FreshdeskTicket[];
+    /** True when either underlying call hit the 100-row cap (PoP may be incomplete). */
+    possiblyTruncated: boolean;
+    /** Cutoff used for "open at T-PERIOD" calculations. */
+    cutoff: Date;
+  }> {
+    const cutoff = new Date(Date.now() - periodMs);
+    const cutoffIso = cutoff.toISOString();
+    const FW_LIMIT = 100;
+    const [recentSlice, periodSlice] = await Promise.all([
+      listTickets(userId, role, { limit: FW_LIMIT, include: 'stats' }),
+      listTickets(userId, role, { limit: FW_LIMIT, include: 'stats', updatedSince: cutoffIso }),
+    ]);
+    const byId = new Map<number, FreshdeskTicket>();
+    for (const t of [...recentSlice, ...periodSlice]) {
+      if (typeof t.id === 'number') byId.set(t.id, t);
+    }
+    const possiblyTruncated = recentSlice.length >= FW_LIMIT || periodSlice.length >= FW_LIMIT;
+    return { tickets: Array.from(byId.values()), possiblyTruncated, cutoff };
+  }
+
+  /**
+   * Was this ticket open at the cutoff timestamp? Honest predicate:
+   *   - Must have been created before the cutoff (ticket existed)
+   *   - AND either currently open, OR resolved AFTER the cutoff
+   *     (i.e. its resolved_at > cutoff implies it WAS still open at cutoff).
+   *
+   * Returns null if we don't have enough info to decide honestly (no
+   * created_at, or resolved-status ticket without stats.resolved_at).
+   * Callers should treat null as "exclude from count" rather than guess.
+   */
+  private static wasTicketOpenAt(t: FreshdeskTicket, cutoff: Date): boolean | null {
+    if (!t.created_at) return null;
+    const createdMs = new Date(t.created_at).getTime();
+    if (!Number.isFinite(createdMs)) return null;
+    if (createdMs >= cutoff.getTime()) return false; // didn't exist yet
+    if (ticketIsOpen(t)) return true; // still open today, was created before cutoff
+    // Currently resolved/closed: need resolved_at from stats.
+    const stats = (t as { stats?: { resolved_at?: string | null } }).stats;
+    const resolvedAtRaw = stats?.resolved_at;
+    if (!resolvedAtRaw) return null; // can't decide honestly
+    const resolvedMs = new Date(resolvedAtRaw).getTime();
+    if (!Number.isFinite(resolvedMs)) return null;
+    return resolvedMs > cutoff.getTime();
+  }
+
+  /**
+   * Was this ticket overdue at the cutoff timestamp?
+   *   = was open at cutoff AND its due_by was before the cutoff
+   * Returns null when underlying open-state cannot be honestly determined.
+   */
+  private static wasTicketOverdueAt(t: FreshdeskTicket, cutoff: Date): boolean | null {
+    const wasOpen = this.wasTicketOpenAt(t, cutoff);
+    if (wasOpen !== true) return wasOpen; // false or null pass through
+    if (!t.due_by) return false;
+    const dueMs = new Date(t.due_by).getTime();
+    if (!Number.isFinite(dueMs)) return null;
+    return dueMs < cutoff.getTime();
+  }
+
   private static async ticketsByStatus(
     userId: string,
     role: UserRole,
@@ -469,20 +560,52 @@ export class FreshworksDataProvider {
     );
   }
 
+  /**
+   * Open ticket count — current value with HONEST 7-day-ago PoP.
+   *
+   * Uses fetchTicketsForPoP() to get the merged dataset (recent activity +
+   * 7d window with stats). Computes:
+   *   - value          = currently-open tickets in the merged set
+   *   - previous_value = tickets that WERE open at cutoff = T-7d, derived
+   *                      from wasTicketOpenAt() (uses stats.resolved_at)
+   *
+   * If either underlying API call hit the 100-row cap, the historical
+   * count may be incomplete — we degrade to previous_value: null with a
+   * specific reason rather than show a partially-correct number.
+   */
   private static async openTicketCount(
     userId: string,
     role: UserRole,
     start: number
   ): Promise<FreshworksProviderResult> {
-    const tickets = await this.fetchTickets(userId, role);
-    const open = tickets.filter((t) => ticketIsOpen(t));
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const { tickets, possiblyTruncated, cutoff } = await this.fetchTicketsForPoP(
+      userId,
+      role,
+      SEVEN_DAYS_MS
+    );
+    const currentlyOpen = tickets.filter((t) => ticketIsOpen(t)).length;
+    let openAtCutoff = 0;
+    let undecidable = 0;
+    for (const t of tickets) {
+      const verdict = this.wasTicketOpenAt(t, cutoff);
+      if (verdict === true) openAtCutoff += 1;
+      else if (verdict === null) undecidable += 1;
+    }
+    const popHonest = !possiblyTruncated && undecidable === 0;
+    const reason = possiblyTruncated
+      ? 'API window at 100-row cap on at least one underlying call — historical open count may be incomplete; paginate before trusting PoP.'
+      : undecidable > 0
+        ? `${undecidable} ticket(s) lacked stats.resolved_at — historical open count cannot be derived honestly without complete stats.`
+        : null;
+
     return this.finish(
       [{
-        value: open.length,
+        value: currentlyOpen,
         label: 'Open tickets',
-        previous_value: null,
-        comparison_label: null,
-        comparison_unavailable_reason: this.POP_REASON_NEEDS_MULTI_CALL,
+        previous_value: popHonest ? openAtCutoff : null,
+        comparison_label: popHonest ? 'vs 7 days ago' : null,
+        comparison_unavailable_reason: reason,
       }],
       [
         { name: 'value', type: 'number' },
@@ -496,21 +619,49 @@ export class FreshworksDataProvider {
     );
   }
 
+  /**
+   * Overdue ticket count — current value with HONEST 7-day-ago PoP.
+   *
+   * Same merged dataset as openTicketCount(). "Overdue at T-7d" requires
+   * the ticket was both OPEN at T-7d (wasTicketOpenAt) AND its due_by was
+   * already in the past at T-7d (wasTicketOverdueAt). When either
+   * predicate is undecidable for a row, we exclude it from the count and
+   * surface the underlying limitation through `comparison_unavailable_reason`.
+   */
   private static async overdueTicketCount(
     userId: string,
     role: UserRole,
     start: number
   ): Promise<FreshworksProviderResult> {
-    const tickets = await this.fetchTickets(userId, role);
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const { tickets, possiblyTruncated, cutoff } = await this.fetchTicketsForPoP(
+      userId,
+      role,
+      SEVEN_DAYS_MS
+    );
     const now = new Date();
-    const overdue = tickets.filter((t) => ticketIsOverdue(t, now));
+    const currentlyOverdue = tickets.filter((t) => ticketIsOverdue(t, now)).length;
+    let overdueAtCutoff = 0;
+    let undecidable = 0;
+    for (const t of tickets) {
+      const verdict = this.wasTicketOverdueAt(t, cutoff);
+      if (verdict === true) overdueAtCutoff += 1;
+      else if (verdict === null) undecidable += 1;
+    }
+    const popHonest = !possiblyTruncated && undecidable === 0;
+    const reason = possiblyTruncated
+      ? 'API window at 100-row cap on at least one underlying call — historical overdue count may be incomplete; paginate before trusting PoP.'
+      : undecidable > 0
+        ? `${undecidable} ticket(s) lacked stats.resolved_at or a parseable due_by — historical overdue count cannot be derived honestly.`
+        : null;
+
     return this.finish(
       [{
-        value: overdue.length,
+        value: currentlyOverdue,
         label: 'Overdue tickets',
-        previous_value: null,
-        comparison_label: null,
-        comparison_unavailable_reason: this.POP_REASON_NEEDS_MULTI_CALL,
+        previous_value: popHonest ? overdueAtCutoff : null,
+        comparison_label: popHonest ? 'vs 7 days ago' : null,
+        comparison_unavailable_reason: reason,
       }],
       [
         { name: 'value', type: 'number' },

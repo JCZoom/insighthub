@@ -158,7 +158,11 @@ export async function POST(request: NextRequest) {
     result.data = await applyFilteredAccess(result.data, source, user);
     result.data = await stripPiiFields(result.data, user);
 
-    // Include access level information in response for frontend awareness
+    // Include access level information in response for frontend awareness.
+    // `fetched_at` is the moment the response is being generated — i.e. when
+    // the dashboard actually received this row set. The DataFreshness widget
+    // uses this for honest "as-of" timestamps; never fabricate one if absent.
+    // (Truth-by-default freshness, paired with the KpiCard PoP rebuild.)
     const response = {
       data: result.data,
       columns: result.columns.map(col => col.name), // Legacy compatibility
@@ -168,7 +172,8 @@ export async function POST(request: NextRequest) {
       fromCache: result.fromCache,
       dataSource: result.dataSource,
       totalRows: result.totalRows,
-      appliedPolicies: result.appliedPolicies
+      appliedPolicies: result.appliedPolicies,
+      fetched_at: new Date().toISOString(),
     };
 
     return NextResponse.json(response);
