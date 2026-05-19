@@ -154,6 +154,26 @@ echo "  ✓ Systemd service configured"
 
 # 9. Create/update Nginx config
 echo "[9/9] Setting up Nginx config..."
+
+# 9a. Always upload the TLS hardening snippet (G-03, policy 3701).
+# Lives in /etc/nginx/snippets/insighthub-tls.conf and is `include`-d by
+# the HTTPS server block. Idempotent — overwrites cleanly on every deploy.
+echo "  Uploading TLS hardening snippet..."
+ssh "$EC2_HOST" "sudo mkdir -p /etc/nginx/snippets"
+scp -q infra/nginx-tls-options.conf "$EC2_HOST:/tmp/insighthub-tls.conf"
+ssh "$EC2_HOST" "sudo mv /tmp/insighthub-tls.conf /etc/nginx/snippets/insighthub-tls.conf && sudo chmod 644 /etc/nginx/snippets/insighthub-tls.conf"
+
+# 9b. Ensure the HTTPS server block (if Certbot has run) references the snippet.
+# Idempotent — only inserts the include line if it's not already there.
+if ssh "$EC2_HOST" "grep -q 'listen 443' /etc/nginx/sites-available/insighthub.conf 2>/dev/null"; then
+    if ! ssh "$EC2_HOST" "grep -q 'insighthub-tls.conf' /etc/nginx/sites-available/insighthub.conf"; then
+        echo "  Injecting TLS snippet include into HTTPS server block..."
+        ssh "$EC2_HOST" "sudo sed -i '/listen 443/a\\    include /etc/nginx/snippets/insighthub-tls.conf;' /etc/nginx/sites-available/insighthub.conf"
+    else
+        echo "  ✓ TLS snippet already included in HTTPS block"
+    fi
+fi
+
 if ssh "$EC2_HOST" "grep -q 'managed by Certbot' /etc/nginx/sites-available/insighthub.conf 2>/dev/null"; then
     echo "  ✓ Nginx config has Certbot SSL — preserving"
 else
