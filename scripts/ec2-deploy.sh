@@ -159,6 +159,32 @@ EnvironmentFile=-$APP_DIR/.env.freshworks
 Environment=NODE_ENV=production
 Environment=PORT=$PORT
 Environment=DATABASE_URL=file:$APP_DIR/prisma/dev.db
+# Memory hardening (added 2026-05-19 after OOM-kill investigation).
+# Baseline measured on this host: production Next.js (standalone) uses
+# ~90MB RSS, peaks ~141MB. The 2026-05-15 OOM that crashed the box was
+# a rogue 1.77GB Node process (almost certainly an `npm run dev`
+# launched via SSH session and forgotten) — NOT this service.
+#
+# Three layers of defence stacked here:
+#  1. --max-old-space-size=512  V8 garbage-collects aggressively before
+#     hitting the systemd ceiling. Cleanest failure mode (heap-exhaustion
+#     exception inside Node, not a hard kill).
+#  2. MemoryHigh=512M           Soft cap — kernel throttles allocations
+#     above this. Service stays alive, just slower. Buys time for an
+#     operator (or the runtime itself) to react.
+#  3. MemoryMax=768M            Hard cap — systemd OOM-kills the unit
+#     above this. Restart=always brings it back within RestartSec=5.
+#     The KEY benefit: a runaway Node process can no longer eat the
+#     whole 4GB box and force a sysadmin console-reset. The blast
+#     radius is now bounded to InsightHub itself.
+#  Plus OOMScoreAdjust=-100     If the KERNEL ever has to choose a victim
+#     under global memory pressure, prefer killing the rogue co-tenant
+#     (gunicorn workers, or a stray `npm run dev`) before this service.
+Environment=NODE_OPTIONS=--max-old-space-size=512
+MemoryAccounting=yes
+MemoryHigh=512M
+MemoryMax=768M
+OOMScoreAdjust=-100
 ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js
 Restart=always
 RestartSec=5
