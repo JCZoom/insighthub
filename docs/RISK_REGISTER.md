@@ -4,7 +4,7 @@
 > **Gap closed:** G-34 (from `docs/COMPLIANCE_GAPS.md`).
 > **Review cadence:** Quarterly (synchronized with Asset Register).
 > **Owner:** Jeff Coy (technical) + JD Gershan (policy-level).
-> **Last reviewed:** 2026-05-19 (Tier-1 closures G-02/G-03/G-05/G-06/G-08; R-041/R-042 added for Freshsales onboarding)
+> **Last reviewed:** 2026-05-19 (Tier-1 closures G-02/G-03/G-05/G-06/G-08; Freshworks suite onboarding: R-041/R-042 for Freshsales, R-043 Freshdesk, R-044 Freshcaller, R-045 Freshchat, R-046 suite-wide DPA gap)
 > **Next review due:** 2026-07-24
 
 ## How this register works
@@ -102,6 +102,10 @@ Each row references the corresponding gap in `docs/COMPLIANCE_GAPS.md` (`G-NN`) 
 | **R-040** | Prompt injection against Claude system prompt — flagged by red-team as low but not zero | 3 | 3 | **9** | Mitigate (input sanitization already partial) | Jeff Coy | Monitoring | 6 | Red-team H-4 | 2026-04-24 |
 | **R-041** | Freshsales API token compromise → unauthorized read/write of USZoom CRM tenant (full PII, deals, chat content) | 5 | 2 | **10** | Mitigate | Jeff Coy | Open | 4 (after `.env.freshworks` isolation, rotation cadence, and G-36 closure) | G-36 (token storage), SVC-14 (vendor) | 2026-05-19 |
 | **R-042** | Freshsales PII exposure via stale Redis cache or unintended retention extension | 4 | 1 | **4** | Mitigate (60s per-key TTL + 90d bulk purge + audit-logged manual purge) | Jeff Coy | Monitoring | 4 | G-05 closure provides the lever | 2026-05-19 |
+| **R-043** | Freshdesk API key compromise → unauthorized read/write of USZoom support tenant (tickets, conversations, full requester PII). HIGHER read-volume than Freshsales — bigger PII footprint per compromised hour. | 5 | 2 | **10** | Mitigate | Jeff Coy | Open | 4 (after `.env.freshworks` isolation + rotation cadence + G-36 closure) | G-36, SVC-15 | 2026-05-19 |
+| **R-044** | Freshcaller API key compromise → access to call records + voicemail transcripts + signed recording URLs. Recordings are voice PII — distinct legal exposure class. | 5 | 2 | **10** | Mitigate | Jeff Coy | Open | 4 (post-rotation + G-36); recordings themselves stay at vendor so blast radius is bounded to URL access duration | G-36, SVC-16 | 2026-05-19 |
+| **R-045** | Freshchat API token compromise → access to every customer-agent chat in tenant, including message bodies that may contain SSN/account/address. HIGHEST PII density in the suite. | 5 | 2 | **10** | Mitigate (mask-by-default for VIEWER/CREATOR + audit-logged unmask override + 60s cache TTL) | Jeff Coy | Open | 3 (post-rotation + G-36; the always-on masking provides defence-in-depth even if token leaks) | G-36, SVC-17 | 2026-05-19 |
+| **R-046** | Freshworks-suite DPA not formally executed at onboarding — Jeff's direct judgment authority unblocked technical access but legal coverage is provisional pending the addendum requested by 2026-05-22 | 3 | 3 | **9** | Mitigate (Jeff to email Freshworks account team by 2026-05-22; track in Asana) | JD Gershan | Open | 3 (once DPA addendum is countersigned and stored in `docs/evidence/`) | G-26 | 2026-05-19 |
 
 ---
 

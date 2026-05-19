@@ -4,7 +4,7 @@
 > **Gap closed:** G-04 (from `docs/COMPLIANCE_GAPS.md`).
 > **Review cadence:** Quarterly.
 > **Owner of this register:** Jeff Coy (technical implementation) / JD Gershan (policy compliance per USZoom policy 3713).
-> **Last reviewed:** 2026-05-19 (Freshsales CRM integration added; INFO-24/25/26, SVC-14)
+> **Last reviewed:** 2026-05-19 (Freshworks suite integration: Freshsales + Freshdesk + Freshcaller + Freshchat; INFO-24/25/26 + INFO-27..33, SVC-14..17)
 > **Next review due:** 2026-07-24
 
 ## How to read this register
@@ -58,8 +58,15 @@ Policy 12737 requires every asset used to store, process, or transmit informatio
 | INFO-22 | Overnight-build and session logs | UC | Jeff Coy | Repo `logs/` + `docs/` | Active | Development records. Some contain internal architecture details. |
 | INFO-23 | Compliance documentation (this register, matrix, gaps, etc.) | UC | Jeff Coy | Repo `docs/` | Active | Governed by USZoom policy 3710 Control of Documented Information. |
 | INFO-24 | Freshsales API token (`FRESHSALES_API_KEY`) | CC | Jeff Coy | INFO-07 (dev `.env.local`); EC2 `/opt/insighthub/.env.freshworks` (prod, isolated file per G-36 partial-mitigation) | Active | Grants read/write access to USZoom Freshsales tenant including contacts, deals, chat content. Rotated on compromise; quarterly rotation cadence to be set in Asana. Never logged. |
-| INFO-25 | Cached Freshsales CRM records (Redis) | CC | Jeff Coy | EC2 Redis under key prefix `fw:*` | Active | 60-second per-key TTL; 90-day bulk-purge window. Wiped via `purgeFreshworksCache()` (see `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts:343-427`). Audit-logged on purge. |
+| INFO-25 | Cached Freshsales CRM records (Redis) | CC | Jeff Coy | EC2 Redis under key prefix `fw-sales:*` | Active | 60-second per-key TTL; 90-day bulk-purge window. Wiped via `flushAllFreshworksCaches()` (see `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/integrations/freshworks/shared/cache.ts`). Audit-logged on purge. |
 | INFO-26 | Freshsales-derived dashboards & widgets (e.g. `Sales Pipeline — Live`) | CC | Jeff Coy | INFO-01 (`Dashboard` table) | Active | Auto-tagged `CUSTOMER_CONFIDENTIAL` at creation (G-01 default). Downgrade requires ADMIN role. |
+| INFO-27 | Freshdesk API key (`FRESHDESK_API_KEY`) | CC | Jeff Coy | INFO-07 (dev `.env.local`); EC2 `/opt/insighthub/.env.freshworks` (prod, isolated) | Active | Grants read/write access to USZoom Freshdesk tenant including tickets, conversations, agent details. HTTP-Basic auth header (`key:X` base64-encoded). Never logged. |
+| INFO-28 | Cached Freshdesk records (Redis) | CC | Jeff Coy | EC2 Redis under key prefix `fw-desk:*` | Active | 60-second per-key TTL. Wiped via `flushAllFreshworksCaches()` (suite-wide flush) or `flushProductCache('freshdesk')`. Audit-logged on purge. |
+| INFO-29 | Freshcaller API key (`FRESHCALLER_API_KEY`) | CC | Jeff Coy | INFO-07; EC2 `/opt/insighthub/.env.freshworks` | Active | Grants read access to call records (phone numbers, durations, voicemail transcripts, recording URLs). Uses non-standard `X-Api-Auth` header. Never logged. |
+| INFO-30 | Cached Freshcaller records (Redis) | CC | Jeff Coy | EC2 Redis under key prefix `fw-call:*` | Active | 60-second per-key TTL. Recording URLs are signed and time-limited at the vendor but still treated as CC. |
+| INFO-31 | Freshchat API token (`FRESHCHAT_API_KEY`) | CC | Jeff Coy | INFO-07; EC2 `/opt/insighthub/.env.freshworks` | Active | Bearer token granting read access to USZoom Freshchat tenant. Message bodies = highest PII density in the suite (may contain SSN/account numbers/addresses). Never logged. |
+| INFO-32 | Cached Freshchat records (Redis) | CC | Jeff Coy | EC2 Redis under key prefix `fw-chat:*` | Active | 60-second per-key TTL. Per-message text content auto-masked for VIEWER/CREATOR roles before caching is even reached (mask happens post-fetch, pre-render). |
+| INFO-33 | Freshworks-derived dashboards & widgets (Suite demo + future product widgets) | CC | Jeff Coy | INFO-01 (`Dashboard` table) | Active | All Freshworks-sourced widgets auto-tagged `CUSTOMER_CONFIDENTIAL`. Spans the entire suite (Freshsales / Freshdesk / Freshcaller / Freshchat). |
 
 ---
 
@@ -111,6 +118,9 @@ Policy 12737 requires every asset used to store, process, or transmit informatio
 | SVC-12 | CloudWatch (observability — planned) | UC | Included with SVC-01 | Jeff Coy | Planned | Enablement tracked under G-21. |
 | SVC-13 | AWS Secrets Manager (planned) | CC | Included with SVC-01 | Jeff Coy | Planned | Enablement tracked under G-36. |
 | SVC-14 | Freshsales / Freshworks Inc. (CRM) | CC (contacts, deals, chat content — full PII) | SOC 2 Type II, ISO 27001 (current — verify before annual review) | Jeff Coy | Active | Onboarded 2026-05-19 as proof-point for Snowflake gating decision. Activated without formal DPA review — Jeff has direct judgment authority on this tenant; DPA review still required for vendor register (G-26). Replaceable with HubSpot or Salesforce. Data egress: customer-export API. |
+| SVC-15 | Freshdesk / Freshworks Inc. (support) | CC (tickets, conversations, agent details — full PII) | Inherits Freshworks Inc. SOC 2 / ISO 27001 attestations | Jeff Coy | Active | Onboarded 2026-05-19. Same tenant umbrella as Freshsales but separate API + key. Highest-volume read source for support analytics. Replaceable with Zendesk or HelpScout. |
+| SVC-16 | Freshcaller / Freshworks Inc. (voice) | CC (call records, voicemails, recordings — full PII) | Inherits Freshworks Inc. SOC 2 / ISO 27001 attestations | Jeff Coy | Active | Onboarded 2026-05-19. Uses tenant `ipostal1-support.freshcaller.com` (distinct subdomain from sales / desk). Voice recordings stored at vendor; we hold only signed URLs in cache. Replaceable with Aircall or Dialpad. |
+| SVC-17 | Freshchat / Freshworks Inc. (messaging) | CC (live-chat conversations and message bodies — full PII; HIGHEST density) | Inherits Freshworks Inc. SOC 2 / ISO 27001 attestations | Jeff Coy | Active | Onboarded 2026-05-19. Bearer-auth via global `api.freshchat.com` endpoint. Per-message text auto-masked for VIEWER/CREATOR; unmask requires audit-logged admin override. Replaceable with Intercom or Drift. |
 
 ---
 
