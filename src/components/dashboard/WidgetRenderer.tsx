@@ -1,7 +1,7 @@
 'use client';
 
 import type { WidgetConfig } from '@/types';
-import { queryDataSync } from '@/lib/data/sample-data';
+import { useWidgetData } from '@/hooks/useWidgetData';
 import { KpiCard } from '@/components/widgets/KpiCard';
 import { LineChartWidget } from '@/components/widgets/LineChartWidget';
 import { BarChartWidget } from '@/components/widgets/BarChartWidget';
@@ -52,12 +52,45 @@ export function WidgetRenderer({ config: rawConfig, onDetailClick, onExplainMetr
   };
   const source = config.dataConfig.source || '';
 
-  let data: Record<string, unknown>[] = [];
-  try {
-    const result = queryDataSync(source, config.dataConfig.groupBy);
-    data = sanitizeData(result.data);
-  } catch (err) {
-    console.warn(`[WidgetRenderer] queryData failed for source="${source}":`, err);
+  // Fetch widget data via the unified provider router.
+  // Sample-data sources resolve synchronously (no flash for the >60 widgets
+  // that already work). Freshworks sources fetch asynchronously through
+  // /api/data/query, which routes them to FreshworksDataProvider with full
+  // cache + audit + classification + RBAC.
+  const { data: rawData, loading, error } = useWidgetData(
+    source,
+    config.dataConfig.groupBy,
+    config.dataConfig.limit,
+  );
+  const data = sanitizeData(rawData);
+
+  // Loading state — only shown when a Freshworks source is in flight (sample
+  // sources never enter loading). Match the "no data" card visually so the
+  // dashboard layout doesn't jump when data arrives.
+  if (loading && data.length === 0 && config.type !== 'text_block' && config.type !== 'divider') {
+    const minH = MIN_WIDGET_HEIGHTS[config.type] || MIN_WIDGET_HEIGHTS.kpi_card;
+    return (
+      <div
+        className="card p-4 h-full flex flex-col items-center justify-center text-center gap-2 animate-pulse"
+        style={{ minHeight: `${minH}px` }}
+      >
+        <p className="text-xs font-medium text-[var(--text-primary)]">{config.title}</p>
+        <p className="text-[10px] text-[var(--text-muted)]">Loading live data…</p>
+      </div>
+    );
+  }
+
+  // Error state — show a clear message rather than an empty/broken chart.
+  // Same layout footprint as the "no data" card so dashboards don't reflow
+  // when an error transitions to data or vice-versa.
+  if (error && data.length === 0 && config.type !== 'text_block' && config.type !== 'divider') {
+    return (
+      <div className="card p-4 h-full flex flex-col items-center justify-center text-center gap-1">
+        <p className="text-xs font-medium text-[var(--text-primary)]">{config.title}</p>
+        <p className="text-[10px] text-amber-600">Could not load data for &ldquo;{source}&rdquo;</p>
+        <p className="text-[10px] text-[var(--text-muted)]">{error}</p>
+      </div>
+    );
   }
 
   // If the AI referenced a data source we don't have sample data for,
