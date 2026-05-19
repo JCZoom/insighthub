@@ -5,17 +5,17 @@
 
 | Metric | Count |
 |--------|-------|
-| Total tasks | 196 |
+| Total tasks | 200 |
 | Completed tasks | 147 |
 | Total subtasks | 549 |
-| Completed subtasks | 361 |
-| **Overall progress** | **508/745 (68%)** |
+| Completed subtasks | 366 |
+| **Overall progress** | **513/749 (68%)** |
 
 ---
 
 # InsightHub — Asana Project Summary
 
-> Generated: 2026-04-25 13:33:02
+> Generated: 2026-05-19 11:51:15
 > Project GID: 1214122597260827
 > [View in Asana](https://app.asana.com/0/1214122597260827)
 
@@ -129,6 +129,10 @@
 
 ## 🔐 Auth & Security
 
+- [ ] **📝 DPA addendum follow-up with Freshworks (one-shot)** (due 2026-05-22)
+- [ ] **👥 Quarterly access review (recurring 90d)** (due 2026-08-19)
+- [ ] **🔑 Quarterly Freshworks API key rotation (4 products — recurring 90d)** (due 2026-08-19)
+- [ ] **🔒 Annual TLS / SSL Labs review (recurring yearly)** (due 2026-05-22)
 - [x] **🔴 Red Team Security Assessment — Static Code Analysis Report**
 - [ ] **🔴 Red Team Security Hardening — Audit Findings Remediation**
   - [ ] ℹ️ INFO-04: Rename dev.db to insighthub.db in production
@@ -235,13 +239,13 @@
   - [ ] [G-11] [T2 · LOW · L] Separate privileged vs general admin accounts (document accepted risk)
   - [ ] [G-10] [T2 · MED · M] Automated offboarding via Google Admin SDK sync
   - [ ] [G-09] [T2 · MED-HIGH · S] Quarterly access review tooling + repeating Asana task
-  - [ ] [G-08] [T1 · MED · S] Log USER_ACCOUNT_DELETION audit event before cascade delete
+  - [x] [G-08] [T1 · MED · S] Log USER_ACCOUNT_DELETION audit event before cascade delete
   - [x] [G-07] [T1 · MED · S] Bump backup retention from 14 to 30 days (or accept + document)
-  - [ ] [G-06] [T1 · LOW · S] Enforce audit log retention upper bound (1-2 years)
-  - [ ] [G-05] [T1 · HIGH · M] Automated PII retention/anonymization + nightly retention cron
+  - [x] [G-06] [T1 · LOW · S] Enforce audit log retention upper bound (1-2 years)
+  - [x] [G-05] [T1 · HIGH · M] Automated PII retention/anonymization + nightly retention cron
   - [x] [G-04] [T1 · HIGH · M] Build central Asset Register (docs/ASSET_REGISTER.md) + quarterly review
-  - [ ] [G-03] [T1 · MED · S] Pin TLS 1.2/1.3 in Nginx + annual SSL Labs test
-  - [ ] [G-02] [T1 · HIGH · M] Enforce MFA at the application layer (amr claim check + hardware factor for privileged)
+  - [x] [G-03] [T1 · MED · S] Pin TLS 1.2/1.3 in Nginx + annual SSL Labs test
+  - [x] [G-02] [T1 · HIGH · M] Enforce MFA at the application layer (amr claim check + hardware factor for privileged)
   - [ ] [G-01] [T1 · HIGH · M] Wire Data Classification into schema + UI
 
 ## 🤖 AI & Chat System
