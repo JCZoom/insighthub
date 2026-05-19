@@ -59,6 +59,7 @@ import {
 } from '@/lib/integrations/freshworks';
 import type { SessionUser } from '@/lib/auth/session';
 import type { UserRole } from '@/lib/integrations/freshworks';
+import { FRESHWORKS_SOURCES } from './freshworks-sources';
 
 // Same shape as SnowflakeDataProvider produces, for drop-in compatibility.
 export interface FreshworksProviderResult {
@@ -74,50 +75,23 @@ export interface FreshworksProviderResult {
 }
 
 // ── Registered demo sources ──────────────────────────────────────────────────
+//
+// The canonical list and the pure name-based helpers
+// (`isFreshworksSource`, `listFreshworksSources`, `sourceProduct`,
+// `FreshworksSource`) live in `freshworks-sources.ts` so they are
+// safe to import from client components without dragging the
+// integration clients (and their `ioredis` dependency) into the
+// browser bundle. We re-export them here so all existing server-side
+// imports (`@/lib/data/freshworks-data-provider`) keep working
+// untouched.
 
-const FRESHWORKS_SOURCES = [
-  // Freshsales
-  'freshsales_deals_by_stage',
-  'freshsales_open_deal_count',
-  'freshsales_pipeline_value',
-  'freshsales_top_deals',
-  'freshsales_contacts_recent',
-  'freshsales_accounts_recent',
-  // Freshdesk
-  'freshdesk_tickets_by_status',
-  'freshdesk_open_ticket_count',
-  'freshdesk_overdue_ticket_count',
-  'freshdesk_recent_tickets',
-  'freshdesk_agents',
-  // Freshcaller
-  'freshcaller_calls_today',
-  'freshcaller_calls_by_status',
-  'freshcaller_recent_calls',
-  // Freshchat
-  'freshchat_active_conversations',
-  'freshchat_conversations_by_status',
-  'freshchat_recent_conversations',
-] as const;
-
-export type FreshworksSource = (typeof FRESHWORKS_SOURCES)[number];
-
-export function isFreshworksSource(name: string): name is FreshworksSource {
-  return (FRESHWORKS_SOURCES as readonly string[]).includes(name);
-}
-
-export function listFreshworksSources(): readonly FreshworksSource[] {
-  return FRESHWORKS_SOURCES;
-}
-
-/** Which Freshworks product owns this source name (for routing + UI tabs). */
-export function sourceProduct(name: FreshworksSource): 'freshsales' | 'freshdesk' | 'freshcaller' | 'freshchat' {
-  if (name.startsWith('freshsales_')) return 'freshsales';
-  if (name.startsWith('freshdesk_')) return 'freshdesk';
-  if (name.startsWith('freshcaller_')) return 'freshcaller';
-  if (name.startsWith('freshchat_')) return 'freshchat';
-  // Unreachable given the literal-union type, but defensive.
-  throw new Error(`Cannot determine product for source: ${name}`);
-}
+export {
+  FRESHWORKS_SOURCES,
+  isFreshworksSource,
+  listFreshworksSources,
+  sourceProduct,
+} from './freshworks-sources';
+export type { FreshworksSource } from './freshworks-sources';
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 

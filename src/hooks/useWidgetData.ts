@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { queryDataSync } from '@/lib/data/sample-data';
-import { isFreshworksSource } from '@/lib/data/freshworks-data-provider';
+import { isFreshworksSource } from '@/lib/data/freshworks-sources';
 
 /**
  * useWidgetData — fetch widget rows from the right data provider.

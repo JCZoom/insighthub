@@ -14,7 +14,13 @@ if (
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverExternalPackages: ["@prisma/client"],
+  // `ioredis` pulls in Node built-ins (`dns`, `fs`, `net`, `tls`) at module
+  // load. Turbopack would otherwise try to statically bundle it for App
+  // Routes and Server Components, which fails because those built-ins are
+  // not resolvable as packages. Marking it external delegates resolution to
+  // Node's native `require` at runtime, where the built-ins are available.
+  // See `docs/MEMORY_HARDENING_CRASH_COURSE.md` for the broader cache story.
+  serverExternalPackages: ["@prisma/client", "ioredis"],
   allowedDevOrigins: ["127.0.0.1", "localhost"],
 };
 
