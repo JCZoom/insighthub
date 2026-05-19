@@ -123,6 +123,33 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     example: '5000',
     validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0; },
   },
+  // Freshsales / Freshworks CRM integration (G-01, G-05, R-041, V-01).
+  // Lives in `.env.local` for dev; on production EC2 these should be loaded
+  // from `/opt/insighthub/.env.freshworks` (a separate file with mode 0600,
+  // never copied via scp). See `docs/FRESHWORKS_OPERATOR_RUNBOOK.md`.
+  FRESHSALES_API_KEY: {
+    required: false,
+    description: 'Freshsales API token (Freshworks CRM). Stored CC; never logged.',
+    example: 'YOUR_FRESHSALES_API_TOKEN',
+  },
+  FRESHSALES_DOMAIN: {
+    required: false,
+    description: 'Freshsales tenant domain, e.g. uszoom.myfreshworks.com (no scheme, no trailing slash).',
+    example: 'uszoom.myfreshworks.com',
+    validate: (v) => !v.includes('://') && !v.endsWith('/'),
+  },
+  FRESHSALES_CACHE_TTL_SECONDS: {
+    required: false,
+    description: 'Redis cache TTL for Freshsales responses (default: 60). Bounded retention per policy 3700 DR-01.',
+    example: '60',
+    validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0 && n <= 3600; },
+  },
+  FRESHSALES_RATE_LIMIT_PER_MIN: {
+    required: false,
+    description: 'Max Freshsales API calls per minute from InsightHub (default: 60; Freshsales free tier is 100/min).',
+    example: '60',
+    validate: (v) => { const n = parseInt(v, 10); return !isNaN(n) && n > 0 && n <= 100; },
+  },
 } as const;
 
 // ── Validation ────────────────────────────────────────────
@@ -240,6 +267,12 @@ export const env = {
   VERIFY_INTEGRITY_AI_ENABLED: process.env.VERIFY_INTEGRITY_AI_ENABLED !== 'false',
   VERIFY_INTEGRITY_CONFIDENCE_THRESHOLD: parseFloat(process.env.VERIFY_INTEGRITY_CONFIDENCE_THRESHOLD || '0.70'),
   VERIFY_INTEGRITY_TIMEOUT_MS: parseInt(process.env.VERIFY_INTEGRITY_TIMEOUT_MS || '5000', 10),
+  FRESHSALES_API_KEY: process.env.FRESHSALES_API_KEY || '',
+  FRESHSALES_DOMAIN: process.env.FRESHSALES_DOMAIN || '',
+  FRESHSALES_CACHE_TTL_SECONDS: parseInt(process.env.FRESHSALES_CACHE_TTL_SECONDS || '60', 10),
+  FRESHSALES_RATE_LIMIT_PER_MIN: parseInt(process.env.FRESHSALES_RATE_LIMIT_PER_MIN || '60', 10),
+  FRESHSALES_CONFIGURED:
+    !!process.env.FRESHSALES_API_KEY && !!process.env.FRESHSALES_DOMAIN,
 } as const;
 
 // ── Documentation Helper ──────────────────────────────────

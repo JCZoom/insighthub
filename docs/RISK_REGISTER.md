@@ -4,7 +4,7 @@
 > **Gap closed:** G-34 (from `docs/COMPLIANCE_GAPS.md`).
 > **Review cadence:** Quarterly (synchronized with Asset Register).
 > **Owner:** Jeff Coy (technical) + JD Gershan (policy-level).
-> **Last reviewed:** 2026-04-24
+> **Last reviewed:** 2026-05-19 (Tier-1 closures G-02/G-03/G-05/G-06/G-08; R-041/R-042 added for Freshsales onboarding)
 > **Next review due:** 2026-07-24
 
 ## How this register works
@@ -61,13 +61,13 @@ Each row references the corresponding gap in `docs/COMPLIANCE_GAPS.md` (`G-NN`) 
 | Risk ID | Description | Impact | Likelihood | Raw | Treatment | Owner | Status | Residual rating | Linked gap | Last reviewed |
 |---|---|---|---|---|---|---|---|---|---|---|
 | **R-001** | Data classification absent — no structured way to apply retention/encryption/access by sensitivity | 4 | 4 | **16** | Mitigate | Jeff Coy | Closed 2026-04-25 (G-01 implemented; see `docs/DATA_CLASSIFICATION_APPLIED.md`) | 2 (residual: framework in place; sensitivity-scaled retention lands with G-05) | G-01 | 2026-04-25 |
-| **R-002** | MFA not enforced at application layer — reliant entirely on Google Workspace config | 4 | 3 | **12** | Mitigate | Jeff Coy | Open | — | G-02 | 2026-04-24 |
+| **R-002** | MFA not enforced at application layer — reliant entirely on Google Workspace config | 4 | 3 | **12** | Mitigate | Jeff Coy | Closed 2026-05-19 (G-02 closed: AMR check + admin gate + persisted mfaVerifiedAt + admin UI badge; see `docs/AUTHENTICATION.md`) | 3 (residual: cookie-replay risk until G-02b TOTP step-up lands) | G-02 | 2026-05-19 |
 | **R-003** | Production backups reside on same host as primary database — host compromise = both lost | 5 | 2 | **10** | Mitigate | Jeff Coy | In Progress (code shipped 2026-04-24, AWS setup pending operator) | 4 (after operator runs `scripts/setup-backup-isolation.sh`) | G-13 | 2026-04-24 |
 | **R-004** | Secrets copied to production via scp from `.env.local`; no rotation policy; flagged in red-team H-1 | 4 | 3 | **12** | Mitigate | Jeff Coy | Open | — | G-36 | 2026-04-24 |
 | **R-005** | No Incident Response runbook — response to a real incident is improvised | 4 | 2 | **8** | Mitigate | Jeff Coy | In Progress | 4 (after G-18 close) | G-18 | 2026-04-24 |
 | **R-006** | No Asset Register in production — unmanaged assets cannot be protected | 3 | 3 | **9** | Mitigate | Jeff Coy | Closed (this review) | 3 | G-04 | 2026-04-24 |
 | **R-007** | No Statement of Applicability — audit readiness blocked | 3 | 4 | **12** | Mitigate | Jeff Coy | In Progress | 4 | G-34, G-37 | 2026-04-24 |
-| **R-008** | No automated PII retention / anonymization — GDPR Art. 5 retention minimization at risk | 4 | 2 | **8** | Mitigate | Jeff Coy | Open | — | G-05 | 2026-04-24 |
+| **R-008** | No automated PII retention / anonymization — GDPR Art. 5 retention minimization at risk | 4 | 2 | **8** | Mitigate | Jeff Coy | Closed 2026-05-19 (G-05 closed: 4 bounded purge functions + daily cron + dryRun preview + meta-audit; see `docs/RETENTION_AUTOMATION.md`) | 2 (residual: cron cookie provisioning is operator-pending) | G-05 | 2026-05-19 |
 | **R-009** | Audit logs lack structured IP/user-agent; metadata not sanitized before persistence | 3 | 2 | **6** | Mitigate | Jeff Coy | Open | — | G-20 | 2026-04-24 |
 | **R-010** | Branch protection not enabled on `main`; single-developer review risk | 3 | 2 | **6** | Accept (solo-dev era) | Jeff Coy | Accepted | 6 | G-19 | 2026-04-24 |
 | **R-011** | No Dev / Staging / Production separation; production DB named `dev.db` | 4 | 2 | **8** | Mitigate | Jeff Coy | Open | — | G-22 | 2026-04-24 |
@@ -80,15 +80,15 @@ Each row references the corresponding gap in `docs/COMPLIANCE_GAPS.md` (`G-NN`) 
 | **R-018** | No AWS resources in IaC — rebuild after regional outage is manual and slow | 4 | 1 | **4** | Accept (low likelihood) then Mitigate | Jeff Coy | Accepted (temporary) | 4 | G-16 | 2026-04-24 |
 | **R-019** | No FIM on production host — file tampering would go undetected | 3 | 1 | **3** | Accept | Jeff Coy | Accepted | 3 | G-28 | 2026-04-24 |
 | **R-020** | No CloudWatch alerting — outages discovered only by user report | 4 | 3 | **12** | Mitigate | Jeff Coy | Open | — | G-21 | 2026-04-24 |
-| **R-021** | TLS config relies on Certbot defaults; not explicitly pinned or SSL-Labs tested | 3 | 2 | **6** | Mitigate | Jeff Coy | Open | — | G-03 | 2026-04-24 |
+| **R-021** | TLS config relies on Certbot defaults; not explicitly pinned or SSL-Labs tested | 3 | 2 | **6** | Mitigate | Jeff Coy | Closed 2026-05-19 (G-03 closed: Mozilla intermediate pin + HSTS 2y + OCSP stapling; see `docs/TLS_CONFIGURATION.md`) | 1 (residual: SSL-Labs baseline scan pending post-deploy) | G-03 | 2026-05-19 |
 | **R-022** | No quarterly vulnerability scans on infrastructure | 3 | 3 | **9** | Mitigate | Jeff Coy | Open | — | G-23 | 2026-04-24 |
 | **R-023** | No third-party penetration test — only AI-generated internal red-team | 4 | 3 | **12** | Mitigate | Jeff Coy | Open | — | G-32 | 2026-04-24 |
 | **R-024** | No privacy notice / CCPA compliance UI exposed publicly | 3 | 3 | **9** | Mitigate | Jeff Coy | Open | — | G-33 | 2026-04-24 |
 | **R-025** | `ADMIN_EMAILS` list hardcoded in source — changes require deploy, not auditable by admins | 2 | 2 | **4** | Mitigate | Jeff Coy | Open | — | G-38 | 2026-04-24 |
 | **R-026** | Admins use regular accounts for privileged actions (no separate admin account) | 2 | 2 | **4** | Accept (single-admin era) | Jeff Coy | Accepted | 4 | G-11 | 2026-04-24 |
 | **R-027** | Backup retention is 14 days vs. policy 30-day minimum | 3 | 1 | **3** | Mitigate | Jeff Coy | Closed 2026-04-24 | 0 (KEEP_DAYS=30 shipped) | G-07 | 2026-04-24 |
-| **R-028** | User deletion may not log `USER_ACCOUNT_DELETION` audit entry | 3 | 2 | **6** | Mitigate | Jeff Coy | Open | — | G-08 | 2026-04-24 |
-| **R-029** | Audit log retention upper bound not enforced — unbounded growth + privacy exposure | 2 | 3 | **6** | Mitigate | Jeff Coy | Open | — | G-06 | 2026-04-24 |
+| **R-028** | User deletion may not log `USER_ACCOUNT_DELETION` audit entry | 3 | 2 | **6** | Mitigate | Jeff Coy | Closed 2026-05-19 (G-08 closed: `auditedDelete<T>()` wrapper + share-DELETE gap fix + full delete-site inventory) | 2 (residual: legacy audit-after-delete sites OK but migration target) | G-08 | 2026-05-19 |
+| **R-029** | Audit log retention upper bound not enforced — unbounded growth + privacy exposure | 2 | 3 | **6** | Mitigate | Jeff Coy | Closed 2026-05-19 (G-06 closed: `purgeAuditLogs` 365d default + meta-fingerprint) | 1 | G-06 | 2026-05-19 |
 | **R-030** | Phase 3 Snowflake integration will elevate production to Customer Confidential tier | 5 | 4 | **20** | Mitigate (blocked-pending) | Jeff Coy | In Progress — **gate on tier-1 closed** | depends on G-01/G-02/G-13 | Multiple | 2026-04-24 |
 | **R-031** | Single-employee scope — bus-factor risk on operational recovery | 4 | 2 | **8** | Transfer (document runbook so successor can execute) | Jeff Coy | In Progress | 4 (after G-18, OPS_RUNBOOK expansion) | G-18 | 2026-04-24 |
 | **R-032** | No DLP — no automated detection of sensitive data exfiltration via exports | 3 | 2 | **6** | Accept (current scope) | Jeff Coy | Accepted | 6 | G-30 | 2026-04-24 |
@@ -100,6 +100,8 @@ Each row references the corresponding gap in `docs/COMPLIANCE_GAPS.md` (`G-NN`) 
 | **R-038** | No CIS Benchmark applied to host — baseline hardening unverified | 3 | 2 | **6** | Mitigate | Jeff Coy | Open | — | G-14 | 2026-04-24 |
 | **R-039** | SSH sessions have no idle timeout | 2 | 2 | **4** | Mitigate (folded into G-14) | Jeff Coy | Open | — | G-17 | 2026-04-24 |
 | **R-040** | Prompt injection against Claude system prompt — flagged by red-team as low but not zero | 3 | 3 | **9** | Mitigate (input sanitization already partial) | Jeff Coy | Monitoring | 6 | Red-team H-4 | 2026-04-24 |
+| **R-041** | Freshsales API token compromise → unauthorized read/write of USZoom CRM tenant (full PII, deals, chat content) | 5 | 2 | **10** | Mitigate | Jeff Coy | Open | 4 (after `.env.freshworks` isolation, rotation cadence, and G-36 closure) | G-36 (token storage), SVC-14 (vendor) | 2026-05-19 |
+| **R-042** | Freshsales PII exposure via stale Redis cache or unintended retention extension | 4 | 1 | **4** | Mitigate (60s per-key TTL + 90d bulk purge + audit-logged manual purge) | Jeff Coy | Monitoring | 4 | G-05 closure provides the lever | 2026-05-19 |
 
 ---
 
@@ -138,8 +140,13 @@ Likelihood ↓
 
 | Risk ID | Description | Closure date | Closure rationale |
 |---|---|---|---|
+| R-002 | MFA not enforced at app layer | 2026-05-19 | G-02 closed: AMR-claim enforcement + admin gate + persisted timestamp + UI badge. See `docs/AUTHENTICATION.md`. |
 | R-006 | No Asset Register | 2026-04-24 | Created `docs/ASSET_REGISTER.md` with 52 asset entries and a quarterly review process. |
+| R-008 | No automated PII retention/anonymization | 2026-05-19 | G-05 closed: 4 bounded retention functions + daily cron + dryRun preview. See `docs/RETENTION_AUTOMATION.md`. |
+| R-021 | TLS not pinned | 2026-05-19 | G-03 closed: Mozilla intermediate cipher pin + HSTS 2y + OCSP stapling. See `docs/TLS_CONFIGURATION.md`. |
 | R-027 | Backup retention 14 days vs. policy 30-day minimum | 2026-04-24 | `KEEP_DAYS=30` shipped in `scripts/backup-db.sh:29` as part of G-13 delivery. Effective on EC2 after next `./deploy.sh`. |
+| R-028 | User deletion audit gap | 2026-05-19 | G-08 closed: `auditedDelete<T>()` wrapper + share-DELETE gap fix. |
+| R-029 | Audit log retention upper bound | 2026-05-19 | G-06 closed: `purgeAuditLogs(365d)` + meta-fingerprint. |
 
 ---
 

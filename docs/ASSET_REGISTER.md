@@ -4,7 +4,7 @@
 > **Gap closed:** G-04 (from `docs/COMPLIANCE_GAPS.md`).
 > **Review cadence:** Quarterly.
 > **Owner of this register:** Jeff Coy (technical implementation) / JD Gershan (policy compliance per USZoom policy 3713).
-> **Last reviewed:** 2026-04-24
+> **Last reviewed:** 2026-05-19 (Freshsales CRM integration added; INFO-24/25/26, SVC-14)
 > **Next review due:** 2026-07-24
 
 ## How to read this register
@@ -57,6 +57,9 @@ Policy 12737 requires every asset used to store, process, or transmit informatio
 | INFO-21 | Thumbnail images (dashboard previews) | UR | Dashboard owner | EC2 `public/thumbnails/` | Active | Auto-generated from dashboards. |
 | INFO-22 | Overnight-build and session logs | UC | Jeff Coy | Repo `logs/` + `docs/` | Active | Development records. Some contain internal architecture details. |
 | INFO-23 | Compliance documentation (this register, matrix, gaps, etc.) | UC | Jeff Coy | Repo `docs/` | Active | Governed by USZoom policy 3710 Control of Documented Information. |
+| INFO-24 | Freshsales API token (`FRESHSALES_API_KEY`) | CC | Jeff Coy | INFO-07 (dev `.env.local`); EC2 `/opt/insighthub/.env.freshworks` (prod, isolated file per G-36 partial-mitigation) | Active | Grants read/write access to USZoom Freshsales tenant including contacts, deals, chat content. Rotated on compromise; quarterly rotation cadence to be set in Asana. Never logged. |
+| INFO-25 | Cached Freshsales CRM records (Redis) | CC | Jeff Coy | EC2 Redis under key prefix `fw:*` | Active | 60-second per-key TTL; 90-day bulk-purge window. Wiped via `purgeFreshworksCache()` (see `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/data/retention.ts:343-427`). Audit-logged on purge. |
+| INFO-26 | Freshsales-derived dashboards & widgets (e.g. `Sales Pipeline — Live`) | CC | Jeff Coy | INFO-01 (`Dashboard` table) | Active | Auto-tagged `CUSTOMER_CONFIDENTIAL` at creation (G-01 default). Downgrade requires ADMIN role. |
 
 ---
 
@@ -107,6 +110,7 @@ Policy 12737 requires every asset used to store, process, or transmit informatio
 | SVC-11 | Netlify (legacy deployment provider) | N/A | — | Jeff Coy | Deprecated | Current deploys are EC2-only; `netlify.toml` kept for config reference. |
 | SVC-12 | CloudWatch (observability — planned) | UC | Included with SVC-01 | Jeff Coy | Planned | Enablement tracked under G-21. |
 | SVC-13 | AWS Secrets Manager (planned) | CC | Included with SVC-01 | Jeff Coy | Planned | Enablement tracked under G-36. |
+| SVC-14 | Freshsales / Freshworks Inc. (CRM) | CC (contacts, deals, chat content — full PII) | SOC 2 Type II, ISO 27001 (current — verify before annual review) | Jeff Coy | Active | Onboarded 2026-05-19 as proof-point for Snowflake gating decision. Activated without formal DPA review — Jeff has direct judgment authority on this tenant; DPA review still required for vendor register (G-26). Replaceable with HubSpot or Salesforce. Data egress: customer-export API. |
 
 ---
 

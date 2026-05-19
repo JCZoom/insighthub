@@ -48,6 +48,13 @@ export enum AuditAction {
   RETENTION_PURGE_INACTIVE_USERS = 'retention.purge_inactive_users',
   RETENTION_PURGE_FRESHWORKS_CACHE = 'retention.purge_freshworks_cache',
   RETENTION_ANONYMIZE_CUSTOMER = 'retention.anonymize_customer',
+
+  // Freshworks / Freshsales CRM integration (V-01, R-041, R-042)
+  // Read-time audit, admin overrides, and operational diagnostics.
+  FRESHWORKS_READ = 'integration.freshworks.read',
+  FRESHWORKS_UNMASK_OVERRIDE = 'integration.freshworks.unmask_override',
+  FRESHWORKS_CACHE_HIT = 'integration.freshworks.cache_hit',
+  FRESHWORKS_RATE_LIMITED = 'integration.freshworks.rate_limited',
 }
 
 // Resource types enum for type safety

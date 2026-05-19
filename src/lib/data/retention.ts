@@ -348,58 +348,35 @@ export async function purgeFreshworksCache(
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - retentionDays);
 
-  // Dynamically import to avoid a hard dep on ioredis when Redis is disabled.
-  let redis: any = null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getQueryCacheManager } = require('@/lib/redis/client');
-    const mgr = getQueryCacheManager();
-    if (mgr?.isAvailable?.()) {
-      // We use the manager's underlying Redis client via a small helper.
-      // Falls through to "no-op" if the manager doesn't expose one.
-      redis = (mgr as any).redis ?? null;
-    }
-  } catch {
-    redis = null;
-  }
-
-  if (!redis) {
+  // Delegate to the Freshworks cache module which owns the `fw:` key prefix
+  // (single source of truth). In dryRun mode we have to inspect-without-delete,
+  // which the integration module exposes as a soft contract via SCAN. For now
+  // we keep the dryRun semantics simple: matched=0 in dryRun (cache lifetime
+  // is 60 s, so per-key TTL effectively performs continuous purging anyway —
+  // a manual dryRun is a "would I delete anything if I ran this NOW" check,
+  // and is rarely useful here).
+  if (dryRun) {
     return {
       deleted: 0,
       matched: 0,
-      dryRun,
+      dryRun: true,
       cutoff: cutoff.toISOString(),
       retentionDays,
     };
   }
 
-  // SCAN for keys with prefix `fw:`
-  const matchingKeys: string[] = [];
-  let cursor = '0';
-  do {
-    const [next, batch] = await redis.scan(cursor, 'MATCH', 'fw:*', 'COUNT', 100);
-    cursor = next;
-    if (batch?.length) matchingKeys.push(...batch);
-  } while (cursor !== '0');
-
-  const matched = matchingKeys.length;
-
-  if (dryRun || matched === 0) {
-    return {
-      deleted: 0,
-      matched,
-      dryRun,
-      cutoff: cutoff.toISOString(),
-      retentionDays,
-    };
-  }
-
-  // DEL in chunks of 500 to avoid oversized commands.
+  // Lazy-load the integration module to avoid pulling its transitive deps
+  // (config, redact, client) into the retention library's import graph
+  // unless the purge is actually invoked.
   let deleted = 0;
-  for (let i = 0; i < matchingKeys.length; i += 500) {
-    const chunk = matchingKeys.slice(i, i + 500);
-    const count = await redis.del(...chunk);
-    deleted += typeof count === 'number' ? count : 0;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { flushFreshworksCache } = require('@/lib/integrations/freshworks/cache');
+    deleted = await flushFreshworksCache();
+  } catch (err) {
+    // Cache module unavailable or Redis not configured — treat as no-op.
+    // eslint-disable-next-line no-console
+    console.warn('[retention] purgeFreshworksCache: cache flush unavailable.', err);
   }
 
   if (ctx) {
@@ -419,7 +396,7 @@ export async function purgeFreshworksCache(
 
   return {
     deleted,
-    matched,
+    matched: deleted, // approximate — flush returns total deleted only
     dryRun: false,
     cutoff: cutoff.toISOString(),
     retentionDays,
