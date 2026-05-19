@@ -1,10 +1,11 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import { useRef } from 'react';
 import type { WidgetConfig } from '@/types';
 import { formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
 import { useResponsiveWidget } from '@/hooks/useResponsiveWidget';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface KpiCardProps {
   config: WidgetConfig;
@@ -95,11 +96,37 @@ export function KpiCard({ config, data }: KpiCardProps) {
     ? formatCurrency(value, { compact: true })
     : formatNumber(value, { compact: true });
 
-  // Deterministic fake trend based on widget id + field name.
-  // Uses a simple string hash so the value is stable across renders and SSR/client.
-  // This will be replaced with real period-over-period calculation when Snowflake is connected.
-  const trendSeed = `${config.id}-${field}`.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
-  const trendValue = +((((trendSeed % 100) / 100) * 10 - 2)).toFixed(1);
+  // ── Period-over-period: truth-by-default ───────────────────────────────
+  // Prior versions of this widget rendered a *deterministic fake* "% vs prev"
+  // delta computed from a hash of (config.id + field). That number was always
+  // shown but had no relationship to real data — a $30,540 pipeline KPI would
+  // display "-1.9% vs prev" even though no previous-period value was ever
+  // computed. That is a data-integrity violation: stakeholders read the pill
+  // as a real signal.
+  //
+  // New rule: the trend pill renders ONLY when the data row carries an
+  // explicit `previous_value` (number) AND we have a non-zero current value.
+  // The data provider is responsible for computing prev-period values
+  // honestly — see freshworks-data-provider.ts for the per-source logic.
+  // When a source cannot compute PoP honestly (no snapshot history, no API
+  // date filter, etc.) it returns previous_value: null and optionally a
+  // `comparison_unavailable_reason` string. The renderer surfaces that
+  // reason via a small "info" indicator instead of silently hiding the
+  // absence — transparency over fabrication.
+  const prevRaw = row['previous_value'];
+  const comparisonLabel = typeof row['comparison_label'] === 'string'
+    ? (row['comparison_label'] as string)
+    : null;
+  const comparisonUnavailableReason = typeof row['comparison_unavailable_reason'] === 'string'
+    ? (row['comparison_unavailable_reason'] as string)
+    : null;
+  const previousValue: number | null = typeof prevRaw === 'number' && Number.isFinite(prevRaw)
+    ? prevRaw
+    : null;
+  const hasComparison = previousValue !== null && previousValue !== 0 && Number.isFinite(value);
+  const trendValue = hasComparison
+    ? +(((value - (previousValue as number)) / (previousValue as number)) * 100).toFixed(1)
+    : 0;
   const TrendIcon = trendValue > 0 ? TrendingUp : trendValue < 0 ? TrendingDown : Minus;
   const trendColor = trendValue > 0 ? 'pill-green' : trendValue < 0 ? 'pill-red' : 'pill-blue';
 
@@ -138,13 +165,29 @@ export function KpiCard({ config, data }: KpiCardProps) {
         <p className={valueClass} style={{ letterSpacing: '-0.02em' }}>
           {formatted}
         </p>
-        <span className={pillClass}>
-          <TrendIcon size={iconSize} className="mr-1" />
-          {isMobile ?
-            `${trendValue > 0 ? '+' : ''}${trendValue}%` :
-            `${trendValue > 0 ? '+' : ''}${trendValue}% vs prev`
-          }
-        </span>
+        {hasComparison ? (
+          <Tooltip
+            content={comparisonLabel ?? 'Period-over-period comparison'}
+            side="top"
+          >
+            <span className={pillClass}>
+              <TrendIcon size={iconSize} className="mr-1" />
+              {isMobile
+                ? `${trendValue > 0 ? '+' : ''}${trendValue}%`
+                : `${trendValue > 0 ? '+' : ''}${trendValue}% ${comparisonLabel ?? 'vs prev'}`}
+            </span>
+          </Tooltip>
+        ) : comparisonUnavailableReason ? (
+          <Tooltip
+            content={`No comparison available — ${comparisonUnavailableReason}`}
+            side="top"
+          >
+            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-muted)] mt-1">
+              <Info size={iconSize} className="opacity-60" />
+              <span>{isMobile ? 'no comparison' : 'no comparison available'}</span>
+            </span>
+          </Tooltip>
+        ) : null}
       </div>
     </div>
   );

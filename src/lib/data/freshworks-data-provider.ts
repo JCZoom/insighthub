@@ -266,6 +266,32 @@ export class FreshworksDataProvider {
     );
   }
 
+  // ── Period-over-period (PoP) policy ────────────────────────────────────────
+  //
+  // Each KPI source either computes a *real* `previous_value` from the
+  // underlying API or returns `previous_value: null` with an explicit
+  // `comparison_unavailable_reason`. We do NOT fabricate, interpolate, or
+  // hash-derive comparison numbers — the KpiCard renderer (truth-by-default
+  // since 2026-05-19) only displays a trend pill when `previous_value` is a
+  // real finite number. Anything else surfaces as "no comparison available"
+  // with the reason in a tooltip — transparency over fabrication.
+  //
+  // Capability summary (verified against vendor API docs 2026-05-19):
+  //   - Freshcaller listCalls() supports `from=<ISO date>`  → PoP IS computable
+  //   - Freshdesk   listTickets() supports `updated_since`  → computable but
+  //     requires multi-call orchestration + `include=stats`; deferred (G-FW-PoP-2)
+  //   - Freshchat   listConversations() has NO date filter  → NOT computable
+  //   - Freshsales  listDeals() has NO date filter          → NOT computable
+  //
+  // For sources where PoP is not computable from a single REST call, we set
+  // `comparison_unavailable_reason` to a specific phrase. The long-term fix is
+  // a snapshot-history table (cron-populated daily/weekly) — tracked as
+  // G-FW-PoP-1 in docs/AI_DASHBOARD_BUILDER_FINDINGS_2026-05-19.md.
+  private static readonly POP_REASON_NO_DATE_FILTER =
+    'Source API has no date filter — historical snapshot table required for honest PoP.';
+  private static readonly POP_REASON_NEEDS_MULTI_CALL =
+    'Honest PoP requires include=stats + wider updated_since window — not yet wired.';
+
   private static async openDealCount(
     userId: string,
     role: UserRole,
@@ -274,10 +300,19 @@ export class FreshworksDataProvider {
     const deals = await listDeals(userId, role, { limit: 100 });
     const open = deals.filter((d) => this.dealOpen(d));
     return this.finish(
-      [{ value: open.length, label: 'Open deals' }],
+      [{
+        value: open.length,
+        label: 'Open deals',
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason: this.POP_REASON_NO_DATE_FILTER,
+      }],
       [
         { name: 'value', type: 'number' },
         { name: 'label', type: 'string' },
+        { name: 'previous_value', type: 'number' },
+        { name: 'comparison_label', type: 'string' },
+        { name: 'comparison_unavailable_reason', type: 'string' },
       ],
       start,
       role
@@ -294,10 +329,19 @@ export class FreshworksDataProvider {
       .filter((d) => this.dealOpen(d))
       .reduce((sum, d) => sum + this.dealAmount(d), 0);
     return this.finish(
-      [{ value: total, label: 'Pipeline ($, open)' }],
+      [{
+        value: total,
+        label: 'Pipeline ($, open)',
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason: this.POP_REASON_NO_DATE_FILTER,
+      }],
       [
         { name: 'value', type: 'number' },
         { name: 'label', type: 'string' },
+        { name: 'previous_value', type: 'number' },
+        { name: 'comparison_label', type: 'string' },
+        { name: 'comparison_unavailable_reason', type: 'string' },
       ],
       start,
       role
@@ -433,10 +477,19 @@ export class FreshworksDataProvider {
     const tickets = await this.fetchTickets(userId, role);
     const open = tickets.filter((t) => ticketIsOpen(t));
     return this.finish(
-      [{ value: open.length, label: 'Open tickets' }],
+      [{
+        value: open.length,
+        label: 'Open tickets',
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason: this.POP_REASON_NEEDS_MULTI_CALL,
+      }],
       [
         { name: 'value', type: 'number' },
         { name: 'label', type: 'string' },
+        { name: 'previous_value', type: 'number' },
+        { name: 'comparison_label', type: 'string' },
+        { name: 'comparison_unavailable_reason', type: 'string' },
       ],
       start,
       role
@@ -452,10 +505,19 @@ export class FreshworksDataProvider {
     const now = new Date();
     const overdue = tickets.filter((t) => ticketIsOverdue(t, now));
     return this.finish(
-      [{ value: overdue.length, label: 'Overdue tickets' }],
+      [{
+        value: overdue.length,
+        label: 'Overdue tickets',
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason: this.POP_REASON_NEEDS_MULTI_CALL,
+      }],
       [
         { name: 'value', type: 'number' },
         { name: 'label', type: 'string' },
+        { name: 'previous_value', type: 'number' },
+        { name: 'comparison_label', type: 'string' },
+        { name: 'comparison_unavailable_reason', type: 'string' },
       ],
       start,
       role
@@ -533,22 +595,68 @@ export class FreshworksDataProvider {
     return listCalls(userId, role, { limit: 100 });
   }
 
+  /**
+   * Today's Freshcaller call count, with HONEST yesterday-vs-today PoP.
+   *
+   * Implementation:
+   *   - Fetch up to 200 calls with `from=<yesterday UTC>` so the response
+   *     window spans both yesterday and today.
+   *   - Bucket by UTC date string. value = today's count, previous_value =
+   *     yesterday's count.
+   *   - If the response is at the 200-row cap we cannot guarantee the
+   *     yesterday bucket is complete, so we set previous_value: null with
+   *     an honest reason. (At low/moderate call volume the bucket is
+   *     complete and the comparison is real.)
+   *
+   * This is the reference implementation of the truth-by-default PoP
+   * pattern. Other KPI sources either follow this pattern (when their API
+   * supports date filters) or explicitly return previous_value: null with
+   * a `comparison_unavailable_reason` — never a fabricated number.
+   */
   private static async callsToday(
     userId: string,
     role: UserRole,
     start: number
   ): Promise<FreshworksProviderResult> {
-    const calls = await this.fetchCalls(userId, role);
-    const todayUtc = new Date().toISOString().slice(0, 10);
-    const todays = calls.filter((c) => {
-      if (!c.created_at) return false;
-      return c.created_at.slice(0, 10) === todayUtc;
-    });
+    const now = new Date();
+    const todayUtc = now.toISOString().slice(0, 10);
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayUtc = yesterday.toISOString().slice(0, 10);
+
+    const WINDOW_LIMIT = 200;
+    // Single API call covers both buckets. `from` is inclusive on yesterday.
+    const calls = await listCalls(userId, role, { limit: WINDOW_LIMIT, from: yesterdayUtc });
+
+    const isToday = (c: FreshcallerCall) =>
+      typeof c.created_at === 'string' && c.created_at.slice(0, 10) === todayUtc;
+    const isYesterday = (c: FreshcallerCall) =>
+      typeof c.created_at === 'string' && c.created_at.slice(0, 10) === yesterdayUtc;
+
+    const todayCount = calls.filter(isToday).length;
+    const yesterdayCount = calls.filter(isYesterday).length;
+
+    // If the API returned exactly WINDOW_LIMIT rows we may have truncated
+    // either bucket — in that case we cannot honestly claim a complete
+    // yesterday count, so we degrade the comparison transparently.
+    const possiblyTruncated = calls.length >= WINDOW_LIMIT;
+    const popHonest = !possiblyTruncated;
+
     return this.finish(
-      [{ value: todays.length, label: "Calls today (UTC)" }],
+      [{
+        value: todayCount,
+        label: 'Calls today (UTC)',
+        previous_value: popHonest ? yesterdayCount : null,
+        comparison_label: popHonest ? 'vs yesterday (UTC)' : null,
+        comparison_unavailable_reason: popHonest
+          ? null
+          : `API returned ${WINDOW_LIMIT}-row cap — yesterday's count may be incomplete; raise limit or paginate before trusting PoP.`,
+      }],
       [
         { name: 'value', type: 'number' },
         { name: 'label', type: 'string' },
+        { name: 'previous_value', type: 'number' },
+        { name: 'comparison_label', type: 'string' },
+        { name: 'comparison_unavailable_reason', type: 'string' },
       ],
       start,
       role
@@ -633,10 +741,19 @@ export class FreshworksDataProvider {
     const convos = await this.fetchConversations(userId, role);
     const active = convos.filter((c) => c.status === 'new' || c.status === 'assigned');
     return this.finish(
-      [{ value: active.length, label: 'Active conversations' }],
+      [{
+        value: active.length,
+        label: 'Active conversations',
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason: this.POP_REASON_NO_DATE_FILTER,
+      }],
       [
         { name: 'value', type: 'number' },
         { name: 'label', type: 'string' },
+        { name: 'previous_value', type: 'number' },
+        { name: 'comparison_label', type: 'string' },
+        { name: 'comparison_unavailable_reason', type: 'string' },
       ],
       start,
       role

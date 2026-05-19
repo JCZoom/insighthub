@@ -79,25 +79,30 @@ export const SOURCE_FIELD_REGISTRY: Record<string, string[]> = {
   // ── Live Freshworks sources (CUSTOMER_CONFIDENTIAL) ────────────────────
   // Field shapes are the source of truth from
   // src/lib/data/freshworks-data-provider.ts (each method's `columns` array).
+  // Note: every LIVE Freshworks single-row KPI source now also returns
+  // `previous_value`, `comparison_label`, `comparison_unavailable_reason`
+  // as part of the period-over-period (PoP) truth-by-default contract
+  // (see freshworks-data-provider.ts §"PoP policy"). They are registered
+  // below so D-06/D-08 don't false-positive on them.
   // ── Freshsales ─────────────────────────────────────────────────────────
   freshsales_deals_by_stage: ['stage', 'count'],
-  freshsales_open_deal_count: ['value', 'label'],
-  freshsales_pipeline_value: ['value', 'label'],
+  freshsales_open_deal_count: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  freshsales_pipeline_value: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
   freshsales_top_deals: ['id', 'name', 'amount', 'stage', 'primary_contact', 'expected_close'],
   freshsales_contacts_recent: ['id', 'name', 'email', 'phone'],
   freshsales_accounts_recent: ['id', 'name', 'website', 'phone'],
   // ── Freshdesk ──────────────────────────────────────────────────────────
   freshdesk_tickets_by_status: ['status', 'count'],
-  freshdesk_open_ticket_count: ['value', 'label'],
-  freshdesk_overdue_ticket_count: ['value', 'label'],
+  freshdesk_open_ticket_count: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
+  freshdesk_overdue_ticket_count: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
   freshdesk_recent_tickets: ['id', 'subject', 'status', 'requester_email', 'due_by', 'updated_at'],
   freshdesk_agents: ['id', 'name', 'email', 'available'],
   // ── Freshcaller ────────────────────────────────────────────────────────
-  freshcaller_calls_today: ['value', 'label'],
+  freshcaller_calls_today: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
   freshcaller_calls_by_status: ['status', 'count'],
   freshcaller_recent_calls: ['id', 'phone_number', 'status', 'duration_s', 'created_at'],
   // ── Freshchat ──────────────────────────────────────────────────────────
-  freshchat_active_conversations: ['value', 'label'],
+  freshchat_active_conversations: ['value', 'label', 'previous_value', 'comparison_label', 'comparison_unavailable_reason'],
   freshchat_conversations_by_status: ['status', 'count'],
   freshchat_recent_conversations: [
     'conversation_id', 'status', 'channel_id', 'assigned_agent_id', 'updated_time',

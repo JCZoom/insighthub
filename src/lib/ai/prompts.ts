@@ -357,6 +357,14 @@ and will cause the widget to render without data. For LIVE Freshworks KPI source
 \`freshdesk_open_ticket_count\`, \`freshdesk_overdue_ticket_count\`, \`freshchat_active_conversations\`)
 the source already returns a single \`value\` row, so omit \`aggregation\` entirely OR use \`{ "function": "first", "field": "value" }\`.
 
+**Period-over-period (PoP) contract:** LIVE Freshworks single-row KPI sources also return
+\`previous_value\`, \`comparison_label\`, and \`comparison_unavailable_reason\` fields on the same row.
+The KpiCard renderer automatically uses these to draw an honest "% vs prev" pill — you do NOT need
+to add any extra config to enable this, and you must NOT invent or override these values. When
+\`previous_value\` is null the renderer transparently shows "no comparison available" with the reason.
+Never describe a number as "vs last week" or "vs yesterday" in widget titles/subtitles unless the
+source's actual \`comparison_label\` says so — the data is the source of truth, not the prose.
+
 ### churn_by_month (monthly churn series)
 Fields: month, churn_rate, churned, active_start
 
