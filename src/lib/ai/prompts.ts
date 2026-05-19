@@ -8,6 +8,7 @@ import {
   type ResolvedPermissions
 } from '@/lib/auth/permissions';
 import { getPromptOverrides } from '@/lib/ai/prompt-overrides';
+import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
 
 interface GlossaryEntry {
   term: string;
@@ -261,12 +262,21 @@ async function getAvailableDataSources(user?: SessionUser, permissions?: Resolve
   const userPermissions = permissions || await resolveUserPermissions(user);
 
   // Filter data sources based on user's allowed data sources
-  const allowedSources = DATA_SOURCES.filter(ds => {
+  const permissionFiltered = DATA_SOURCES.filter(ds => {
     return userPermissions.allowedDataSources.some(allowedSource =>
       ds.name.toLowerCase().includes(allowedSource.toLowerCase()) ||
       allowedSource.toLowerCase().includes(ds.name.toLowerCase())
     );
   });
+
+  // Demo-source quarantine (post-2026-05-19): unless FEATURE_DEMO_SOURCES
+  // is on, strip canonical sample/demo sources from the catalog the LLM
+  // sees. Saved dashboards still query them via POST /api/data/query;
+  // only this discovery surface is gated. See
+  // docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3.2.
+  const allowedSources = demoSourcesEnabled()
+    ? permissionFiltered
+    : permissionFiltered.filter(ds => !isSampleSource(ds.name));
 
   if (allowedSources.length === 0) {
     return `## Available Data Sources
@@ -305,65 +315,30 @@ ${descriptions}
 **Note**: You have access to the following data sources: ${sourceNames}. Only generate queries and widgets using these approved sources.${restrictedSection}`;
 }
 
-export async function buildSystemPrompt(
-  glossaryTerms: GlossaryEntry[],
-  currentSchema: DashboardSchema | null,
-  widgetLibrary: WidgetTemplate[] = WIDGET_LIBRARY,
-  user?: SessionUser,
-): Promise<string> {
-  const glossarySection = glossaryTerms.length > 0
-    ? glossaryTerms.map(t =>
-        `- **${t.term}** [${t.category}]: ${t.definition}${t.formula ? ` Formula: \`${t.formula}\`` : ''}`
-      ).join('\n')
-    : 'Glossary terms could not be loaded. Canonical definitions are maintained in glossary/terms.yaml — do not invent metric definitions.';
-
-  const schemaSection = currentSchema
-    ? JSON.stringify(currentSchema, null, 2)
-    : '{ "layout": { "columns": 12, "rowHeight": 80, "gap": 16 }, "globalFilters": [], "widgets": [] }';
-
-  // Resolve user permissions once to avoid multiple DB calls
-  const userPermissions = user ? await resolveUserPermissions(user) : undefined;
-  const availableDataSources = await getAvailableDataSources(user, userPermissions);
-  const smartSuggestions = generateSchemaBasedSuggestions(currentSchema);
-
-  let basePrompt = `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
-
-CRITICAL: You must use the company's official terminology definitions when interpreting user requests. The glossary below contains agreed-upon definitions for all business metrics. NEVER invent your own definitions.
-
-## Company Glossary
-${glossarySection}
-
-## Current Dashboard Schema
-\`\`\`json
-${schemaSection}
-\`\`\`
-
-${availableDataSources}
-
-${smartSuggestions}
-
-## Pre-Aggregated Data Sources (CRITICAL — use these for widgets)
-ALWAYS use these pre-computed sources and their EXACT field names. Do NOT invent field names.
-
-### kpi_summary (for kpi_card widgets — single-row aggregate)
+/**
+ * Hard-coded field reference for the demo (sample) pre-aggregated
+ * sources. Historically inlined in the buildSystemPrompt template
+ * literal; lifted into a constant here so the demo-source quarantine
+ * (FEATURE_DEMO_SOURCES) can suppress this block in a single line when
+ * the operator is running against real data.
+ *
+ * Why keep the reference at all when demo is off? Because the LLM
+ * still needs the EXACT field-name shape if a saved dashboard or a
+ * user prompt explicitly mentions one of these sources. The
+ * `getAvailableDataSources()` catalog already strips them from the
+ * "Available Data Sources" advertisement, so the LLM will not
+ * proactively reach for them — but if a user says "edit my
+ * tickets_by_month chart", the LLM still needs to know the field
+ * shape to do the edit correctly without inventing fields.
+ *
+ * Trade-off: leaking ~60 lines of field references is cheaper (in
+ * both tokens and user trust) than failing to honor an explicit
+ * reference to a saved widget's source. The catalog advertisement
+ * is the real quarantine; this block is reference material.
+ */
+const SAMPLE_PRE_AGGREGATED_REFERENCE = `### kpi_summary (for kpi_card widgets — single-row aggregate)
 Fields: total_customers, active_customers, mrr, arr, churn_rate, nrr, grr, gross_revenue_retention, avg_csat, open_tickets, avg_frt_minutes, pipeline_value, win_rate, avg_deal_size
 Example: \`{ "source": "kpi_summary", "aggregation": { "function": "avg", "field": "churn_rate" } }\`
-
-**Aggregation function allowlist (CRITICAL):** \`aggregation.function\` MUST be exactly one of:
-\`sum\`, \`avg\`, \`count\`, \`count_distinct\`, \`min\`, \`max\`, \`first\`, \`last\`, \`median\`.
-Do NOT emit \`"custom"\`, \`undefined\`, \`null\`, or any other value — those are rejected by the verifier
-and will cause the widget to render without data. For LIVE Freshworks KPI sources
-(\`freshcaller_calls_today\`, \`freshsales_pipeline_value\`, \`freshsales_open_deal_count\`,
-\`freshdesk_open_ticket_count\`, \`freshdesk_overdue_ticket_count\`, \`freshchat_active_conversations\`)
-the source already returns a single \`value\` row, so omit \`aggregation\` entirely OR use \`{ "function": "first", "field": "value" }\`.
-
-**Period-over-period (PoP) contract:** LIVE Freshworks single-row KPI sources also return
-\`previous_value\`, \`comparison_label\`, and \`comparison_unavailable_reason\` fields on the same row.
-The KpiCard renderer automatically uses these to draw an honest "% vs prev" pill — you do NOT need
-to add any extra config to enable this, and you must NOT invent or override these values. When
-\`previous_value\` is null the renderer transparently shows "no comparison available" with the reason.
-Never describe a number as "vs last week" or "vs yesterday" in widget titles/subtitles unless the
-source's actual \`comparison_label\` says so — the data is the source of truth, not the prose.
 
 ### churn_by_month (monthly churn series)
 Fields: month, churn_rate, churned, active_start
@@ -407,6 +382,73 @@ Fields: feature, daily_users, total_usage, adoption_rate
 ### usage_by_month (monthly usage trend)
 Fields: month, mail_scan, package_forward, check_deposit, address_use
 
+`;
+
+export async function buildSystemPrompt(
+  glossaryTerms: GlossaryEntry[],
+  currentSchema: DashboardSchema | null,
+  widgetLibrary: WidgetTemplate[] = WIDGET_LIBRARY,
+  user?: SessionUser,
+): Promise<string> {
+  // Demo-source field reference: shown only when the operator has opted
+  // into demo discovery via FEATURE_DEMO_SOURCES. When off, the catalog
+  // already hides sample sources from the LLM's "Available Data Sources"
+  // section, so this reference block is unnecessary in the prompt.
+  const preAggregatedSampleSourceReference = demoSourcesEnabled()
+    ? SAMPLE_PRE_AGGREGATED_REFERENCE
+    : '';
+  const glossarySection = glossaryTerms.length > 0
+    ? glossaryTerms.map(t =>
+        `- **${t.term}** [${t.category}]: ${t.definition}${t.formula ? ` Formula: \`${t.formula}\`` : ''}`
+      ).join('\n')
+    : 'Glossary terms could not be loaded. Canonical definitions are maintained in glossary/terms.yaml — do not invent metric definitions.';
+
+  const schemaSection = currentSchema
+    ? JSON.stringify(currentSchema, null, 2)
+    : '{ "layout": { "columns": 12, "rowHeight": 80, "gap": 16 }, "globalFilters": [], "widgets": [] }';
+
+  // Resolve user permissions once to avoid multiple DB calls
+  const userPermissions = user ? await resolveUserPermissions(user) : undefined;
+  const availableDataSources = await getAvailableDataSources(user, userPermissions);
+  const smartSuggestions = generateSchemaBasedSuggestions(currentSchema);
+
+  let basePrompt = `You are InsightHub's dashboard builder assistant. You help employees create and customize data dashboards by generating dashboard schema configurations.
+
+CRITICAL: You must use the company's official terminology definitions when interpreting user requests. The glossary below contains agreed-upon definitions for all business metrics. NEVER invent your own definitions.
+
+## Company Glossary
+${glossarySection}
+
+## Current Dashboard Schema
+\`\`\`json
+${schemaSection}
+\`\`\`
+
+${availableDataSources}
+
+${smartSuggestions}
+
+## Pre-Aggregated Data Sources (CRITICAL — use these for widgets)
+ALWAYS use the data sources advertised in the "Available Data Sources" section above and their EXACT field names. Do NOT invent field names.
+
+**Aggregation function allowlist (CRITICAL):** \`aggregation.function\` MUST be exactly one of:
+\`sum\`, \`avg\`, \`count\`, \`count_distinct\`, \`min\`, \`max\`, \`first\`, \`last\`, \`median\`.
+Do NOT emit \`"custom"\`, \`undefined\`, \`null\`, or any other value — those are rejected by the verifier
+and will cause the widget to render without data. For LIVE single-row KPI sources
+(\`freshcaller_calls_today\`, \`freshsales_pipeline_value\`, \`freshsales_open_deal_count\`,
+\`freshdesk_open_ticket_count\`, \`freshdesk_overdue_ticket_count\`, \`freshchat_active_conversations\`,
+and any \`platform_*\` KPI) the source already returns a single \`value\` row, so omit
+\`aggregation\` entirely OR use \`{ "function": "first", "field": "value" }\`.
+
+**Period-over-period (PoP) contract:** LIVE single-row KPI sources also return
+\`previous_value\`, \`comparison_label\`, and \`comparison_unavailable_reason\` fields on the same row.
+The KpiCard renderer automatically uses these to draw an honest "% vs prev" pill — you do NOT need
+to add any extra config to enable this, and you must NOT invent or override these values. When
+\`previous_value\` is null the renderer transparently shows "no comparison available" with the reason.
+Never describe a number as "vs last week" or "vs yesterday" in widget titles/subtitles unless the
+source's actual \`comparison_label\` says so — the data is the source of truth, not the prose.
+
+${preAggregatedSampleSourceReference}
 ## Widget Types Available
 kpi_card, line_chart, bar_chart, area_chart, pie_chart, donut_chart, stacked_bar, scatter_plot, table, funnel, gauge, metric_row, text_block, divider
 

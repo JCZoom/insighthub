@@ -47,60 +47,74 @@ const DEV_USER = {
   hasOnboarded: true,
 };
 
+// ── Template dashboards (DEMO) ─────────────────────────────────────────────
+//
+// Each of these is bound to sample/seed data sources (kpi_summary,
+// tickets_by_month, churn_by_region, etc.). They are kept for local
+// development and for operators who flip FEATURE_DEMO_SOURCES=true, but
+// post-2026-05-19 they are visually quarantined: title carries a " (Demo)"
+// suffix and tags include `demo` so users (and the Visual Query Builder's
+// folder/list views) can tell at a glance that these are not real data.
+//
+// We do NOT delete or hide them — saved-widget render compatibility
+// matters more than aesthetic cleanliness, and the quarantine is enforced
+// at the discovery surfaces (LLM catalog, schema explorer, source picker)
+// via FEATURE_DEMO_SOURCES, not by yanking the dashboard rows themselves.
+// See docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3.4.
 const TEMPLATE_DASHBOARDS = [
   {
     id: 'executive-summary',
-    title: 'Executive Summary',
+    title: 'Executive Summary (Demo)',
     description: 'High-level KPIs and trends across revenue, churn, support, and product usage.',
-    tags: 'executive,overview,kpi',
+    tags: 'executive,overview,kpi,demo',
     isTemplate: true,
     isPublic: true,
   },
   {
     id: 'support-operations',
-    title: 'Support Operations',
+    title: 'Support Operations (Demo)',
     description: 'Ticket volume, resolution times, CSAT, and team performance metrics.',
-    tags: 'support,tickets,csat',
+    tags: 'support,tickets,csat,demo',
     isTemplate: true,
     isPublic: true,
   },
   {
     id: 'churn-analysis',
-    title: 'Churn Analysis',
+    title: 'Churn Analysis (Demo)',
     description: 'Churn rate breakdown by region, plan, and time period with retention cohorts.',
-    tags: 'churn,retention,revenue',
+    tags: 'churn,retention,revenue,demo',
     isTemplate: true,
     isPublic: true,
   },
   {
     id: 'sales-pipeline',
-    title: 'Sales Pipeline',
+    title: 'Sales Pipeline (Demo)',
     description: 'Pipeline value, deal stages, win rates, and source attribution.',
-    tags: 'sales,pipeline,deals',
+    tags: 'sales,pipeline,deals,demo',
     isTemplate: true,
     isPublic: true,
   },
   {
     id: 'customer-health',
-    title: 'Customer Health',
+    title: 'Customer Health (Demo)',
     description: 'Usage analytics, feature adoption, regional distribution, and churn risk indicators.',
-    tags: 'customer,retention,satisfaction',
+    tags: 'customer,retention,satisfaction,demo',
     isTemplate: true,
     isPublic: true,
   },
   {
     id: 'financial-overview',
-    title: 'Financial Overview',
+    title: 'Financial Overview (Demo)',
     description: 'Revenue deep-dive, MRR/ARR tracking, retention metrics, and revenue composition.',
-    tags: 'finance,revenue,accounting',
+    tags: 'finance,revenue,accounting,demo',
     isTemplate: true,
     isPublic: true,
   },
   {
     id: 'cs-automation',
-    title: 'CS Automation',
+    title: 'CS Automation (Demo)',
     description: 'AI deflection rates across chat, voice, and ticket channels — bot performance, cost savings, and topic accuracy.',
-    tags: 'automation,chatbot,deflection,ai',
+    tags: 'automation,chatbot,deflection,ai,demo',
     isTemplate: true,
     isPublic: true,
   },
@@ -549,11 +563,28 @@ async function main() {
   // 3. Seed glossary terms from YAML → DB
   await seedGlossaryTerms();
 
-  // 4. Create template dashboards
+  // 4. Create template dashboards.
+  //
+  // Idempotent upsert (changed 2026-05-19): existing rows have their title,
+  // description, and tags refreshed in place so the "(Demo)" rename +
+  // ',demo' tag applied to TEMPLATE_DASHBOARDS this session actually lands
+  // on dashboards seeded by prior runs. The DashboardVersion (schema) row
+  // is only created on insert — we deliberately do NOT clobber any widget
+  // schema added by chat sessions on top of the empty seed schema.
   for (const tmpl of TEMPLATE_DASHBOARDS) {
     const existing = await prisma.dashboard.findUnique({ where: { id: tmpl.id } });
     if (existing) {
-      console.log(`  ✓ Dashboard already exists: ${tmpl.title}`);
+      await prisma.dashboard.update({
+        where: { id: tmpl.id },
+        data: {
+          title: tmpl.title,
+          description: tmpl.description,
+          tags: tmpl.tags,
+          isTemplate: tmpl.isTemplate,
+          isPublic: tmpl.isPublic,
+        },
+      });
+      console.log(`  🔄 Updated dashboard (title/tags): ${tmpl.title}`);
       continue;
     }
 

@@ -4,6 +4,7 @@ import { canAccessDataSourceWithMetrics } from '@/lib/auth/permissions';
 import { getAvailableSources } from '@/lib/data/sample-data';
 import { getDataSourcesWithProvider } from '@/lib/data/snowflake-data-provider';
 import { isSnowflakeConfigured } from '@/lib/snowflake/config';
+import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
 import type {
   DataSource,
   DataTable,
@@ -249,7 +250,15 @@ async function buildSchemaWithPermissions(
 ): Promise<DataSource[]> {
   const schemaData = generateSchemaFromSampleData();
   const glossaryTerms = getMockGlossaryTerms();
-  const availableSources = getAvailableSources();
+  // Demo-source quarantine (post-2026-05-19): hide canonical sample
+  // sources from the Data Explorer / Visual Query Builder unless the
+  // operator has opted in via FEATURE_DEMO_SOURCES. Saved widgets that
+  // reference these sources continue to query successfully — only the
+  // schema-discovery surface is gated. See
+  // docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3.
+  const availableSources = demoSourcesEnabled()
+    ? getAvailableSources()
+    : getAvailableSources().filter(name => !isSampleSource(name));
 
   // Group sources by category based on naming patterns
   const categorizedSources = new Map<string, string[]>();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { queryData, getAvailableSources } from '@/lib/data/sample-data';
 import { queryDataWithProvider } from '@/lib/data/snowflake-data-provider';
 import { listFreshworksSources, FreshworksDataProvider } from '@/lib/data/freshworks-data-provider';
+import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics, getCategoryForSource, resolveUserPermissions } from '@/lib/auth/permissions';
 import type { SessionUser } from '@/lib/auth/session';
@@ -201,7 +202,15 @@ export async function GET() {
     //
     // Snowflake sources are intentionally NOT enumerated here yet — when the
     // Snowflake activation conversation lands, add them via the same pattern.
-    const sampleSources = getAvailableSources();
+    // Sample sources: included only when FEATURE_DEMO_SOURCES is on. When
+    // off, this discovery surface hides the 27 canonical sample names so
+    // they don't appear in the builder's source picker. Saved dashboards
+    // that already reference these sources continue to resolve through
+    // POST /api/data/query — only discovery is gated. See
+    // docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3.
+    const sampleSources = demoSourcesEnabled()
+      ? getAvailableSources()
+      : getAvailableSources().filter(name => !isSampleSource(name));
     const productAvailability = FreshworksDataProvider.productAvailability();
     const freshworksSources = listFreshworksSources().filter(name => {
       if (name.startsWith('freshsales_')) return productAvailability.freshsales;
