@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
         hasOnboarded: true,
         createdAt: true,
         lastLoginAt: true,
+        mfaVerifiedAt: true,
         permissionAssignments: {
           include: {
             permissionGroup: {

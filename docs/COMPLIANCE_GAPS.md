@@ -41,12 +41,24 @@ These are the gaps most likely to surface as *blocking* findings in an ISO 27001
 - **Policy:** 3692 Authentication & Password · AUTH-02, AUTH-06; 3691 Access Control · AC-05
 - **Audit risk:** HIGH
 - **Effort:** M
-- **Why it matters:** Policy 3692 says *"For systems storing customer PII and other regulated data, MFA must be enforced: users should not be able to disable the second factor and retain access."* We delegate to Google Workspace and assume MFA is on — an auditor wants proof.
-- **Remediation:**
-  1. In the Google OAuth callback (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/auth/config.ts:56`) read the `amr` (authentication methods references) claim and reject sign-ins missing MFA for privileged roles (`POWER_USER`, `ADMIN`).
-  2. Add an `mfaVerifiedAt` column on `User` and surface it on the admin users page (`src/app/admin/users/`).
-  3. For production access (SSH to EC2), require a hardware-backed MFA factor (YubiKey on macOS SSH agent + AWS Console enforced MFA).
-  4. Document the chain in `docs/AUTHENTICATION.md`.
+- **Status (2026-05-19):** ✅ **Closed.** Full scope shipped: AMR check + admin gate + persisted timestamp + admin-UI surface.
+- **Why it matters:** Policy 3692 says *"For systems storing customer PII and other regulated data, MFA must be enforced: users should not be able to disable the second factor and retain access."*
+- **Evidence:**
+  1. New AMR parser `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/auth/mfa.ts` (`parseIdTokenAMR`, `requiresMfa`, `MFA_AMR_VALUES`). Recognizes `mfa`, `otp`, `hwk`, `swk`, `sms`, `tel`, `fpt`, `face`, `iris` per RFC 8176. MFA-required roles: ADMIN, POWER_USER.
+  2. **Enforcement gate in `signIn` callback** at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/auth/config.ts:57-121`: resolves effective role from `(ADMIN_EMAILS allowlist) ∪ (DB role)`, parses the Google `id_token.amr`, returns `/auth/mfa-required` redirect string if MFA-required and not asserted. Rejection emits a `USER_LOGIN` audit log with `{ outcome:'rejected', reason:'mfa_required', effectiveRole, amrValues, parseError }`.
+  3. **Persistence:** new `User.mfaVerifiedAt: DateTime?` column added in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/prisma/schema.prisma:20-24`. Schema pushed via `prisma db push` (SQLite). The `jwt` callback updates `mfaVerifiedAt` only when MFA is asserted on the current sign-in — **never null-out a previous verification**, so the field always reflects "most recent MFA-bearing sign-in".
+  4. **Admin UI badge** added to `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/app/admin/users/users-client.tsx:59-95` with three states: ✅ verified (within 7d), ⚠️ stale (>7d), 🔓 missing-required (red for privileged roles without any MFA history). Tooltip shows the exact timestamp.
+  5. **Rejection landing page** `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/app/auth/mfa-required/page.tsx` — explains the policy, gives users a 4-step remediation procedure (sign out of Google, sign back in to trigger MFA).
+  6. **Full chain documented** in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/docs/AUTHENTICATION.md`: chain diagram, why-this-not-Google-alone defence, stakeholder talking points for the CISO review.
+  7. **Backwards-compat:** `CredentialsProvider` (dev mode only, gated on `NEXT_PUBLIC_DEV_MODE === 'true'`) is unaffected. Production sets dev mode false in the env validator.
+  8. **Typecheck + lint clean** (`npx tsc --noEmit` and `npm run lint` — 0 errors, 2026-05-19).
+- **Pending follow-ups (Tier-2):**
+  - **G-02b** Step-up MFA challenge for sensitive in-app actions (TOTP secondary factor). Today's gate fires at sign-in only; a stolen session cookie bypasses MFA until 8h JWT expiry.
+  - **Production access** (SSH to EC2): document YubiKey-via-ssh-add-K enforcement.
+- **Manual verification:**
+  1. Sign in to InsightHub as an ADMIN with Google MFA verified within the last few minutes → succeeds, badge shows ✅.
+  2. Sign out, then in Google account settings simulate "no MFA" (test mode) → InsightHub sign-in redirects to `/auth/mfa-required` and the rejection appears in audit log.
+  3. Query: `SELECT * FROM AuditLog WHERE action='user.login' AND metadata LIKE '%rejected%' ORDER BY createdAt DESC LIMIT 5;` shows rejection rows.
 
 ### G-03 — TLS Configuration Not Explicitly Pinned or Tested
 - **Policy:** 3701 Encryption · ENC-01, ENC-04

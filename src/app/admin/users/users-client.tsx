@@ -12,6 +12,7 @@ interface UserWithPermissions {
   hasOnboarded: boolean;
   createdAt: string;
   lastLoginAt: string | null;
+  mfaVerifiedAt: string | null;
   permissionAssignments: Array<{
     permissionGroup: {
       id: string;
@@ -40,6 +41,58 @@ interface UsersClientProps {
 
 const VALID_ROLES = ['VIEWER', 'CREATOR', 'POWER_USER', 'ADMIN'] as const;
 type Role = typeof VALID_ROLES[number];
+
+// MFA staleness threshold for the "fresh / stale / never" badge tiers (G-02).
+// 7 days = if the last MFA assertion is older than this, surface as STALE so
+// admins notice that the user's session is being trusted on a cached cookie
+// rather than a fresh second-factor handshake.
+const MFA_STALE_AFTER_DAYS = 7;
+
+function mfaIsStale(mfaVerifiedAt: string | null): boolean {
+  if (!mfaVerifiedAt) return true;
+  const ts = new Date(mfaVerifiedAt).getTime();
+  if (Number.isNaN(ts)) return true;
+  const ageMs = Date.now() - ts;
+  return ageMs > MFA_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+}
+
+function renderMfaBadge(user: { mfaVerifiedAt: string | null; role: string }) {
+  if (!user.mfaVerifiedAt) {
+    const requiresMfa = user.role === 'ADMIN' || user.role === 'POWER_USER';
+    return (
+      <span
+        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+          requiresMfa
+            ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300'
+            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+        }`}
+      >
+        <span aria-hidden>🔓</span>
+        {requiresMfa ? 'MFA missing (required)' : 'MFA not verified'}
+      </span>
+    );
+  }
+  const stale = mfaIsStale(user.mfaVerifiedAt);
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+        stale
+          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+      }`}
+    >
+      <span aria-hidden>{stale ? '⚠️' : '✅'}</span>
+      MFA {stale ? 'stale' : 'verified'}
+    </span>
+  );
+}
+
+function renderMfaTooltip(user: { mfaVerifiedAt: string | null }): string {
+  if (!user.mfaVerifiedAt) {
+    return 'No MFA assertion has been recorded for this user. Policy 3692 AUTH-02.';
+  }
+  return `Last MFA assertion: ${new Date(user.mfaVerifiedAt).toLocaleString()}`;
+}
 
 export default function UsersClient({ currentUser }: UsersClientProps) {
   const [users, setUsers] = useState<UserWithPermissions[]>([]);
@@ -257,6 +310,7 @@ export default function UsersClient({ currentUser }: UsersClientProps) {
                     <div className="space-y-1">
                       <div>Joined: {formatDate(user.createdAt)}</div>
                       <div>Last login: {formatDate(user.lastLoginAt)}</div>
+                      <div title={renderMfaTooltip(user)}>{renderMfaBadge(user)}</div>
                       <div className="text-xs text-[var(--text-muted)]">
                         {user._count.dashboards} dashboards, {user._count.publishedWidgets} widgets
                       </div>

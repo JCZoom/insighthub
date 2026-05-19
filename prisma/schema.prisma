@@ -17,6 +17,11 @@ model User {
   hasOnboarded Boolean         @default(false)
   createdAt   DateTime         @default(now())
   lastLoginAt DateTime?
+  // G-02 / Policy 3692 AUTH-02, AUTH-06: timestamp of the most recent sign-in
+  // that carried a Multi-Factor-Authentication assertion (Google `amr` claim
+  // containing 'mfa', 'otp', 'hwk', or 'swk'). Null = the user has never
+  // signed in with MFA. Auditor-visible signal of MFA enforcement.
+  mfaVerifiedAt DateTime?
   dashboards  Dashboard[]      @relation("owner")
   sharedWith  DashboardShare[]
   chatSessions ChatSession[]
