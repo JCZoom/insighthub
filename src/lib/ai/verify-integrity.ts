@@ -364,10 +364,23 @@ export function runDeterministicChecks(
       }
     }
 
+    // Normalize groupBy: the WidgetConfig type declares it as string[], but the
+    // LLM frequently emits a bare string (e.g. `"groupBy": "status"`) — without
+    // this normalization, D-07 / D-08 would spread the string character-by-
+    // character, producing spurious "field \"s\" does not exist" errors.
+    // (Pre-existing bug surfaced when sample_* / freshworks_* sources were
+    // registered in source-field-registry.ts.)
+    const groupByRaw = widget.dataConfig?.groupBy as unknown;
+    const groupByFields: string[] = Array.isArray(groupByRaw)
+      ? (groupByRaw as string[])
+      : typeof groupByRaw === 'string' && groupByRaw.length > 0
+        ? [groupByRaw]
+        : [];
+
     // D-07: Valid groupBy (skip if source unknown)
-    if (widget.dataConfig?.groupBy && source && sourceKnown) {
+    if (groupByFields.length > 0 && source && sourceKnown) {
       const sourceFields = getFieldsForSource(source);
-      for (const field of widget.dataConfig.groupBy) {
+      for (const field of groupByFields) {
         if (!sourceFields.includes(field)) {
           results.push({
             checkId: 'D-07',
@@ -386,7 +399,7 @@ export function runDeterministicChecks(
       const sourceFields = getFieldsForSource(source);
       const referencedFields: string[] = [];
       if (widget.dataConfig?.aggregation?.field) referencedFields.push(widget.dataConfig.aggregation.field);
-      if (widget.dataConfig?.groupBy) referencedFields.push(...widget.dataConfig.groupBy);
+      if (groupByFields.length > 0) referencedFields.push(...groupByFields);
       if (widget.dataConfig?.orderBy) referencedFields.push(...widget.dataConfig.orderBy.map(o => o.field));
 
       const invalidFields = referencedFields.filter(f => !sourceFields.includes(f));
