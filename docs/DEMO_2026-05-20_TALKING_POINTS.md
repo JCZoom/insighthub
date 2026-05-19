@@ -98,11 +98,13 @@ Open `/dashboard/new` (or any existing dashboard in edit mode), click "Add Widge
 
 > "Here are all 17 Freshworks suite sources — Freshsales (CRM), Freshdesk (support), Freshcaller (voice), Freshchat (messaging) — sitting alongside the sample-data sources. They appear here only because the per-product API key is configured on this server; if `FRESHCALLER_API_KEY` were missing, those entries would be omitted entirely."
 
-Pick `Freshsales Pipeline Value`. Set widget type to KPI Card. Set aggregation to Sum on field `pipeline_value`. Save.
+Pick `Freshsales Pipeline Value`. Set widget type to KPI Card. **Leave the aggregation field empty** — the source returns a single `{ value, label }` row and the KPI card auto-resolves to the `value` field. (If you want to be explicit, type `value` — *not* `pipeline_value`; that field name doesn't exist in the row shape returned by `FreshworksDataProvider.pipelineValue()`.) Save.
+
+The widget should render approximately **$30,540** (the live Freshsales open-pipeline total at the time of the demo). If you see something in the millions like "$2.9M" you are looking at sample-data leakage from before commits `6503391` + `9fcf273` landed — that bug is fixed; if it reappears, halt the demo and check the deploy.
 
 > "That widget is now hitting the Freshsales API live, with the same 60-second cache, the same `integration.freshworks.read` audit log entry, the same `CUSTOMER_CONFIDENTIAL` classification badge, and the same role-based masking we just demonstrated. The dashboard layer is unaware that this widget points at Freshworks instead of sample data — the connector layer handles every compliance-relevant detail."
 
-Open `/admin/audit?action=integration.freshworks.read&limit=5` in a second tab. Show the audit row from the widget render that just happened.
+Open `/admin/audit?action=integration.freshworks.read&limit=5` in a second tab. Show the audit row from the widget render that just happened — *this* is the proof that the widget is hitting the live API, not a cached generator.
 
 > "RBAC enforcement is identical to any other source. A VIEWER without Sales-category access doesn't see Freshsales sources in this dropdown at all, and a direct API call from their session returns 403 with an audit entry."
 
