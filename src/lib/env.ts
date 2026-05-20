@@ -101,6 +101,12 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     description: 'Escape hatch: allow DEV_MODE=true with NODE_ENV=production. CI-only.',
     example: '1',
   },
+  TRUSTED_MFA_DOMAINS: {
+    required: false,
+    description:
+      'Comma-separated email domains whose Workspace 2SV we trust as the MFA control when Google omits the amr claim. See src/lib/auth/mfa.ts for the trust assumption. Empty = strict amr-only mode.',
+    example: 'uszoom.com',
+  },
   ALLOWED_DOMAIN: {
     required: false,
     description: 'Email domain allowed for login',

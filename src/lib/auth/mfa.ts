@@ -74,6 +74,55 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+/** Outcome of the combined MFA verification check. */
+export type MfaVerificationResult =
+  | { verified: true; via: 'amr' | 'domain-trust' }
+  | { verified: false };
+
+/**
+ * True if the given email belongs to a Workspace domain we've configured to
+ * trust for MFA enforcement (TRUSTED_MFA_DOMAINS, comma-separated).
+ *
+ * Trust assumption: Google Workspace for the listed domains enforces 2SV at
+ * the domain level (verified by IT-admin policy outside this codebase). Per
+ * 2026-05-20 INC-20260519-001 retro: Google's `amr` claim is documented as
+ * unreliable — it is often empty even when the user authenticated with a
+ * security key as a second factor. Without a domain-trust fallback, the
+ * application's MFA gate is unfalsifiable from a successful sign-in alone,
+ * which produces an effective lockout for privileged users (Jeff couldn't
+ * reach /admin even after using YubiKey).
+ *
+ * This is defense-in-depth. The PRIMARY MFA control is Google Workspace's
+ * own 2SV enforcement. The application gate exists to fail-closed if that
+ * upstream control is misconfigured. Setting TRUSTED_MFA_DOMAINS means we
+ * accept the upstream control as authoritative for the listed domains.
+ *
+ * Never list a domain you don't control, and never list domains whose
+ * Workspace policy you can't verify enforces 2SV.
+ */
+export function isDomainTrustedForMfa(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const raw = process.env.TRUSTED_MFA_DOMAINS ?? '';
+  const trusted = raw
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+  if (trusted.length === 0) return false;
+  const lower = email.toLowerCase();
+  return trusted.some((d) => lower.endsWith(`@${d}`));
+}
+
+/**
+ * Combined MFA verification: prefer the explicit `amr` claim, fall back to
+ * the domain-trust list if `amr` was empty. Caller can use `via` to log
+ * which signal authorized the sign-in for audit-trail purposes.
+ */
+export function verifyMfa(email: string | null | undefined, amr: AmrParseResult): MfaVerificationResult {
+  if (amr.mfaVerified) return { verified: true, via: 'amr' };
+  if (isDomainTrustedForMfa(email)) return { verified: true, via: 'domain-trust' };
+  return { verified: false };
+}
+
 /**
  * Parse the AMR + auth_time claims out of an OIDC id_token.
  *

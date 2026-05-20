@@ -19,7 +19,7 @@
     "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://dashboards.jeffcoy.net npx playwright test e2e/production-health.spec.ts",
     "test:a11y": "npx playwright test e2e/accessibility.spec.ts --project=chromium",
     "check:types": "tsc --noEmit",
-    "test:unit": "node --import tsx --test __tests__/env.test.ts",
+    "test:unit": "node --import tsx --test __tests__/env.test.ts __tests__/mfa.test.ts",
     "check:all": "npm run check:types && npm run lint && npm run test:unit && npm run test:e2e:ci"
   },
   "dependencies": {

@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { logUserAction, createAuditLog, AuditAction, ResourceType } from '@/lib/audit';
 import prisma from '@/lib/db/prisma';
-import { parseIdTokenAMR, requiresMfa } from './mfa';
+import { parseIdTokenAMR, requiresMfa, verifyMfa } from './mfa';
 
 const DEV_USER = {
   id: 'dev-admin-user',
@@ -30,7 +30,6 @@ const DEV_USER = {
 // landed Jeff in a VIEWER row and locked him out of /admin.
 const ADMIN_EMAILS = [
   'jeffrey.coy@uszoom.com',
-  'jeff.coy@uszoom.com',
 ];
 
 // Helper function to determine user role based on email
@@ -137,7 +136,24 @@ export const authOptions: NextAuthOptions = {
             ? dbRole
             : allowlistRole;
 
-        if (requiresMfa(effectiveRole) && !amr.mfaVerified) {
+        // Combined MFA check: amr claim first, domain-trust list as fallback.
+        // Google's amr claim is documented-unreliable for second-factor flows;
+        // see mfa.ts for the trust assumption that backs the fallback.
+        const mfa = verifyMfa(email, amr);
+        if (mfa.verified && mfa.via === 'domain-trust') {
+          // Loud audit signal so this is greppable in journald. If you ever
+          // see this for an account that should be MFA-asserting at Google
+          // level (i.e. amr should be populated), investigate the IdP — the
+          // fallback is meant to be the safety net, not the steady state.
+          console.warn(
+            `[auth] MFA verified via domain-trust fallback for ${email} ` +
+              `(role=${effectiveRole}, amr=${JSON.stringify(amr.amrValues)}, ` +
+              `TRUSTED_MFA_DOMAINS=${process.env.TRUSTED_MFA_DOMAINS ?? ''}). ` +
+              `Google did not populate the amr claim; we trust the Workspace ` +
+              `2SV enforcement on the listed domain as the MFA control.`
+          );
+        }
+        if (requiresMfa(effectiveRole) && !mfa.verified) {
           // Best-effort audit of the rejection. We need a real User.id to
           // satisfy the AuditLog.userId FK constraint, so look the user up
           // by email. If no row exists yet (first-time sign-in being
@@ -174,7 +190,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.warn(
-            `[auth] Rejected sign-in for ${email} — role=${effectiveRole} requires MFA but amr=${JSON.stringify(amr.amrValues)} (parseError=${amr.parseError}).`
+            `[auth] Rejected sign-in for ${email} — role=${effectiveRole} requires MFA but amr=${JSON.stringify(amr.amrValues)} (parseError=${amr.parseError}, domainTrusted=false).`
           );
 
           // Returning a string path causes NextAuth to redirect there with
