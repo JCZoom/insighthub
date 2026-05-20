@@ -45,36 +45,41 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Try hard to make Google populate the `amr` claim in the id_token
-      // so mfa.ts can verify MFA was used. Combination chosen 2026-05-20
-      // after two prior attempts (no params; `prompt=login` alone) both
-      // produced empty `amr` for the same user even with a YubiKey
-      // enrolled:
+      // `prompt: 'login'` forces Google to re-prompt for password every
+      // time, so a stolen session cookie can't be used to walk into a
+      // privileged account. Google still honors normal 2SV-touch on the
+      // YubiKey in this mode.
       //
-      //   - prompt=login : force re-auth at Google (don't reuse session
-      //     cookie). On its own this re-prompts for password but Google
-      //     often considers 2SV "fresh" and skips the security-key step.
-      //   - max_age=0    : tighter than prompt=login — per OIDC spec the
-      //     IdP MUST actively re-authenticate when max_age=0, including
-      //     the second factor.
-      //   - acr_values=mfa : OIDC-standard way to request a specific
-      //     authentication context. Google's support for acr_values is
-      //     spotty (their docs say "not currently supported" for general
-      //     OAuth flows); if Google ignores it the other two params still
-      //     help. Treat this as best-effort.
+      // What we deliberately do NOT set, after discovering it the hard way
+      // 2026-05-20 (~13:45 ET):
+      //   - max_age=0       : per OIDC spec the IdP MUST actively re-
+      //                       authenticate. Google interprets this as
+      //                       "use the highest-assurance credential
+      //                       available", which on a YubiKey means
+      //                       FIDO2 PIN verification — a PIN set ON the
+      //                       hardware key itself, separate from any
+      //                       account password. Most enterprise YubiKeys
+      //                       are enrolled in 2SV-touch mode and have NO
+      //                       PIN. Setting max_age=0 produces an
+      //                       unrecoverable "Enter PIN" prompt for those
+      //                       users.
+      //   - acr_values=mfa  : OIDC standard for requesting a specific
+      //                       authentication context. Google's
+      //                       implementation appears to behave the same
+      //                       as max_age=0 here — escalates to
+      //                       user-verifying credentials.
       //
-      // If Google STILL returns amr=[] after this, the next step is to
-      // shift the trust assumption — treat successful sign-ins for the
-      // configured @uszoom.com Workspace domain as MFA-equivalent
-      // (Workspace 2SV is enforced at the domain level; the application
-      // gate then becomes defense-in-depth rather than the sole control).
-      // That work, if needed, lives in mfa.ts (parse fn) + a new env var
-      // TRUSTED_MFA_DOMAINS.
+      // We don't need either to satisfy our MFA gate. The id_token's `amr`
+      // claim is documented-unreliable (Google routinely omits it for
+      // second-factor flows); we already verified that even with these
+      // two flags set, Google still returns amr=[]. The application's
+      // MFA evidence comes from the TRUSTED_MFA_DOMAINS-backed
+      // domain-trust fallback in mfa.ts — we accept the Workspace 2SV
+      // policy as the authoritative MFA control for listed domains, with
+      // a loud journald audit line on every fallback use.
       authorization: {
         params: {
           prompt: 'login',
-          max_age: 0,
-          acr_values: 'mfa',
         },
       },
     }),
