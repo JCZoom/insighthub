@@ -50,8 +50,17 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow public routes
-        const publicPaths = ['/login', '/api/health', '/api/auth'];
+        // Allow public routes.
+        //
+        // `/auth/*` is the landing-page namespace for sign-in failure
+        // states (e.g. /auth/mfa-required is rendered when the MFA gate
+        // rejects a privileged sign-in). It MUST be public because the
+        // user reaching it by definition has no valid session cookie —
+        // they were just rejected. Pre-2026-05-20 this was missing, so
+        // the rejection redirect bounced back to /login, producing an
+        // infinite loop (the MFA-required page could never be read, and
+        // its troubleshooting instructions could never reach the user).
+        const publicPaths = ['/login', '/auth', '/api/health', '/api/auth'];
         const isPublicPath = publicPaths.some(path =>
           req.nextUrl.pathname.startsWith(path)
         );

@@ -46,20 +46,36 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Force Google to re-authenticate the user on every OAuth sign-in to
-      // InsightHub. Without `prompt: 'login'` Google reuses a live Google
-      // session cookie (e.g. when the user is already signed into Google in
-      // the same browser) and issues an id_token whose `amr` claim is
-      // empty — the MFA gate in mfa.ts then rejects the sign-in for
-      // privileged roles because there's no MFA assertion to evaluate.
-      // Forcing re-auth ensures Google challenges the YubiKey / 2SV every
-      // time and populates `amr` accordingly. Discovered 2026-05-20 when
-      // Jeff was locked out of /admin post-role-promotion: his Google
-      // session was cached from an earlier sign-in, so subsequent sign-ins
-      // skipped the security key prompt and produced amr=[].
+      // Try hard to make Google populate the `amr` claim in the id_token
+      // so mfa.ts can verify MFA was used. Combination chosen 2026-05-20
+      // after two prior attempts (no params; `prompt=login` alone) both
+      // produced empty `amr` for the same user even with a YubiKey
+      // enrolled:
+      //
+      //   - prompt=login : force re-auth at Google (don't reuse session
+      //     cookie). On its own this re-prompts for password but Google
+      //     often considers 2SV "fresh" and skips the security-key step.
+      //   - max_age=0    : tighter than prompt=login — per OIDC spec the
+      //     IdP MUST actively re-authenticate when max_age=0, including
+      //     the second factor.
+      //   - acr_values=mfa : OIDC-standard way to request a specific
+      //     authentication context. Google's support for acr_values is
+      //     spotty (their docs say "not currently supported" for general
+      //     OAuth flows); if Google ignores it the other two params still
+      //     help. Treat this as best-effort.
+      //
+      // If Google STILL returns amr=[] after this, the next step is to
+      // shift the trust assumption — treat successful sign-ins for the
+      // configured @uszoom.com Workspace domain as MFA-equivalent
+      // (Workspace 2SV is enforced at the domain level; the application
+      // gate then becomes defense-in-depth rather than the sole control).
+      // That work, if needed, lives in mfa.ts (parse fn) + a new env var
+      // TRUSTED_MFA_DOMAINS.
       authorization: {
         params: {
           prompt: 'login',
+          max_age: 0,
+          acr_values: 'mfa',
         },
       },
     }),
