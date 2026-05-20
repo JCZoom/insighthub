@@ -18,7 +18,7 @@ export default function LoginPage() {
         if (!user.hasOnboarded) {
           router.push('/onboarding');
         } else {
-          router.push('/gallery');
+          router.push('/dashboards');
         }
       }
     });
@@ -42,7 +42,7 @@ export default function LoginPage() {
           if (!user.hasOnboarded) {
             router.push('/onboarding');
           } else {
-            router.push('/gallery');
+            router.push('/dashboards');
           }
         }
       }
@@ -65,7 +65,7 @@ export default function LoginPage() {
       if (result?.error) {
         console.error('Dev sign in error:', result.error);
       } else if (result?.ok) {
-        router.push('/gallery'); // Dev user is always onboarded
+        router.push('/dashboards'); // Dev user is always onboarded
       }
     } catch (error) {
       console.error('Dev sign in error:', error);
