@@ -15,7 +15,21 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
-  NEXT_PUBLIC_DEV_MODE: "true"
+  # Dev-mode flags default to PRODUCTION-SAFE here so the deploy job (which
+  # runs its own `npm run build` on the EC2 host and inherits this scope)
+  # never bakes the bypass into a release bundle. Pre-2026-05-19 this scope
+  # had NEXT_PUBLIC_DEV_MODE: "true", which combined with a NEXT_PUBLIC_-
+  # prefixed flag being used for security to produce a build artifact with
+  # auth permanently bypassed on prod — see docs/INCIDENT_RESPONSE_RUNBOOK.md.
+  #
+  #   DEV_MODE              (runtime, server-only) — security
+  #   NEXT_PUBLIC_DEV_MODE  (build-baked, client)  — UI affordance hint
+  #
+  # The e2e job overrides DEV_MODE to "true" at the server-start step so the
+  # middleware bypass is in effect for tests, without baking anything into
+  # the build artifact.
+  DEV_MODE: "false"
+  NEXT_PUBLIC_DEV_MODE: "false"
   DATABASE_URL: "file:./dev.db"
   NEXTAUTH_SECRET: "ci-test-secret-not-for-production"
 
@@ -137,6 +151,12 @@ jobs:
           npx wait-on http://localhost:3000/api/health --timeout 30000
         env:
           PORT: "3000"
+          # E2E tests assume middleware auth is bypassed
+          # (see comment in e2e/critical-flows.spec.ts). DEV_MODE is the
+          # runtime, server-only security flag — overriding it here keeps
+          # the build artifact production-shaped (NEXT_PUBLIC_DEV_MODE still
+          # inlined as false from the workflow-scope default).
+          DEV_MODE: "true"
       # Functional tests — strict gate. These exercise real product flows
       # (health endpoint contract, dashboard CRUD, gallery rendering, glossary
       # search). A failure here MUST block deploy because it means the app

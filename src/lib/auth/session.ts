@@ -12,8 +12,10 @@ export interface SessionUser {
 }
 
 export async function getCurrentUser(): Promise<SessionUser> {
-  // In dev mode, return dev user for convenience
-  if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+  // In dev mode, return dev user for convenience.
+  // SECURITY: DEV_MODE (server-only, runtime), not NEXT_PUBLIC_DEV_MODE
+  // (build-baked). See middleware.ts comment.
+  if (process.env.DEV_MODE === 'true') {
     const dev = getDevUser();
     return {
       id: dev.id,
@@ -47,7 +49,7 @@ export async function getCurrentUser(): Promise<SessionUser> {
 
 // For backwards compatibility - sync version that throws in production
 export function getCurrentUserSync(): SessionUser {
-  if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+  if (process.env.DEV_MODE === 'true') {
     const dev = getDevUser();
     return {
       id: dev.id,
@@ -59,7 +61,7 @@ export function getCurrentUserSync(): SessionUser {
     };
   }
 
-  throw new Error('getCurrentUserSync can only be used in dev mode. Use getCurrentUser() instead.');
+  throw new Error('getCurrentUserSync can only be used in DEV_MODE. Use getCurrentUser() instead.');
 }
 
 export function isAdmin(user: SessionUser): boolean {

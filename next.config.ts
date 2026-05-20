@@ -1,14 +1,26 @@
 import type { NextConfig } from "next";
 
-// WARNING: Dev mode bypasses authentication. When OAuth is configured, set
-// NEXT_PUBLIC_DEV_MODE=false in .env.local and optionally restore the throw below.
+// WARNING: Dev mode bypasses authentication. Two flags govern this:
+//   - DEV_MODE              (server-only, runtime-evaluated) — SECURITY flag
+//   - NEXT_PUBLIC_DEV_MODE  (client, build-baked)            — UI-hint flag
+// See src/lib/env.ts for the full rationale and the 2026-05-19 incident
+// that motivated the split. This block runs at build-time; we warn on both
+// because either being true in production is a smell.
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.DEV_MODE === 'true'
+) {
+  console.warn(
+    '⚠️  DEV_MODE=true at build time with NODE_ENV=production — authentication will be bypassed at runtime. ' +
+    'This must be disabled before serving real traffic.'
+  );
+}
 if (
   process.env.NODE_ENV === 'production' &&
   process.env.NEXT_PUBLIC_DEV_MODE === 'true'
 ) {
   console.warn(
-    '⚠️  NEXT_PUBLIC_DEV_MODE=true in production — authentication is bypassed. ' +
-    'This is acceptable during development but must be disabled before public launch.'
+    '⚠️  NEXT_PUBLIC_DEV_MODE=true at build time with NODE_ENV=production — dev UI affordances (dev login button, etc) will be baked into the bundle. Cosmetic only; security is governed by DEV_MODE.'
   );
 }
 

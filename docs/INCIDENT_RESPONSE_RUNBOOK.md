@@ -397,3 +397,4 @@ File the after-action report as `docs/tabletops/TABLETOP-YYYY-Q{1-4}.md`. This i
 | Date | Reviewer | Summary |
 |---|---|---|
 | 2026-04-24 | Jeff Coy | Initial runbook created as part of the USZoom ISMS compliance pass (gap G-18 closure). Severity matrix, 8 containment playbooks, retrospective template, and 3-year tabletop schedule established. |
+| 2026-05-20 | Jeff Coy | First incident filed (S2 production auth bypass) — see `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/docs/incidents/INC-20260519-001.md`. Root cause: `NEXT_PUBLIC_DEV_MODE` used as a security gate but inlined at build time. Action items include promoting `assertEnv()` warning to a hard throw, adding an external attack-surface monitor, and refactoring the last client uses of the public flag so the security path can drop `NEXT_PUBLIC_DEV_MODE` entirely. |

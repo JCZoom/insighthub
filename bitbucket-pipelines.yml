@@ -35,8 +35,12 @@ definitions:
           - npm ci
           - npx prisma generate
           - DATABASE_URL="file:./dev.db" npx prisma db push --accept-data-loss
-          - DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" NEXT_PUBLIC_DEV_MODE="true" npm run db:seed
-          - NEXT_PUBLIC_DEV_MODE="true" DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" npm run build
+          - DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" npm run db:seed
+          # Production-safe build: do NOT bake dev-mode-true into the bundle.
+          # See .github/workflows/ci.yml header comment for the rationale
+          # (NEXT_PUBLIC_-prefixed flags inline at build time; runtime edits
+          # to .env.local cannot un-bake them). Post-2026-05-19 incident.
+          - DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" npm run build
         artifacts:
           - .next/**
           - prisma/dev.db
@@ -50,7 +54,11 @@ definitions:
           - npx prisma generate
           - npx playwright install chromium --with-deps
           - |
-            DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" NEXT_PUBLIC_DEV_MODE="true" \
+            # DEV_MODE (runtime, server-only) bypasses middleware auth for
+            # e2e tests. NEXT_PUBLIC_DEV_MODE intentionally NOT set here —
+            # the build artifact above was production-shaped and the tests
+            # do not click the dev-login UI affordance.
+            DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" DEV_MODE="true" \
             PORT=3000 npm run start &
             npx wait-on http://localhost:3000/api/health --timeout 30000
             PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test --project=chromium

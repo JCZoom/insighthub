@@ -51,9 +51,38 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     required: false,
     description: 'Google OAuth client secret (required in production)',
   },
+  // ── Dev-mode flags ────────────────────────────────────────────────────────
+  // Two flags by design — DO NOT collapse them.
+  //
+  // DEV_MODE (server-only, runtime-evaluated) is the SECURITY flag. It
+  // controls authentication bypass in middleware, the NextAuth credentials
+  // provider, the JWT/session callbacks, and the session helpers. Because
+  // it is NOT prefixed with NEXT_PUBLIC_, Next.js does NOT inline it into
+  // the build at compile time — it is read from process.env at request
+  // time. That means flipping `.env.local` and restarting the service is
+  // sufficient to toggle it. Set to 'true' for local dev; MUST be 'false'
+  // (or unset) on production deployments.
+  //
+  // NEXT_PUBLIC_DEV_MODE (client, build-baked) is the UI HINT flag. It
+  // controls cosmetic affordances visible to the browser (dev login
+  // button on /login, power-user demo shortcut in MetricExplanationModal).
+  // Because it IS prefixed with NEXT_PUBLIC_, Next.js inlines its value
+  // into the JavaScript bundle at `next build` time. Changes to it at
+  // runtime have NO effect. It is NOT a security flag.
+  //
+  // Operators: keep the two values in sync in `.env.local`. The
+  // validateEnv() function below warns at startup if they ever desync.
+  // Historical context: docs/INCIDENT_RESPONSE_RUNBOOK.md entry from
+  // 2026-05-19 when a NEXT_PUBLIC_-prefixed flag was being used for
+  // security and a `.env.local` edit on prod failed to disable the bypass.
+  DEV_MODE: {
+    required: false,
+    description: 'Server-only auth bypass (runtime-evaluated). MUST be false/unset in production.',
+    example: 'true',
+  },
   NEXT_PUBLIC_DEV_MODE: {
     required: false,
-    description: 'Enable dev mode (bypasses auth, enables dev tools)',
+    description: 'Client UI hint flag for dev affordances (build-baked). NOT a security flag — see DEV_MODE.',
     example: 'true',
   },
   ALLOWED_DOMAIN: {
@@ -252,7 +281,10 @@ export function validateEnv(): EnvValidationResult {
   }
 
   // Context-aware warnings
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  // SECURITY flag — server-only, runtime-evaluated.
+  const isDevMode = process.env.DEV_MODE === 'true';
+  // UI hint flag — client, build-baked.
+  const isPublicDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
   const isProd = process.env.NODE_ENV === 'production';
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -268,7 +300,17 @@ export function validateEnv(): EnvValidationResult {
   }
 
   if (isProd && isDevMode) {
-    warnings.push('NEXT_PUBLIC_DEV_MODE is true in production — auth is bypassed!');
+    warnings.push('DEV_MODE is true in production — auth is bypassed!');
+  }
+
+  // Desync detection. Either-direction mismatch is an operator error.
+  // Server bypass + client hint should agree.
+  if (isDevMode !== isPublicDevMode) {
+    warnings.push(
+      `DEV_MODE (${isDevMode}) and NEXT_PUBLIC_DEV_MODE (${isPublicDevMode}) disagree — ` +
+      'these should match in .env.local. The server flag is authoritative for security; ' +
+      'the public flag controls UI affordances. Set both the same.'
+    );
   }
 
   if (isProd && process.env.NEXTAUTH_SECRET && process.env.NEXTAUTH_SECRET.length < 32) {
@@ -290,15 +332,26 @@ export function assertEnv(): void {
     console.warn(`⚠️  ENV: ${w}`);
   }
 
-  // Dev mode in production — warn but don't crash (intentional until OAuth is configured)
-  // TODO: Restore throw when OAuth is enabled and NEXT_PUBLIC_DEV_MODE is set to false
+  // Dev mode in production — warn loudly. Post-2026-05-19 incident, the
+  // security path reads DEV_MODE (server-only, runtime). The legacy
+  // NEXT_PUBLIC_DEV_MODE is now UI-only, but we still flag both because
+  // having either set in prod is a smell.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.DEV_MODE === 'true'
+  ) {
+    console.warn(
+      '⚠️  DEV_MODE=true in production — authentication is bypassed. ' +
+      'This must be disabled (set to "false" or remove the line) before serving real traffic.'
+    );
+  }
   if (
     process.env.NODE_ENV === 'production' &&
     process.env.NEXT_PUBLIC_DEV_MODE === 'true'
   ) {
     console.warn(
-      '⚠️  NEXT_PUBLIC_DEV_MODE=true in production — authentication is bypassed. ' +
-      'This is acceptable during development but must be disabled before public launch.'
+      '⚠️  NEXT_PUBLIC_DEV_MODE=true in production — dev UI affordances will be visible (dev login button, etc). ' +
+      'Cosmetic only (security is controlled by DEV_MODE) but you almost certainly do not want this in prod.'
     );
   }
 
@@ -329,6 +382,12 @@ export const env = {
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  // SECURITY flag — server-only, runtime-evaluated. Read this in middleware,
+  // auth callbacks, session helpers, and any other server code that gates
+  // on "is this a dev bypass environment".
+  DEV_MODE: process.env.DEV_MODE === 'true',
+  // UI hint flag — client, build-baked. Read this in client components
+  // that want to render dev affordances. Do NOT use this for security.
   NEXT_PUBLIC_DEV_MODE: process.env.NEXT_PUBLIC_DEV_MODE === 'true',
   ALLOWED_DOMAIN: process.env.ALLOWED_DOMAIN || 'uszoom.com',
   GIT_COMMIT: process.env.GIT_COMMIT || '',

@@ -58,8 +58,15 @@ export default withAuth(
 
         if (isPublicPath) return true;
 
-        // For dev mode, allow access
-        if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') return true;
+        // For dev mode, allow access.
+        //
+        // SECURITY: DEV_MODE (not NEXT_PUBLIC_DEV_MODE) — must be a server-only
+        // env var so its value is read at runtime, not inlined into the JS
+        // bundle at `next build` time. Post-2026-05-19 incident: when this
+        // gate read NEXT_PUBLIC_DEV_MODE, editing /opt/insighthub/.env.local
+        // on prod did NOT close the bypass because the value was already
+        // frozen in the standalone server.js. See docs/INCIDENT_RESPONSE_RUNBOOK.md.
+        if (process.env.DEV_MODE === 'true') return true;
 
         // For protected routes, require valid token
         return !!token;

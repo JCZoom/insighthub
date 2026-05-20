@@ -149,10 +149,17 @@ export async function GET() {
     // Node.js version
     checks.node = process.version;
 
-    // Environment info
+    // Environment info.
+    //
+    // `devMode` reflects the SERVER-side security flag (DEV_MODE) which is
+    // what middleware and the auth callbacks actually read at runtime.
+    // `publicDevMode` is the BUILD-baked client UI hint, exposed here so
+    // operators can spot a desync from a single endpoint without SSH'ing.
+    // See src/lib/env.ts for the design rationale.
     checks.environment = {
       nodeEnv: process.env.NODE_ENV,
-      devMode: process.env.NEXT_PUBLIC_DEV_MODE === 'true',
+      devMode: process.env.DEV_MODE === 'true',
+      publicDevMode: process.env.NEXT_PUBLIC_DEV_MODE === 'true',
     };
 
     const dbStatus = (checks.database as Record<string, string>).status;

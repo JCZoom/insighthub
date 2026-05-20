@@ -1,0 +1,96 @@
+InsightHub auth-lockdown smoke tests (run AFTER apply-oauth-fix.sh)
+====================================================================
+
+Run each block in order. Stop at the first failure and report back.
+
+1. SERVICE HEALTH
+-----------------
+sudo systemctl is-active insighthub        # expect: active
+sudo journalctl -u insighthub -n 30 --no-pager | tail -30
+                                            # expect: "Ready in" / no env-var errors
+curl -sI http://127.0.0.1:3000/api/health   # expect: HTTP/1.1 200 (loopback)
+
+
+2. PUBLIC EDGE — UNAUTH MUST REDIRECT
+-------------------------------------
+curl -sI https://dashboards.jeffcoy.net/api/health
+                # expect: HTTP/2 200  (health endpoint is in publicPaths)
+
+curl -sI https://dashboards.jeffcoy.net/dashboards
+                # expect: HTTP/2 307  with Location: ...api/auth/signin... or /login
+                # MUST NOT be 200. If 200, dev mode is still on.
+
+curl -sI https://dashboards.jeffcoy.net/api/data/query
+                # expect: HTTP/2 307 or 401/403 — anything but 200.
+
+curl -sI https://dashboards.jeffcoy.net/admin
+                # expect: HTTP/2 307 -> sign-in
+
+
+3. NEXTAUTH PROVIDER ENDPOINT
+-----------------------------
+curl -s https://dashboards.jeffcoy.net/api/auth/providers | jq
+                # expect: { "google": { "id": "google", ... }, "credentials": ... }
+                # If "google" is missing or has empty signinUrl, GOOGLE_CLIENT_ID is wrong.
+
+
+4. INTERACTIVE SIGN-IN (browser)
+--------------------------------
+- Open INCOGNITO window
+- Navigate to https://dashboards.jeffcoy.net
+- Should land at /login with a "Sign in with Google" button
+- Click it -> Google account picker
+- Choose jeff.coy@uszoom.com (must complete 2FA challenge)
+- Should redirect back to /dashboards (or wherever default landing is)
+- Open browser devtools -> Application -> Cookies for dashboards.jeffcoy.net
+- Confirm presence of: __Secure-next-auth.session-token (httponly, secure, samesite=lax)
+
+
+5. ROLE + AUDIT VERIFICATION
+----------------------------
+# Same incognito session, navigate to /admin
+curl -s https://dashboards.jeffcoy.net/admin   # in same session — alternative: hit /admin in browser
+                # expect: 200, admin page renders. If 403, role assignment failed.
+
+# Confirm AuditLog now has a real userId (not 'dev-admin-user')
+sqlite3 /opt/insighthub/prisma/dev.db \
+  "SELECT id, userId, action, createdAt FROM AuditLog \
+   WHERE action='USER_LOGIN' ORDER BY createdAt DESC LIMIT 5;"
+                # expect: top row userId is a CUID/UUID, NOT 'dev-admin-user'
+
+
+6. RBAC SANITY (data query as authed admin via browser)
+-------------------------------------------------------
+- In the same authed incognito tab, open browser devtools console:
+  fetch('/api/data/query', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({source: 'freshsales_pipeline_value'})
+  }).then(r => r.json()).then(console.log)
+                # expect: { rows: [{value: 30540, ...}], ... } or similar.
+                # This is the demo §2g path.
+
+
+7. AUTH BYPASS REGRESSION CHECK
+-------------------------------
+# These curls must ALL return non-200 (no session token, so no access):
+for path in /dashboards /admin /api/data/query /api/freshworks/health /api/chat; do
+  echo -n "$path -> "
+  curl -sI "https://dashboards.jeffcoy.net${path}" | head -1
+done
+                # expect: every line shows 307/401/403/405. None of them 200.
+
+
+PASS criteria
+-------------
+- Sections 1-3: all curls behave as expected.
+- Section 4: incognito sign-in completes with 2FA, lands on dashboards.
+- Section 5: AuditLog top row is a real cuid, /admin loads.
+- Section 6: data query returns real Freshworks data.
+- Section 7: every line is non-200.
+
+If any step fails, DO NOT continue using the site. Re-stop the service:
+  sudo systemctl stop insighthub
+and roll back the env file:
+  cp /opt/insighthub/.env.local.bak-pre-oauth-fix-* /opt/insighthub/.env.local
+Then iterate on the failing piece.

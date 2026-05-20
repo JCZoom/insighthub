@@ -41,7 +41,9 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
       },
       async authorize(credentials) {
-        if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+        // SECURITY: read DEV_MODE (server-only, runtime), not NEXT_PUBLIC_DEV_MODE
+        // (which is inlined at build time and cannot be toggled at runtime).
+        if (process.env.DEV_MODE === 'true') {
           return {
             id: DEV_USER.id,
             email: credentials?.email || DEV_USER.email,
@@ -123,8 +125,8 @@ export const authOptions: NextAuthOptions = {
       if (user && account) {
         const email = user.email!;
 
-        // Check if this is a dev mode login
-        if (account.provider === 'credentials' && process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+        // Check if this is a dev mode login (server-only DEV_MODE, runtime).
+        if (account.provider === 'credentials' && process.env.DEV_MODE === 'true') {
           token.role = DEV_USER.role;
           token.department = DEV_USER.department;
           token.iat = Math.floor(Date.now() / 1000);
