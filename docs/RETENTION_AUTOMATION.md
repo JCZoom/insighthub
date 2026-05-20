@@ -65,7 +65,7 @@ Install on EC2:
 ```bash
 sudo cp scripts/cron/retention-purge.sh /etc/cron.daily/insighthub-retention
 sudo chmod 0755 /etc/cron.daily/insighthub-retention
-sudo mkdir -p /var/log/insighthub && sudo chown insighthub:insighthub /var/log/insighthub
+sudo mkdir -p /var/log/insighthub && sudo chown jeffreycoy:jeffreycoy /var/log/insighthub
 ```
 
 Verify with a dry-run before enabling:
