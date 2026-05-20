@@ -14,10 +14,23 @@ const DEV_USER = {
   image: null,
 };
 
-// Admin user list - emails that should get ADMIN role
+// Admin user list — emails that get ADMIN role on first sign-in.
+//
+// IMPORTANT: this allowlist is consulted ONLY when creating a new User row
+// (jwt callback below, line ~152). For an existing User row the persisted
+// `role` column wins, so adding an email here does NOT retroactively
+// promote a user who has already signed in once. To promote an existing
+// row, UPDATE the DB directly.
+//
+// `jeffrey.coy@uszoom.com` (with the `jeffrey.` prefix) is Jeff Coy's real
+// Google identity. The earlier `jeff.coy@uszoom.com` entry was a
+// near-miss left over from the seed data — keep both so either spelling
+// auto-promotes if the row doesn't exist yet, but the canonical address
+// is `jeffrey.coy@uszoom.com`. Added 2026-05-20 after first OAuth sign-in
+// landed Jeff in a VIEWER row and locked him out of /admin.
 const ADMIN_EMAILS = [
+  'jeffrey.coy@uszoom.com',
   'jeff.coy@uszoom.com',
-  // Add other admin emails here
 ];
 
 // Helper function to determine user role based on email

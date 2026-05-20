@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import type { SessionUser } from '@/lib/auth/session';
 import { getCurrentUser } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -61,45 +62,57 @@ const ADMIN_SECTIONS = [
 ];
 
 export default async function AdminPage() {
+  // NOTE on the auth-gate pattern (mirrored across all /admin/* pages):
+  //   1) The `try` catches ONLY `getCurrentUser()` (the call that legitimately
+  //      throws on missing session). It does NOT wrap the role-check redirect
+  //      or the JSX render.
+  //   2) The role-check `redirect()` lives OUTSIDE the try. In Next.js
+  //      `redirect()` works by throwing `NEXT_REDIRECT`; if you wrap it in
+  //      try/catch, the catch eats the redirect and the framework never sees
+  //      it. Pre-2026-05-20 every page here had a wide try/catch that masked
+  //      the role-check redirect as a generic "unauthorized" — that's how
+  //      INC-20260519-001 retro item §5 surfaced in smoke testing.
+  //   3) Redirect target uses the plural `/dashboards` (the actual route).
+  //      Earlier code had a singular `/dashboard?error=...` which 404'd.
+  let user: SessionUser;
   try {
-    const user = await getCurrentUser();
+    user = await getCurrentUser();
+  } catch {
+    redirect('/dashboards?error=unauthorized');
+  }
 
-    if (user.role !== 'ADMIN') {
-      redirect('/dashboard?error=access-denied');
-    }
+  if (user.role !== 'ADMIN') {
+    redirect('/dashboards?error=access-denied');
+  }
 
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)]">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Admin Panel</h1>
-            <p className="text-[var(--text-secondary)] mt-2">
-              System administration for InsightHub. Signed in as <span className="font-medium text-[var(--text-primary)]">{user.name}</span> ({user.role}).
-            </p>
-          </div>
+  return (
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Admin Panel</h1>
+          <p className="text-[var(--text-secondary)] mt-2">
+            System administration for InsightHub. Signed in as <span className="font-medium text-[var(--text-primary)]">{user.name}</span> ({user.role}).
+          </p>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ADMIN_SECTIONS.map((section) => (
-              <Link
-                key={section.href}
-                href={section.href}
-                className={`group p-5 rounded-xl border bg-gradient-to-b ${section.color} transition-all hover:scale-[1.02] hover:shadow-lg`}
-              >
-                <div className="text-2xl mb-3">{section.icon}</div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5 group-hover:text-accent-blue transition-colors">
-                  {section.title}
-                </h3>
-                <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
-                  {section.description}
-                </p>
-              </Link>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {ADMIN_SECTIONS.map((section) => (
+            <Link
+              key={section.href}
+              href={section.href}
+              className={`group p-5 rounded-xl border bg-gradient-to-b ${section.color} transition-all hover:scale-[1.02] hover:shadow-lg`}
+            >
+              <div className="text-2xl mb-3">{section.icon}</div>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5 group-hover:text-accent-blue transition-colors">
+                {section.title}
+              </h3>
+              <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+                {section.description}
+              </p>
+            </Link>
+          ))}
         </div>
       </div>
-    );
-  } catch (error) {
-    console.error('Error loading admin page:', error);
-    redirect('/dashboard?error=unauthorized');
-  }
+    </div>
+  );
 }

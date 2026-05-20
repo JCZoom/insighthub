@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import type { SessionUser } from '@/lib/auth/session';
 import { getCurrentUser } from '@/lib/auth/session';
 import { hasFeaturePermission } from '@/lib/auth/permissions';
 import { redirect } from 'next/navigation';
@@ -10,30 +11,30 @@ export const metadata: Metadata = {
 };
 
 export default async function PermissionGroupsPage() {
+  // Auth-gate pattern — see src/app/admin/page.tsx for the full rationale.
+  let user: SessionUser;
   try {
-    const user = await getCurrentUser();
-
-    // Check if user has permission to manage permissions
-    const canManage = await hasFeaturePermission(user, 'canManagePermissions');
-
-    if (!canManage) {
-      redirect('/dashboard?error=access-denied');
-    }
-
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Permission Groups</h1>
-          <p className="text-[var(--text-secondary)] mt-2">
-            Manage permission groups and control access to data sources and features.
-          </p>
-        </div>
-
-        <PermissionGroupsClient user={user} />
-      </div>
-    );
-  } catch (error) {
-    console.error('Error loading permissions page:', error);
-    redirect('/dashboard?error=unauthorized');
+    user = await getCurrentUser();
+  } catch {
+    redirect('/dashboards?error=unauthorized');
   }
+
+  const canManage = await hasFeaturePermission(user, 'canManagePermissions');
+
+  if (!canManage) {
+    redirect('/dashboards?error=access-denied');
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Permission Groups</h1>
+        <p className="text-[var(--text-secondary)] mt-2">
+          Manage permission groups and control access to data sources and features.
+        </p>
+      </div>
+
+      <PermissionGroupsClient user={user} />
+    </div>
+  );
 }
