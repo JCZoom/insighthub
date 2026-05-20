@@ -12,14 +12,23 @@ import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/Tooltip';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { clientDemoSourcesEnabled } from '@/lib/data/sample-sources';
 
-// Use fixed dates to avoid SSR/client hydration mismatches (Date.now() differs between server and client)
-const INITIAL_DASHBOARDS: DashboardCardData[] = [
+// Demo (sample-data) seed dashboards shown in the Gallery as initial
+// state. Each entry maps to a `TEMPLATE_SCHEMAS` entry in
+// `src/lib/data/templates.ts` whose widgets are bound to synthetic
+// kpi_summary / mrr_by_month / etc. — NOT to real Freshworks or
+// Platform Health data. Gated by NEXT_PUBLIC_FEATURE_DEMO_SOURCES so
+// production users see an empty initial state and rely on the DB-loaded
+// dashboard list instead (Jeff's seeded real-data dashboards arrive
+// via /api/dashboards). Use fixed dates to avoid SSR/client hydration
+// mismatches. See docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md Phase A.
+const DEMO_INITIAL_DASHBOARDS: DashboardCardData[] = [
   {
     id: 'template-exec',
-    title: 'Executive Summary',
+    title: 'Executive Summary (Demo)',
     description: 'Key business metrics at a glance — MRR, churn, CSAT, and pipeline overview.',
-    tags: ['revenue', 'churn', 'executive'],
+    tags: ['revenue', 'churn', 'executive', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-16T12:00:00'),
     widgetCount: 8,
@@ -28,9 +37,9 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-support',
-    title: 'Support Operations',
+    title: 'Support Operations (Demo)',
     description: 'Ticket volume, resolution times, CSAT scores, and team performance.',
-    tags: ['support', 'tickets', 'csat'],
+    tags: ['support', 'tickets', 'csat', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-15T12:00:00'),
     widgetCount: 6,
@@ -39,9 +48,9 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-churn',
-    title: 'Churn Analysis',
+    title: 'Churn Analysis (Demo)',
     description: 'Deep dive into churn patterns by region, plan, and time period.',
-    tags: ['churn', 'retention', 'analysis'],
+    tags: ['churn', 'retention', 'analysis', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-14T12:00:00'),
     widgetCount: 7,
@@ -49,9 +58,9 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-sales',
-    title: 'Sales Pipeline',
+    title: 'Sales Pipeline (Demo)',
     description: 'Pipeline stages, win rates, deal sources, and revenue forecasting.',
-    tags: ['sales', 'pipeline', 'deals'],
+    tags: ['sales', 'pipeline', 'deals', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-13T12:00:00'),
     widgetCount: 6,
@@ -59,9 +68,9 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-customer',
-    title: 'Customer Health',
+    title: 'Customer Health (Demo)',
     description: 'Usage analytics, feature adoption, regional distribution, and churn risk indicators.',
-    tags: ['customer', 'retention', 'satisfaction'],
+    tags: ['customer', 'retention', 'satisfaction', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-13T12:00:00'),
     widgetCount: 12,
@@ -69,9 +78,9 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-finance',
-    title: 'Financial Overview',
+    title: 'Financial Overview (Demo)',
     description: 'Revenue deep-dive, MRR/ARR tracking, retention metrics, and revenue composition.',
-    tags: ['finance', 'revenue', 'accounting'],
+    tags: ['finance', 'revenue', 'accounting', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-13T12:00:00'),
     widgetCount: 12,
@@ -79,15 +88,23 @@ const INITIAL_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-cs-automation',
-    title: 'CS Automation',
+    title: 'CS Automation (Demo)',
     description: 'AI deflection rates across chat, voice, and ticket — bot performance, cost savings, and topic accuracy.',
-    tags: ['automation', 'chatbot', 'deflection', 'ai'],
+    tags: ['automation', 'chatbot', 'deflection', 'ai', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-13T12:00:00'),
     widgetCount: 12,
     isTemplate: true,
   },
 ];
+
+// Initial gallery state. When the demo flag is off (production default)
+// this is empty — the gallery renders only DB-backed dashboards owned
+// by or shared with the current user. Eliminates the "Gallery still
+// shows Executive Summary even though /templates is empty" leak.
+const INITIAL_DASHBOARDS: DashboardCardData[] = clientDemoSourcesEnabled()
+  ? DEMO_INITIAL_DASHBOARDS
+  : [];
 
 type TabId = 'all' | 'my' | 'company' | 'shared' | 'templates';
 type SortMode = 'recent' | 'oldest' | 'az' | 'za';

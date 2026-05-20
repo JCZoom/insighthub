@@ -81,12 +81,57 @@ export function isSampleSource(name: string): boolean {
 /**
  * Read the FEATURE_DEMO_SOURCES env flag at call time.
  *
- * Lives here (alongside the registry) so consumers don't have to import
- * both `@/lib/env` and the registry separately. Read at call time, not
- * cached, so test harnesses can mutate process.env between calls.
+ * Server-side gate. Reads `process.env.FEATURE_DEMO_SOURCES` directly so
+ * test harnesses can mutate process.env between calls. Server-only
+ * because `FEATURE_DEMO_SOURCES` is NOT prefixed with `NEXT_PUBLIC_` —
+ * Next.js does not inline it into the client bundle. Use this in route
+ * handlers, server components, and the AI prompt builder.
+ *
+ * For client components (which run in the browser bundle), use
+ * `clientDemoSourcesEnabled()` instead. The two flags are paired and
+ * the desync warning in `src/lib/env.ts:validateEnv()` fires at boot if
+ * they disagree.
  */
 export function demoSourcesEnabled(): boolean {
   return process.env.FEATURE_DEMO_SOURCES === 'true';
+}
+
+/**
+ * Client-side mirror of `demoSourcesEnabled()`, reading the build-baked
+ * `NEXT_PUBLIC_FEATURE_DEMO_SOURCES` flag instead.
+ *
+ * Safe to call from React Client Components. The value is inlined into
+ * the bundle at `next build` time — changes at runtime have no effect.
+ * Read it once at component init or inside the consumer's `useMemo`;
+ * there is no benefit to re-reading on every render.
+ *
+ * Pattern matches `env.NEXT_PUBLIC_DEV_MODE` from `src/lib/env.ts`.
+ */
+export function clientDemoSourcesEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_FEATURE_DEMO_SOURCES === 'true';
+}
+
+/**
+ * Pure predicate: does this widget config bind to a sample (demo) source?
+ *
+ * Used by the widget-library gate and the AI prompt's widget catalog
+ * gate to drop sample-bound widget templates when demo discovery is off.
+ * Accepts a minimal structural shape so it can be unit-tested without
+ * loading the full WidgetConfig type system (which pulls server-only
+ * Prisma types via @/types).
+ *
+ * Text blocks and other widgets with an empty `dataConfig.source`
+ * return false — they aren't bound to any source.
+ */
+export function widgetUsesSampleSource(
+  widget: { config?: { dataConfig?: { source?: string } } } | { dataConfig?: { source?: string } },
+): boolean {
+  const source =
+    (widget as { config?: { dataConfig?: { source?: string } } }).config?.dataConfig?.source ??
+    (widget as { dataConfig?: { source?: string } }).dataConfig?.source ??
+    '';
+  if (!source) return false;
+  return SAMPLE_SOURCE_SET.has(source);
 }
 
 /**

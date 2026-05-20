@@ -8,7 +8,11 @@ import {
   type ResolvedPermissions
 } from '@/lib/auth/permissions';
 import { getPromptOverrides } from '@/lib/ai/prompt-overrides';
-import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
+import {
+  isSampleSource,
+  demoSourcesEnabled,
+  widgetUsesSampleSource,
+} from '@/lib/data/sample-sources';
 
 interface GlossaryEntry {
   term: string;
@@ -497,9 +501,21 @@ export async function buildSystemPrompt(
   // into demo discovery via FEATURE_DEMO_SOURCES. When off, the catalog
   // already hides sample sources from the LLM's "Available Data Sources"
   // section, so this reference block is unnecessary in the prompt.
-  const preAggregatedSampleSourceReference = demoSourcesEnabled()
+  const demoEnabled = demoSourcesEnabled();
+  const preAggregatedSampleSourceReference = demoEnabled
     ? SAMPLE_PRE_AGGREGATED_REFERENCE
     : '';
+  // Widget-library catalog gate: when demo discovery is off, drop any
+  // library entry whose `dataConfig.source` is a sample-only source.
+  // Without this, the LLM would be invited to emit `use_widget` patches
+  // for widgets bound to sources it has been told don't exist — the
+  // patch would then resolve via by-ID lookup and bind a saved dashboard
+  // to demo data, defeating the quarantine. The full WIDGET_LIBRARY is
+  // still available for by-ID resolution of saved widgets (see
+  // `getWidgetTemplate` in src/lib/data/widget-library.ts).
+  const visibleWidgetLibrary = demoEnabled
+    ? widgetLibrary
+    : widgetLibrary.filter(w => !widgetUsesSampleSource(w));
   const glossarySection = glossaryTerms.length > 0
     ? glossaryTerms.map(t =>
         `- **${t.term}** [${t.category}]: ${t.definition}${t.formula ? ` Formula: \`${t.formula}\`` : ''}`
@@ -561,7 +577,7 @@ The company has a library of pre-built widgets from existing dashboards. PREFER 
 When you find a matching widget, use the "use_widget" patch type with its ID. You can also combine use_widget patches with add_widget patches in the same response.
 
 Available widgets:
-${buildWidgetLibrarySection(widgetLibrary)}
+${buildWidgetLibrarySection(visibleWidgetLibrary)}
 
 ## SQL Assistant Mode
 

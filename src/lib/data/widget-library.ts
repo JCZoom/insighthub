@@ -1,5 +1,6 @@
 import type { WidgetConfig } from '@/types';
 import { TEMPLATE_SCHEMAS } from './templates';
+import { widgetUsesSampleSource } from './sample-sources';
 
 export interface WidgetTemplate {
   id: string;
@@ -175,18 +176,63 @@ const TEXT_BLOCK_TEMPLATES: WidgetTemplate[] = [
   },
 ];
 
-/** The full static widget library — available at import time */
+/**
+ * The full static widget library — every widget extracted from every
+ * template dashboard plus the built-in text blocks. Includes entries
+ * bound to sample/demo data sources (kpi_summary, etc.).
+ *
+ * IMPORTANT: this is the CANONICAL set used for by-ID lookups
+ * (`getWidgetTemplate`, the AI builder's `use_widget` patch handler,
+ * and the widget-fork API). Saved widgets that reference a demo-bound
+ * template by ID must still resolve regardless of the demo-source
+ * quarantine flag — otherwise existing dashboards break.
+ *
+ * Discovery surfaces (the widget picker, the LLM's "Available widgets"
+ * catalog) MUST use `listVisibleWidgets({ demoEnabled })` instead so
+ * they honor the FEATURE_DEMO_SOURCES gate. See
+ * docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md Phase A.
+ */
 export const WIDGET_LIBRARY: WidgetTemplate[] = [
   ...buildStaticLibrary(),
   ...TEXT_BLOCK_TEMPLATES,
 ];
 
-/** Search the widget library by query string (matches title, description, tags) */
-export function searchWidgets(query: string, limit = 10): WidgetTemplate[] {
-  if (!query.trim()) return WIDGET_LIBRARY.slice(0, limit);
+/**
+ * Visibility-filtered view of WIDGET_LIBRARY for discovery surfaces.
+ *
+ * When `demoEnabled` is false (the default for any caller that doesn't
+ * explicitly opt in), every widget whose `dataConfig.source` is a
+ * canonical sample source is dropped. Text blocks (empty source) and
+ * widgets bound to real sources (`freshworks_*`, `platform_*`,
+ * future Snowflake) are always included.
+ *
+ * Pure function of (WIDGET_LIBRARY, demoEnabled). Cheap; no need to
+ * memoize at the call site — the predicate is O(1) per widget.
+ */
+export function listVisibleWidgets(
+  opts: { demoEnabled: boolean } = { demoEnabled: false },
+): WidgetTemplate[] {
+  if (opts.demoEnabled) return WIDGET_LIBRARY;
+  return WIDGET_LIBRARY.filter(w => !widgetUsesSampleSource(w));
+}
+
+/**
+ * Search the widget library by query string (matches title,
+ * description, tags). Honors the demo-source quarantine via
+ * `opts.demoEnabled` — callers that don't pass the flag get the
+ * conservative behavior (demo-bound widgets hidden), matching the
+ * default of `listVisibleWidgets`.
+ */
+export function searchWidgets(
+  query: string,
+  limit = 10,
+  opts: { demoEnabled: boolean } = { demoEnabled: false },
+): WidgetTemplate[] {
+  const pool = listVisibleWidgets(opts);
+  if (!query.trim()) return pool.slice(0, limit);
 
   const q = query.toLowerCase();
-  const scored = WIDGET_LIBRARY.map(w => {
+  const scored = pool.map(w => {
     let score = 0;
     if (w.title.toLowerCase().includes(q)) score += 10;
     if (w.description.toLowerCase().includes(q)) score += 5;
@@ -203,7 +249,13 @@ export function searchWidgets(query: string, limit = 10): WidgetTemplate[] {
     .map(s => s.widget);
 }
 
-/** Get a single widget template by its library ID */
+/**
+ * Get a single widget template by its library ID. Intentionally NOT
+ * gated by the demo-source flag — by-ID resolution must succeed for
+ * saved widgets and AI `use_widget` patches even when discovery is
+ * quarantined. The quarantine contract is "discovery hidden, query
+ * path preserved" (see sample-sources.ts).
+ */
 export function getWidgetTemplate(id: string): WidgetTemplate | undefined {
   return WIDGET_LIBRARY.find(w => w.id === id);
 }

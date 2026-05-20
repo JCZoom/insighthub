@@ -12,6 +12,7 @@ import { GlossaryPanel } from '@/components/glossary/GlossaryPanel';
 import { ResizableDivider } from '@/components/layout/ResizableDivider';
 import { useDashboardStore } from '@/stores/dashboard-store';
 import { TEMPLATE_SCHEMAS } from '@/lib/data/templates';
+import { clientDemoSourcesEnabled } from '@/lib/data/sample-sources';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAutoSaveWithThumbnails } from '@/hooks/useAutoSaveWithThumbnails';
 import { useToast } from '@/components/ui/toast';
@@ -96,13 +97,22 @@ export function DashboardEditorClient({ dashboardId }: EditorClientProps) {
     // Track this dashboard in recently viewed
     trackRecentlyViewed(dashboardId);
 
-    const template = TEMPLATE_SCHEMAS[dashboardId];
-    if (template) {
-      initialize(dashboardId, template.title, template.schema);
-      return;
+    // Demo-template hydration is gated by NEXT_PUBLIC_FEATURE_DEMO_SOURCES.
+    // Without this guard, a URL like `/dashboard/template-exec` would
+    // bypass the database entirely and render a synthetic-data dashboard
+    // even in production where the Templates page hides those IDs. Real
+    // saved dashboards (UUIDs, `jeff-*`, etc.) are unaffected — they fall
+    // through to the DB fetch below. See
+    // docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md Phase A.
+    if (clientDemoSourcesEnabled()) {
+      const template = TEMPLATE_SCHEMAS[dashboardId];
+      if (template) {
+        initialize(dashboardId, template.title, template.schema);
+        return;
+      }
     }
 
-    // Not a template — fetch from DB
+    // Not a template (or demo discovery is off) — fetch from DB.
     async function loadFromDb() {
       try {
         const res = await fetch(`/api/dashboards/${dashboardId}`);

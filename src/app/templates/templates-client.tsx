@@ -8,15 +8,23 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { TEMPLATE_SCHEMAS } from '@/lib/data/templates';
 import { TEMPLATE_CATEGORIES, getCategoryForTags, type TemplateCategory } from '@/lib/data/template-categories';
+import { clientDemoSourcesEnabled } from '@/lib/data/sample-sources';
 import type { SessionUser } from '@/lib/auth/session';
 
-// Fixed template data
-const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
+// Built-in template dashboards — every entry below is bound to the
+// sample-data generators in `src/lib/data/sample-data.ts` (kpi_summary,
+// mrr_by_month, etc.). They are useful demo material but DO NOT render
+// real data. Gated by NEXT_PUBLIC_FEATURE_DEMO_SOURCES at runtime so a
+// production user with the flag off does not see them in the Templates
+// page. Titles and tags carry the same "(Demo)" / `demo` markers used
+// in `prisma/seed.ts` so anything that does slip through is labelled.
+// See docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md Phase A.
+const DEMO_TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   {
     id: 'template-exec',
-    title: 'Executive Summary',
+    title: 'Executive Summary (Demo)',
     description: 'The flagship overview — 6 KPIs, revenue trends, MRR growth, pipeline funnel, and regional deep-dives across 14 widgets.',
-    tags: ['revenue', 'churn', 'executive', 'kpi'],
+    tags: ['revenue', 'churn', 'executive', 'kpi', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 16,
@@ -24,9 +32,9 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-support',
-    title: 'Support Operations',
+    title: 'Support Operations (Demo)',
     description: 'Ticket volume trends, resolution analytics, CSAT tracking, category breakdown, and full team performance across 10 widgets.',
-    tags: ['support', 'tickets', 'csat', 'performance'],
+    tags: ['support', 'tickets', 'csat', 'performance', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 12,
@@ -34,9 +42,9 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-churn',
-    title: 'Churn Analysis',
+    title: 'Churn Analysis (Demo)',
     description: 'Comprehensive retention story — 6 KPI cards, churn trends, plan & region segmentation, revenue impact, and customer distribution across 12 widgets.',
-    tags: ['churn', 'retention', 'analysis', 'segments'],
+    tags: ['churn', 'retention', 'analysis', 'segments', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 14,
@@ -44,9 +52,9 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-sales',
-    title: 'Sales Pipeline',
+    title: 'Sales Pipeline (Demo)',
     description: 'Pipeline funnel, deal source mix, revenue trends, MRR growth, and detailed deal tables across 10 widgets.',
-    tags: ['sales', 'pipeline', 'deals', 'forecasting'],
+    tags: ['sales', 'pipeline', 'deals', 'forecasting', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 12,
@@ -54,9 +62,9 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-customer',
-    title: 'Customer Health',
+    title: 'Customer Health (Demo)',
     description: 'Usage analytics, feature adoption, regional distribution, satisfaction metrics, and churn risk indicators across 10 widgets.',
-    tags: ['customer', 'retention', 'satisfaction', 'engagement'],
+    tags: ['customer', 'retention', 'satisfaction', 'engagement', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 12,
@@ -64,9 +72,9 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-finance',
-    title: 'Financial Overview',
+    title: 'Financial Overview (Demo)',
     description: 'Revenue deep-dive, MRR/ARR tracking, retention metrics, revenue composition, and customer revenue analysis across 10 widgets.',
-    tags: ['finance', 'revenue', 'accounting', 'financial'],
+    tags: ['finance', 'revenue', 'accounting', 'financial', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 12,
@@ -74,15 +82,25 @@ const TEMPLATE_DASHBOARDS: DashboardCardData[] = [
   },
   {
     id: 'template-cs-automation',
-    title: 'CS Automation',
+    title: 'CS Automation (Demo)',
     description: 'AI deflection rates across chat, voice, and ticket channels — bot performance, cost savings, and topic-level accuracy across 12 widgets.',
-    tags: ['automation', 'chatbot', 'deflection', 'ai', 'support'],
+    tags: ['automation', 'chatbot', 'deflection', 'ai', 'support', 'demo'],
     ownerName: 'InsightHub',
     updatedAt: new Date('2026-04-19T12:00:00'),
     widgetCount: 12,
     isTemplate: true,
   },
 ];
+
+// Built-in templates exposed to the UI today. Empty unless the operator
+// has opted into demo discovery via NEXT_PUBLIC_FEATURE_DEMO_SOURCES.
+// Real-data templates will be added here as they ship (see Phase C of
+// docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md — Jeff's seeded
+// dashboards are user-owned in the DB and therefore loaded via the
+// /api/dashboards fetch below, not this constant).
+const BUILTIN_TEMPLATE_DASHBOARDS: DashboardCardData[] = clientDemoSourcesEnabled()
+  ? DEMO_TEMPLATE_DASHBOARDS
+  : [];
 
 type SortMode = 'recent' | 'oldest' | 'az' | 'za';
 
@@ -109,7 +127,7 @@ interface TemplatesClientProps {
 }
 
 export default function TemplatesClient({ currentUser }: TemplatesClientProps) {
-  const [templates, setTemplates] = useState<DashboardCardData[]>(TEMPLATE_DASHBOARDS);
+  const [templates, setTemplates] = useState<DashboardCardData[]>(BUILTIN_TEMPLATE_DASHBOARDS);
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
@@ -143,10 +161,11 @@ export default function TemplatesClient({ currentUser }: TemplatesClientProps) {
             isTemplate: true,
           }));
 
-        // Merge built-in templates with user templates
-        const builtInIds = new Set(TEMPLATE_DASHBOARDS.map(t => t.id));
+        // Merge built-in templates (gated by demo flag, see top of file)
+        // with user-created templates loaded from the database.
+        const builtInIds = new Set(BUILTIN_TEMPLATE_DASHBOARDS.map((t: DashboardCardData) => t.id));
         const uniqueUserTemplates = userTemplates.filter(t => !builtInIds.has(t.id));
-        setTemplates([...TEMPLATE_DASHBOARDS, ...uniqueUserTemplates]);
+        setTemplates([...BUILTIN_TEMPLATE_DASHBOARDS, ...uniqueUserTemplates]);
       } catch (error) {
         console.error('Failed to load templates:', error);
         // Keep showing built-in templates even if API fails

@@ -176,19 +176,37 @@ const ENV_VARS: Record<string, EnvVarDef> = {
   },
   // Demo (sample) data sources — quarantine flag (post-2026-05-19).
   //
-  // The 27 canonical sample_* / kpi_summary / *_by_month sources served
-  // by src/lib/data/sample-data.ts are HIDDEN from discovery surfaces
-  // (LLM source catalog, GET /api/data/query, GET /api/data/schema) when
-  // this flag is unset or false. The POST query path still resolves
-  // them — saved dashboards that reference sample sources continue to
-  // render. Flip to 'true' on local/dev when you actively want to build
-  // dashboards against the seed-data generators.
+  // Two flags by design — DO NOT collapse them. This mirrors the
+  // DEV_MODE / NEXT_PUBLIC_DEV_MODE pair (see commentary above):
+  //
+  //   FEATURE_DEMO_SOURCES (server-only, runtime-evaluated) is the
+  //   DATA-HONESTY flag. It gates server-side discovery surfaces:
+  //   the LLM source catalog, GET /api/data/query, GET /api/data/schema,
+  //   and the widget-library API. Read from process.env at request time
+  //   so flipping `.env.local` and restarting is enough. The POST
+  //   /api/data/query path still resolves sample sources unconditionally
+  //   — saved dashboards keep rendering. Discovery only is gated.
+  //
+  //   NEXT_PUBLIC_FEATURE_DEMO_SOURCES (client, build-baked) is the UI
+  //   HINT flag. It gates client-side surfaces that hardcode demo
+  //   template/dashboard names: the Templates page, Gallery initial
+  //   state, and the editor's TEMPLATE_SCHEMAS hydration. Because it is
+  //   NEXT_PUBLIC_-prefixed, Next.js inlines it at `next build` time.
+  //   Operators: keep the two values in sync in `.env.local`. The
+  //   validateEnv() function below warns at startup if they desync.
   //
   // Canonical registry: src/lib/data/sample-sources.ts (SAMPLE_SOURCES).
-  // Architectural justification: docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3.
+  // Architectural justification: docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3
+  // and §A (the post-quarantine UI-leak follow-up).
   FEATURE_DEMO_SOURCES: {
     required: false,
-    description: 'Expose sample/demo data sources in discovery surfaces (default: false)',
+    description: 'Server-side demo-source discovery gate. Runtime-evaluated. Default false.',
+    example: 'false',
+  },
+  NEXT_PUBLIC_FEATURE_DEMO_SOURCES: {
+    required: false,
+    description:
+      'Client UI hint flag mirroring FEATURE_DEMO_SOURCES. Build-baked. NOT a security flag — see FEATURE_DEMO_SOURCES.',
     example: 'false',
   },
   // Freshsales / Freshworks CRM integration (G-01, G-05, R-041, V-01).
@@ -339,6 +357,22 @@ export function validateEnv(): EnvValidationResult {
     warnings.push('NEXTAUTH_SECRET is too short for production (min 32 chars)');
   }
 
+  // Demo-source flag desync detection. Mirrors the DEV_MODE pattern above:
+  // the server flag is authoritative for data-honesty (what the LLM is told
+  // about, what discovery APIs return); the public flag is authoritative
+  // for client UI affordances (Templates page, Gallery, editor hydration).
+  // If they disagree, the operator's intent is ambiguous — warn loudly so
+  // the misconfiguration is visible in startup logs.
+  const isDemoServer = process.env.FEATURE_DEMO_SOURCES === 'true';
+  const isDemoPublic = process.env.NEXT_PUBLIC_FEATURE_DEMO_SOURCES === 'true';
+  if (isDemoServer !== isDemoPublic) {
+    warnings.push(
+      `FEATURE_DEMO_SOURCES (${isDemoServer}) and NEXT_PUBLIC_FEATURE_DEMO_SOURCES ` +
+      `(${isDemoPublic}) disagree — these should match in .env.local. Server flag ` +
+      'gates LLM/API discovery; public flag gates Templates page + Gallery + editor.'
+    );
+  }
+
   return {
     valid: missing.length === 0 && invalid.length === 0,
     missing,
@@ -446,7 +480,12 @@ export const env = {
   VERIFY_INTEGRITY_TIMEOUT_MS: parseInt(process.env.VERIFY_INTEGRITY_TIMEOUT_MS || '5000', 10),
   // Demo (sample) data sources quarantine flag — see ENV_VARS entry for
   // semantics. Defaults to false (sample sources hidden from discovery).
+  // Server-side gate: data-honesty (LLM catalog, /api/data/query GET, etc.).
   FEATURE_DEMO_SOURCES: process.env.FEATURE_DEMO_SOURCES === 'true',
+  // Client-side gate: UI hints (Templates page, Gallery, editor hydration).
+  // Build-baked at `next build` time. NOT a security flag.
+  NEXT_PUBLIC_FEATURE_DEMO_SOURCES:
+    process.env.NEXT_PUBLIC_FEATURE_DEMO_SOURCES === 'true',
   FRESHSALES_API_KEY: process.env.FRESHSALES_API_KEY || '',
   FRESHSALES_DOMAIN: process.env.FRESHSALES_DOMAIN || '',
   FRESHSALES_CACHE_TTL_SECONDS: parseInt(process.env.FRESHSALES_CACHE_TTL_SECONDS || '60', 10),
