@@ -375,6 +375,83 @@ model MetricAccessRule {
   @@index([metricName])
 }
 
+// G-FW-PoP-1 — MetricSnapshot
+//
+// Append-only history table that unblocks honest period-over-period (PoP)
+// comparisons for data sources whose vendor APIs lack a date-filter
+// parameter. Without this table, providers like FreshworksDataProvider
+// correctly surface honest absence (previous_value=null +
+// comparison_unavailable_reason "Source API has no date filter —
+// historical snapshot table required for honest PoP.") for sources such
+// as freshsales_pipeline_value, freshsales_open_deal_count, and
+// freshchat_active_conversations. With this table populated by a nightly
+// writer, the provider can compute previous_value from the snapshot
+// captured N days ago and only fall back to the no-comparison pill when
+// no snapshot exists for the requested lookback window.
+//
+// Lifecycle (3 phases, each landing in its own commit):
+//   1. THIS COMMIT — schema only. The model exists; nothing reads or
+//      writes it yet. Demo-safe by construction.
+//   2. NEXT COMMIT — snapshot writer (CLI script + cron wiring).
+//      Idempotent on (source, asOf). Starts accumulating real history.
+//   3. LATER COMMIT — reader integration into the data provider, behind
+//      a feature flag so we can toggle on per-source after at least one
+//      lookback-window worth of snapshots has accumulated. Only at THAT
+//      point do `previous_value: null + reason` pills flip to honest
+//      numbers.
+//
+// Idempotency: `@@unique([source, asOf])`. The writer normalizes asOf to
+// midnight UTC of the run day, so running the cron twice in one day is
+// a no-op upsert. Hourly-resolution snapshots (if we ever need them)
+// would normalize to the start of the hour instead.
+//
+// Storage: `value` is TEXT holding a JSON-encoded payload — usually a
+// single number for KPI sources (e.g. "30540" for pipeline value), or a
+// JSON object for multi-field sources (e.g. {"value":12,"label":"…"}).
+// Readers know the per-source shape and parse accordingly. SQLite has
+// no native JSON type but stores TEXT efficiently.
+//
+// Classification: snapshots inherit the source's classification at
+// write time. Most Freshworks-derived snapshots will be
+// CUSTOMER_CONFIDENTIAL; Platform Health snapshots (if ever taken) are
+// USZOOM_RESTRICTED. Readers must enforce permission checks against
+// this column the same way the data providers do for live queries.
+//
+// Retention: NONE in the schema itself — the cron purge in
+// scripts/cron/retention-purge.sh is the single source of truth for
+// retention policy across the codebase. When PoP windows are extended
+// beyond what current retention allows, that script's policy needs an
+// update, not this table's schema.
+model MetricSnapshot {
+  id             String   @id @default(cuid())
+  // Canonical source name (e.g. "freshsales_pipeline_value"). Matches
+  // the strings in src/lib/data/freshworks-sources.ts and
+  // platform-health-sources.ts.
+  source         String
+  // The moment this snapshot represents — normalized by the writer to
+  // a stable bucket boundary (midnight UTC for daily cadence). Use
+  // this column when answering "what was the value 7 days ago".
+  asOf           DateTime
+  // JSON-encoded payload. KPI sources store a single number string;
+  // multi-field sources store an object. Per-source readers parse.
+  value          String
+  // G-01 / Policy 3698. Inherited from the source at write time; see
+  // User comment for allowed values. Default keeps Platform Health
+  // snapshots at the right classification by default.
+  classification String   @default("USZOOM_RESTRICTED")
+  // Optional JSON for writer breadcrumbs (fetch latency, upstream
+  // status, source api response shape hash). Operator-debugging only;
+  // never read by the provider's PoP path.
+  metadata       String?
+  // Wall-clock time the row was inserted. Normally close to asOf but
+  // can drift (cron retries, late-night cron, etc.). Operator audit
+  // signal.
+  createdAt      DateTime @default(now())
+
+  @@unique([source, asOf])
+  @@index([classification])
+}
+
 // Meta-categories that group related data categories for easier management
 model DataMetaCategory {
   id               String   @id @default(cuid())
