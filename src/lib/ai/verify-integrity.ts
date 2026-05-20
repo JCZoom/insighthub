@@ -43,7 +43,35 @@ const CONFIDENCE_ESCALATION_THRESHOLD = parseFloat(
 const AI_TIMEOUT_MS = parseInt(
   process.env.VERIFY_INTEGRITY_TIMEOUT_MS || '5000', 10
 );
-const HAIKU_MODEL = 'claude-haiku-3-20250414';
+// Bug #5 from docs/AI_DASHBOARD_BUILDER_FINDINGS_2026-05-19.md.
+// The original constant was 'claude-haiku-3-20250414' — a model id
+// that doesn't exist in Anthropic's catalog. Layer 2 verification
+// has been silently dead since the day this file was first written:
+// every call hit a 404 in the Anthropic SDK, was caught by the
+// surrounding try/catch, and dropped Layer 2 from the report
+// without any error indication to the user. Layer 2.5 escalation
+// (Sonnet deep review) never ran either because it requires a
+// Layer 2 confidence value to gate on.
+//
+// Activating Layer 2 by fixing the id surfaces failure verdicts
+// that have been quietly suppressed for as long as the verifier
+// has shipped. The deterministic Layer 1 still ran the whole
+// time, so structural checks (D-01..D-13) were never affected;
+// the regression scope is the SEMANTIC checks ("does this widget
+// match the user's intent?") that only Layer 2 performs.
+//
+// First fix attempt was 'claude-3-5-haiku-20241022' — also returns
+// 404 on this Anthropic account. Verified via local probe:
+// "model: claude-3-5-haiku-20241022 not_found_error". Either the
+// SDK key doesn't have access to that older Haiku, or the id has
+// been deprecated. The current Haiku per Anthropic's naming
+// convention (matching SONNET_MODEL's claude-sonnet-4-... pattern)
+// is claude-haiku-4-5-20251001 — Haiku 4.5, released 2025-10-01.
+//
+// Source: https://docs.aws.amazon.com/bedrock/latest/userguide/
+//         model-card-anthropic-claude-haiku-4-5.html
+//         + https://www.anthropic.com/news/claude-haiku-4-5
+const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-20250514';
 
 // Simple in-memory cache for verification results (hash → {result, expiry})
