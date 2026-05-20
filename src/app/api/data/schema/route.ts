@@ -5,6 +5,12 @@ import { getAvailableSources } from '@/lib/data/sample-data';
 import { getDataSourcesWithProvider } from '@/lib/data/snowflake-data-provider';
 import { isSnowflakeConfigured } from '@/lib/snowflake/config';
 import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
+import {
+  REAL_SOURCE_SCHEMAS,
+  type RealSourceSchema,
+} from '@/lib/data/real-source-schemas';
+import { listFreshworksSources } from '@/lib/data/freshworks-sources';
+import { listPlatformHealthSources } from '@/lib/data/platform-health-sources';
 import type {
   DataSource,
   DataTable,
@@ -245,41 +251,57 @@ function generateSampleValues(columnName: string, dataType: string): unknown[] {
   return ['N/A'];
 }
 
+/**
+ * Categorize a demo (sample) source by naming pattern so it falls into
+ * the same buckets the Data Explorer historically rendered.
+ *
+ * Demo sources don't have a registered category the way real sources
+ * do (real ones declare a category in `REAL_SOURCE_SCHEMAS`), so this
+ * keeps their grouping behavior identical to the pre-Phase-B layout.
+ */
+function categorizeDemoSource(source: string): string {
+  const s = source.toLowerCase();
+  if (s.includes('revenue') || s.includes('mrr') || s.includes('deal')) return 'Financial';
+  if (s.includes('churn') || s.includes('customer')) return 'Retention';
+  if (s.includes('ticket') || s.includes('support')) return 'Support';
+  if (s.includes('usage') || s.includes('feature')) return 'Product';
+  return 'Operations';
+}
+
 async function buildSchemaWithPermissions(
   user: Parameters<typeof canAccessDataSourceWithMetrics>[0]
 ): Promise<DataSource[]> {
-  const schemaData = generateSchemaFromSampleData();
+  const demoSchemaMap = generateSchemaFromSampleData();
   const glossaryTerms = getMockGlossaryTerms();
-  // Demo-source quarantine (post-2026-05-19): hide canonical sample
-  // sources from the Data Explorer / Visual Query Builder unless the
-  // operator has opted in via FEATURE_DEMO_SOURCES. Saved widgets that
-  // reference these sources continue to query successfully — only the
-  // schema-discovery surface is gated. See
-  // docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md §3.
-  const availableSources = demoSourcesEnabled()
-    ? getAvailableSources()
-    : getAvailableSources().filter(name => !isSampleSource(name));
+  const demoEnabled = demoSourcesEnabled();
 
-  // Group sources by category based on naming patterns
+  // Build the unified source list. Real sources (Freshworks +
+  // Platform Health) are ALWAYS exposed — they're the canonical
+  // discovery surface post-2026-05-19. Demo (sample) sources are
+  // exposed only when FEATURE_DEMO_SOURCES is on; otherwise they
+  // remain queryable via POST /api/data/query for saved widgets but
+  // are hidden from this discovery API. See
+  // docs/REAL_DATA_MIGRATION_PLAN_2026-05-19.md Phase B.
+  //
+  // Order matters for stable UX: real sources first (sales →
+  // support → voice → messaging → platform), demo sources after.
+  const realSources = [
+    ...listFreshworksSources(),
+    ...listPlatformHealthSources(),
+  ];
+  const demoSources = demoEnabled
+    ? getAvailableSources().filter(isSampleSource)
+    : [];
+  const allSources = [...realSources, ...demoSources];
+
+  // Group by category. Real sources use the registered category from
+  // REAL_SOURCE_SCHEMAS; demo sources fall back to the legacy
+  // name-pattern heuristic for parity with prior UX.
   const categorizedSources = new Map<string, string[]>();
-
-  for (const source of availableSources) {
-    const sourceLower = source.toLowerCase();
-    let category = 'Operations';
-
-    if (sourceLower.includes('revenue') || sourceLower.includes('mrr') || sourceLower.includes('deal')) {
-      category = 'Financial';
-    } else if (sourceLower.includes('churn') || sourceLower.includes('customer')) {
-      category = 'Retention';
-    } else if (sourceLower.includes('ticket') || sourceLower.includes('support')) {
-      category = 'Support';
-    } else if (sourceLower.includes('usage') || sourceLower.includes('feature')) {
-      category = 'Product';
-    }
-
-    if (!categorizedSources.has(category)) {
-      categorizedSources.set(category, []);
-    }
+  for (const source of allSources) {
+    const realSchema = REAL_SOURCE_SCHEMAS[source];
+    const category = realSchema?.category ?? categorizeDemoSource(source);
+    if (!categorizedSources.has(category)) categorizedSources.set(category, []);
     categorizedSources.get(category)!.push(source);
   }
 
@@ -291,12 +313,46 @@ async function buildSchemaWithPermissions(
     for (const source of sources) {
       // Check source-level permission
       const sourceAccess = await canAccessDataSourceWithMetrics(user, source);
-      const schema = schemaData[source];
+      const realSchema: RealSourceSchema | undefined = REAL_SOURCE_SCHEMAS[source];
+      const demoSchema = demoSchemaMap[source];
 
-      if (schema) {
+      if (realSchema) {
+        // Real-data source — column metadata declared statically in
+        // src/lib/data/real-source-schemas.ts. No mock row count and no
+        // random sample values; tables come from live providers at
+        // query time, so we deliberately don't fabricate counts here.
+        const columns: DataColumn[] = realSchema.columns.map(col => ({
+          name: col.name,
+          displayName: col.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          type: col.type,
+          nullable: col.name !== 'id' && col.name !== 'value' && col.name !== 'count',
+          description: col.description,
+          isAccessible: sourceAccess.hasAccess,
+          accessLevel: sourceAccess.accessLevel,
+          deniedReason: sourceAccess.deniedReason,
+          isPrimaryKey: col.name === 'id',
+          isForeignKey: col.name.endsWith('_id'),
+          glossaryTermId: glossaryTerms[col.name]?.id,
+          glossaryTerm: glossaryTerms[col.name],
+        }));
+
+        tables.push({
+          name: source,
+          displayName: source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: realSchema.description,
+          columns,
+          isAccessible: sourceAccess.hasAccess,
+          accessLevel: sourceAccess.accessLevel,
+          deniedReason: sourceAccess.deniedReason,
+          lastUpdated: new Date(),
+        });
+      } else if (demoSchema) {
+        // Demo source — preserved legacy behavior (mock row count +
+        // sample values). Only reachable when demoEnabled is true,
+        // since the source list is filtered above.
         const columns: DataColumn[] = [];
 
-        for (const [columnName, dataType] of Object.entries(schema.columns)) {
+        for (const [columnName, dataType] of Object.entries(demoSchema.columns)) {
           const glossaryTerm = glossaryTerms[columnName];
           const sampleValues = generateSampleValues(columnName, dataType);
 
@@ -304,7 +360,7 @@ async function buildSchemaWithPermissions(
             name: columnName,
             displayName: columnName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
             type: dataType,
-            nullable: !['id', 'month'].includes(columnName), // IDs and time fields typically not null
+            nullable: !['id', 'month'].includes(columnName),
             isAccessible: sourceAccess.hasAccess,
             accessLevel: sourceAccess.accessLevel,
             deniedReason: sourceAccess.deniedReason,
@@ -312,22 +368,26 @@ async function buildSchemaWithPermissions(
             isPrimaryKey: columnName === 'id',
             isForeignKey: columnName.endsWith('_id'),
             glossaryTermId: glossaryTerm?.id,
-            glossaryTerm: glossaryTerm
+            glossaryTerm,
           });
         }
 
         tables.push({
           name: source,
           displayName: source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          description: schema.description,
+          description: demoSchema.description,
           columns,
           isAccessible: sourceAccess.hasAccess,
           accessLevel: sourceAccess.accessLevel,
           deniedReason: sourceAccess.deniedReason,
-          rowCount: Math.floor(Math.random() * 10000) + 100, // Mock row count
-          lastUpdated: new Date()
+          rowCount: Math.floor(Math.random() * 10000) + 100,
+          lastUpdated: new Date(),
         });
       }
+      // Sources with neither real nor demo schema (e.g. an
+      // unregistered Snowflake passthrough) are silently skipped from
+      // the Data Explorer — they're still queryable, but the explorer
+      // doesn't know how to describe their shape.
     }
 
     if (tables.length > 0) {
@@ -338,7 +398,7 @@ async function buildSchemaWithPermissions(
         category,
         isAccessible: tables.some(t => t.isAccessible),
         tables,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       });
     }
   }
