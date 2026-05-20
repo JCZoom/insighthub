@@ -58,7 +58,15 @@ definitions:
             # e2e tests. NEXT_PUBLIC_DEV_MODE intentionally NOT set here —
             # the build artifact above was production-shaped and the tests
             # do not click the dev-login UI affordance.
+            #
+            # ALLOW_DEV_MODE_IN_PRODUCTION="1" is the documented escape hatch
+            # for the assertEnv() hard-throw on NODE_ENV=production+DEV_MODE=true
+            # (added 2026-05-20 per INC-20260519-001 retro action). `next start`
+            # forces NODE_ENV=production, so without this opt-in the server
+            # would refuse to start and e2e would fail at wait-on.
+            # Never set on a real production host.
             DATABASE_URL="file:./dev.db" NEXTAUTH_SECRET="ci-test" DEV_MODE="true" \
+            ALLOW_DEV_MODE_IN_PRODUCTION="1" \
             PORT=3000 npm run start &
             npx wait-on http://localhost:3000/api/health --timeout 30000
             PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test --project=chromium

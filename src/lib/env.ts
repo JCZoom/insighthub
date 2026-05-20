@@ -85,6 +85,22 @@ const ENV_VARS: Record<string, EnvVarDef> = {
     description: 'Client UI hint flag for dev affordances (build-baked). NOT a security flag — see DEV_MODE.',
     example: 'true',
   },
+  // Escape hatch for the assertEnv() hard-throw on NODE_ENV=production +
+  // DEV_MODE=true. Set ONLY when you knowingly need a production-shaped
+  // build to run with the auth bypass on — currently the single legitimate
+  // use case is the CI e2e job, which downloads a production build artifact
+  // and runs `npm run start` (NODE_ENV=production) with DEV_MODE=true so
+  // Playwright tests can navigate without real Google sessions. Set at the
+  // CI step level alongside DEV_MODE=true. NEVER set this in the prod
+  // service unit (`/etc/systemd/system/insighthub.service` /
+  // `/opt/insighthub/.env.local`). The verbose name is intentional —
+  // it should never be set by accident or out of habit. Added 2026-05-20
+  // alongside the assertEnv() hard-throw (INC-20260519-001 retro action).
+  ALLOW_DEV_MODE_IN_PRODUCTION: {
+    required: false,
+    description: 'Escape hatch: allow DEV_MODE=true with NODE_ENV=production. CI-only.',
+    example: '1',
+  },
   ALLOWED_DOMAIN: {
     required: false,
     description: 'Email domain allowed for login',
@@ -328,21 +344,45 @@ export function validateEnv(): EnvValidationResult {
 export function assertEnv(): void {
   const result = validateEnv();
 
+  // FATAL — auth bypass enabled in production. Refuse to start.
+  //
+  // INC-20260519-001 retro action item (HIGH): the previous behavior was a
+  // stderr warning that nobody pages on, which let a misconfigured deploy
+  // run for months with auth silently bypassed. The only safe behavior is
+  // to fail boot loudly so the service goes 502 instead of 200-OK to every
+  // unauthenticated request. The escape hatch ALLOW_DEV_MODE_IN_PRODUCTION=1
+  // exists for the single legitimate case (CI e2e job that runs a prod-shaped
+  // build with bypass on for Playwright); see ENV_VARS entry above.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.DEV_MODE === 'true' &&
+    process.env.ALLOW_DEV_MODE_IN_PRODUCTION !== '1'
+  ) {
+    const msg =
+      'FATAL: DEV_MODE=true with NODE_ENV=production — authentication ' +
+      'is bypassed. Refusing to start. Set DEV_MODE="false" in your ' +
+      'environment, or (CI-only) set ALLOW_DEV_MODE_IN_PRODUCTION=1 to ' +
+      'opt in. See docs/incidents/INC-20260519-001.md.';
+    console.error(`❌ ENV: ${msg}`);
+    throw new Error(msg);
+  }
+
   for (const w of result.warnings) {
     console.warn(`⚠️  ENV: ${w}`);
   }
 
-  // Dev mode in production — warn loudly. Post-2026-05-19 incident, the
-  // security path reads DEV_MODE (server-only, runtime). The legacy
-  // NEXT_PUBLIC_DEV_MODE is now UI-only, but we still flag both because
-  // having either set in prod is a smell.
+  // Override is in effect — keep this loud so it shows up in journald and
+  // anyone reviewing logs after the fact sees that the bypass was knowingly
+  // permitted. Should only ever fire in CI.
   if (
     process.env.NODE_ENV === 'production' &&
-    process.env.DEV_MODE === 'true'
+    process.env.DEV_MODE === 'true' &&
+    process.env.ALLOW_DEV_MODE_IN_PRODUCTION === '1'
   ) {
     console.warn(
-      '⚠️  DEV_MODE=true in production — authentication is bypassed. ' +
-      'This must be disabled (set to "false" or remove the line) before serving real traffic.'
+      '⚠️  DEV_MODE=true in production with ALLOW_DEV_MODE_IN_PRODUCTION=1 — ' +
+      'auth bypass is intentionally enabled (CI-only escape hatch). If you see ' +
+      'this on a real production host, stop the service immediately.'
     );
   }
   if (
