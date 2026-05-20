@@ -51,6 +51,13 @@ const ADMIN_SECTIONS = [
     icon: '📜',
     color: 'from-accent-cyan/15 to-accent-cyan/5 border-accent-cyan/20',
   },
+  {
+    title: 'Freshworks Health',
+    description: 'Per-source data-integrity probe across all 17 Freshworks dashboard sources',
+    href: '/admin/freshworks/health',
+    icon: '🩺',
+    color: 'from-accent-amber/15 to-accent-amber/5 border-accent-amber/20',
+  },
 ];
 
 export default async function AdminPage() {
