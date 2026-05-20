@@ -32,6 +32,7 @@ import type { DashboardSchema } from '@/types';
 import { JEFF_SUPPORT_OPS_DASHBOARD } from './dashboards/jeff-support-ops';
 import { JEFF_SALES_PIPELINE_DASHBOARD } from './dashboards/jeff-sales-pipeline';
 import { JEFF_PLATFORM_HEALTH_DASHBOARD } from './dashboards/jeff-platform-health';
+import { JEFF_TODAY_DASHBOARD } from './dashboards/jeff-today';
 
 const prisma = new PrismaClient();
 
@@ -56,6 +57,7 @@ const DASHBOARDS: readonly SeedDashboard[] = [
   JEFF_SUPPORT_OPS_DASHBOARD,
   JEFF_SALES_PIPELINE_DASHBOARD,
   JEFF_PLATFORM_HEALTH_DASHBOARD,
+  JEFF_TODAY_DASHBOARD,
 ];
 
 async function ensureUser() {

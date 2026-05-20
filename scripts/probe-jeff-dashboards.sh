@@ -33,11 +33,13 @@ set -u
 BASE_URL="${BASE_URL:-http://localhost:3000}"
 COOKIE="${COOKIE:-}"
 
-# ── Sources bound by the three Jeff dashboards ─────────────────────
+# ── Sources bound by Jeff's real-data dashboards ───────────────────
 # Keep in sync with:
 #   scripts/dashboards/jeff-support-ops.ts
 #   scripts/dashboards/jeff-sales-pipeline.ts
 #   scripts/dashboards/jeff-platform-health.ts
+#   scripts/dashboards/jeff-today.ts
+# (the "Today" dashboard re-uses sources already covered below)
 SOURCES=(
   # Support Operations
   freshdesk_open_ticket_count
