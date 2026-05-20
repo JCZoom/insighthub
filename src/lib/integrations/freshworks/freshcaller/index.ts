@@ -24,6 +24,10 @@ export {
   redactUsers as redactFreshcallerUsers,
   freshcallerCallStatus,
   freshcallerCallPhone,
+  freshcallerCallCreatedAt,
+  freshcallerCallUpdatedAt,
+  freshcallerCallDurationS,
   type FreshcallerCall,
+  type FreshcallerParticipant,
   type FreshcallerUser,
 } from './redact';

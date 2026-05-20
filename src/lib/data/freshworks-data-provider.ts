@@ -52,6 +52,8 @@ import {
   listCalls,
   freshcallerCallStatus,
   freshcallerCallPhone,
+  freshcallerCallCreatedAt,
+  freshcallerCallDurationS,
   type FreshcallerCall,
   isFreshchatConfigured,
   listConversations,
@@ -774,14 +776,32 @@ export class FreshworksDataProvider {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const yesterdayUtc = yesterday.toISOString().slice(0, 10);
 
-    const WINDOW_LIMIT = 200;
+    // F-1 follow-up: the listCalls() implementation hard-caps `limit`
+    // at 100 (see freshcaller/client.ts:56), which is also the
+    // Freshcaller v1 API's per-page cap. The legacy WINDOW_LIMIT=200
+    // here was therefore always ineffective — the truncation check
+    // below could never fire because `calls.length >= 200` was
+    // unreachable. Setting to 100 = actual upstream cap so the check
+    // honestly fires when we hit it. If a tenant has >100 calls per
+    // day-pair, this will correctly degrade the comparison to "no
+    // comparison available" with the cap-hit reason. Pagination
+    // would lift the cap; tracked separately under F-3 (similar
+    // pagination gap on Freshsales listDeals).
+    const WINDOW_LIMIT = 100;
     // Single API call covers both buckets. `from` is inclusive on yesterday.
     const calls = await listCalls(userId, role, { limit: WINDOW_LIMIT, from: yesterdayUtc });
 
-    const isToday = (c: FreshcallerCall) =>
-      typeof c.created_at === 'string' && c.created_at.slice(0, 10) === todayUtc;
-    const isYesterday = (c: FreshcallerCall) =>
-      typeof c.created_at === 'string' && c.created_at.slice(0, 10) === yesterdayUtc;
+    // F-1: read created_time/created_at via the resolver. The legacy
+    // direct read of c.created_at always returned null on prod because
+    // Freshcaller v1 renamed the field to created_time.
+    const isToday = (c: FreshcallerCall) => {
+      const t = freshcallerCallCreatedAt(c);
+      return typeof t === 'string' && t.slice(0, 10) === todayUtc;
+    };
+    const isYesterday = (c: FreshcallerCall) => {
+      const t = freshcallerCallCreatedAt(c);
+      return typeof t === 'string' && t.slice(0, 10) === yesterdayUtc;
+    };
 
     const todayCount = calls.filter(isToday).length;
     const yesterdayCount = calls.filter(isYesterday).length;
@@ -846,20 +866,26 @@ export class FreshworksDataProvider {
     start: number
   ): Promise<FreshworksProviderResult> {
     const calls = await this.fetchCalls(userId, role);
+    // F-1: sort + map via the resolvers so created_at + duration come
+    // through correctly on Freshcaller v1 (the legacy direct field
+    // reads returned null for every prod row — see
+    // docs/FRESHWORKS_FIELD_SHAPE_FINDINGS_2026-05-19.md §F-1).
     const top = calls
       .slice()
       .sort((a, b) => {
-        const at = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return bt - at;
+        const at = freshcallerCallCreatedAt(a);
+        const bt = freshcallerCallCreatedAt(b);
+        const an = at ? new Date(at).getTime() : 0;
+        const bn = bt ? new Date(bt).getTime() : 0;
+        return bn - an;
       })
       .slice(0, 10);
     const rows = top.map((c) => ({
       id: c.id,
       phone_number: freshcallerCallPhone(c),
       status: freshcallerCallStatus(c),
-      duration_s: c.call_duration ?? c.bill_duration ?? null,
-      created_at: c.created_at ?? null,
+      duration_s: freshcallerCallDurationS(c),
+      created_at: freshcallerCallCreatedAt(c),
     }));
     return this.finish(
       rows,

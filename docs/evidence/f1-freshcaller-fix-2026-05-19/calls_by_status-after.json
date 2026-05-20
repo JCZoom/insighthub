@@ -1,0 +1,1 @@
+{"data":[{"status":"completed","count":56},{"status":"missed","count":23},{"status":"code-17","count":21}],"columns":["status","count"],"accessLevel":"FULL","isFiltered":false,"executionTime":716,"fromCache":false,"dataSource":"freshworks","totalRows":3,"appliedPolicies":["freshworks.classification:CUSTOMER_CONFIDENTIAL"],"fetched_at":"2026-05-20T00:59:00.180Z"}
