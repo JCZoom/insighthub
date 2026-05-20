@@ -46,6 +46,22 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Force Google to re-authenticate the user on every OAuth sign-in to
+      // InsightHub. Without `prompt: 'login'` Google reuses a live Google
+      // session cookie (e.g. when the user is already signed into Google in
+      // the same browser) and issues an id_token whose `amr` claim is
+      // empty — the MFA gate in mfa.ts then rejects the sign-in for
+      // privileged roles because there's no MFA assertion to evaluate.
+      // Forcing re-auth ensures Google challenges the YubiKey / 2SV every
+      // time and populates `amr` accordingly. Discovered 2026-05-20 when
+      // Jeff was locked out of /admin post-role-promotion: his Google
+      // session was cached from an earlier sign-in, so subsequent sign-ins
+      // skipped the security key prompt and produced amr=[].
+      authorization: {
+        params: {
+          prompt: 'login',
+        },
+      },
     }),
     // Keep dev provider for development
     CredentialsProvider({
@@ -106,22 +122,40 @@ export const authOptions: NextAuthOptions = {
             : allowlistRole;
 
         if (requiresMfa(effectiveRole) && !amr.mfaVerified) {
-          // Fire-and-forget audit of the rejection. Best-effort: a failed audit
-          // here must not crash the sign-in handler (which would already be
-          // reporting the legitimate "rejected" outcome to the user).
-          createAuditLog({
-            userId: 'system:auth',
-            action: AuditAction.USER_LOGIN,
-            resourceType: ResourceType.USER,
-            resourceId: email.toLowerCase(),
-            metadata: {
-              outcome: 'rejected',
-              reason: 'mfa_required',
-              effectiveRole,
-              amrValues: amr.amrValues,
-              parseError: amr.parseError,
-            },
-          }).catch(() => undefined);
+          // Best-effort audit of the rejection. We need a real User.id to
+          // satisfy the AuditLog.userId FK constraint, so look the user up
+          // by email. If no row exists yet (first-time sign-in being
+          // rejected), we skip the DB write — the console.warn below still
+          // produces a structured journald line that ops can grep for. A
+          // future improvement would be to seed a synthetic 'system:auth'
+          // User row at boot and use that as the universal fallback so we
+          // get DB-grade audit even for never-seen-before emails.
+          let auditUserId: string | null = null;
+          try {
+            const existing = await prisma.user.findUnique({
+              where: { email: email.toLowerCase() },
+              select: { id: true },
+            });
+            auditUserId = existing?.id ?? null;
+          } catch {
+            auditUserId = null;
+          }
+
+          if (auditUserId) {
+            createAuditLog({
+              userId: auditUserId,
+              action: AuditAction.USER_LOGIN,
+              resourceType: ResourceType.USER,
+              resourceId: auditUserId,
+              metadata: {
+                outcome: 'rejected',
+                reason: 'mfa_required',
+                effectiveRole,
+                amrValues: amr.amrValues,
+                parseError: amr.parseError,
+              },
+            }).catch(() => undefined);
+          }
 
           console.warn(
             `[auth] Rejected sign-in for ${email} — role=${effectiveRole} requires MFA but amr=${JSON.stringify(amr.amrValues)} (parseError=${amr.parseError}).`
