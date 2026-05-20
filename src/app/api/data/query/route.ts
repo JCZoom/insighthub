@@ -4,6 +4,7 @@ import { queryDataWithProvider } from '@/lib/data/snowflake-data-provider';
 import { listFreshworksSources, FreshworksDataProvider } from '@/lib/data/freshworks-data-provider';
 import { isSampleSource, demoSourcesEnabled } from '@/lib/data/sample-sources';
 import { listPlatformHealthSources } from '@/lib/data/platform-health-sources';
+import { listFreshworksHealthSources } from '@/lib/data/freshworks-health-sources';
 import { getCurrentUser } from '@/lib/auth/session';
 import { canAccessDataSourceWithMetrics, getCategoryForSource, resolveUserPermissions } from '@/lib/auth/permissions';
 import type { SessionUser } from '@/lib/auth/session';
@@ -225,10 +226,15 @@ export async function GET() {
     // glossary coverage, and classification distribution. Routed through
     // the Operations data category for RBAC (see permissions.ts).
     const platformHealthSources = [...listPlatformHealthSources()];
+    // Freshworks Health: connector trust diagnostics wrapping
+    // probeFreshworksHealth(). Operations category — gated to
+    // ADMIN/POWER_USER like the other platform_* sources.
+    const freshworksHealthSources = [...listFreshworksHealthSources()];
     const allSources = Array.from(new Set([
       ...sampleSources,
       ...freshworksSources,
       ...platformHealthSources,
+      ...freshworksHealthSources,
     ]));
 
     // Filter sources based on user permissions with access level details

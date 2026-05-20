@@ -11,6 +11,7 @@ import {
 } from '@/lib/data/real-source-schemas';
 import { listFreshworksSources } from '@/lib/data/freshworks-sources';
 import { listPlatformHealthSources } from '@/lib/data/platform-health-sources';
+import { listFreshworksHealthSources } from '@/lib/data/freshworks-health-sources';
 import type {
   DataSource,
   DataTable,
@@ -288,6 +289,7 @@ async function buildSchemaWithPermissions(
   const realSources = [
     ...listFreshworksSources(),
     ...listPlatformHealthSources(),
+    ...listFreshworksHealthSources(),
   ];
   const demoSources = demoEnabled
     ? getAvailableSources().filter(isSampleSource)

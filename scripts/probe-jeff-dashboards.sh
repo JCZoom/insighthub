@@ -38,8 +38,8 @@ COOKIE="${COOKIE:-}"
 #   scripts/dashboards/jeff-support-ops.ts
 #   scripts/dashboards/jeff-sales-pipeline.ts
 #   scripts/dashboards/jeff-platform-health.ts
-#   scripts/dashboards/jeff-today.ts
-# (the "Today" dashboard re-uses sources already covered below)
+#   scripts/dashboards/jeff-today.ts            (re-uses sources below)
+#   scripts/dashboards/jeff-data-trust.ts       (adds freshworks_health_*)
 SOURCES=(
   # Support Operations
   freshdesk_open_ticket_count
@@ -73,6 +73,12 @@ SOURCES=(
   platform_audit_events_today
   platform_recent_audit_events
   platform_glossary_by_category
+  # Data Trust (freshworks_health_*)
+  freshworks_health_ok_count
+  freshworks_health_suspicious_count
+  freshworks_health_error_count
+  freshworks_health_summary
+  freshworks_health_per_source
 )
 
 PASS=0

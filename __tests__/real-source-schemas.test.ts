@@ -22,6 +22,7 @@ import { describe, it } from 'node:test';
 
 import { FRESHWORKS_SOURCES } from '../src/lib/data/freshworks-sources';
 import { PLATFORM_HEALTH_SOURCES } from '../src/lib/data/platform-health-sources';
+import { FRESHWORKS_HEALTH_SOURCES } from '../src/lib/data/freshworks-health-sources';
 import {
   REAL_SOURCE_SCHEMAS,
   hasRealSourceSchema,
@@ -55,6 +56,10 @@ const KPI_SOURCES: readonly string[] = [
   'platform_dashboards_created_30d',
   'platform_glossary_term_count',
   'platform_audit_events_today',
+  // Freshworks Health KPIs (honest-absence pills — current-state signal)
+  'freshworks_health_ok_count',
+  'freshworks_health_suspicious_count',
+  'freshworks_health_error_count',
 ];
 
 describe('REAL_SOURCE_SCHEMAS — coverage of registered sources', () => {
@@ -75,6 +80,17 @@ describe('REAL_SOURCE_SCHEMAS — coverage of registered sources', () => {
         hasRealSourceSchema(name),
         `Platform Health source "${name}" has no entry in REAL_SOURCE_SCHEMAS. ` +
           'If you added the source to PLATFORM_HEALTH_SOURCES, also add a ' +
+          'schema entry in src/lib/data/real-source-schemas.ts.',
+      );
+    }
+  });
+
+  it('has a schema entry for every Freshworks Health source', () => {
+    for (const name of FRESHWORKS_HEALTH_SOURCES) {
+      assert.ok(
+        hasRealSourceSchema(name),
+        `Freshworks Health source "${name}" has no entry in REAL_SOURCE_SCHEMAS. ` +
+          'If you added the source to FRESHWORKS_HEALTH_SOURCES, also add a ' +
           'schema entry in src/lib/data/real-source-schemas.ts.',
       );
     }

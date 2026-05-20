@@ -4,6 +4,8 @@ import { applyDataSecurity } from '../snowflake/data-security';
 import { getSnowflakeDataSources } from '../snowflake/schema';
 import { queryData as querySampleData, getAvailableSources } from './sample-data';
 import { isFreshworksSource, FreshworksDataProvider } from './freshworks-data-provider';
+import { isFreshworksHealthSource } from './freshworks-health-sources';
+import { FreshworksHealthDataProvider } from './freshworks-health-data-provider';
 import { isPlatformHealthSource } from './platform-health-sources';
 import { PlatformHealthDataProvider } from './platform-health-data-provider';
 import type { SessionUser } from '@/lib/auth/session';
@@ -24,7 +26,7 @@ export interface DataProviderResult {
   executionTime: number;
   totalRows: number;
   fromCache: boolean;
-  dataSource: 'snowflake' | 'sample' | 'freshworks' | 'platform_health';
+  dataSource: 'snowflake' | 'sample' | 'freshworks' | 'freshworks_health' | 'platform_health';
   accessLevel?: 'FULL' | 'FILTERED' | 'NONE';
   isFiltered?: boolean;
   appliedPolicies?: string[];
@@ -327,6 +329,15 @@ export async function queryDataWithProvider(
     // layer (route handler's stripPiiFields still applies to the
     // `name` field on platform_recent_audit_events).
     return PlatformHealthDataProvider.queryData(source, user);
+  }
+  if (isFreshworksHealthSource(source)) {
+    // Freshworks connector-health diagnostics. Wraps probeFreshworksHealth()
+    // into a regular data-source surface so dashboards can render trust
+    // state. Routed BEFORE isFreshworksSource so freshworks_health_*
+    // names don't accidentally match the wider freshworks_* family.
+    // (They wouldn't today — isFreshworksSource uses an exact list — but
+    // the explicit ordering documents the precedence.)
+    return FreshworksHealthDataProvider.queryData(source, user);
   }
   if (isFreshworksSource(source)) {
     const fwResult = await FreshworksDataProvider.queryData(source, user);

@@ -30,7 +30,12 @@ export const DATA_CATEGORIES = {
   // POWER_USER default to FULL access; CREATOR and VIEWER are NONE
   // (Platform Health surfaces internal app metadata, classified
   // USZOOM_RESTRICTED, so non-power-users shouldn't see it by default).
-  Operations: ['kpi_summary', 'overall_kpi', 'metrics', 'kpis', 'platform'],
+  // 'platform' matches every platform_* Platform Health source; the
+  // explicit 'freshworks_health' entry catches the freshworks_health_*
+  // connector-diagnostic sources without dragging the wider 'freshworks'
+  // brand prefix into Operations (those sources stay in Sales/Support
+  // via the per-product entries above).
+  Operations: ['kpi_summary', 'overall_kpi', 'metrics', 'kpis', 'platform', 'freshworks_health'],
   CustomerPII: ['sample_customers', 'customers', 'customer_growth', 'customers_by_plan', 'customers_by_region']
 } as const;
 

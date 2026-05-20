@@ -55,7 +55,7 @@ export interface RealSourceColumn {
 export interface RealSourceSchema {
   description: string;
   /** Which RBAC category this source is exposed under (for grouping). */
-  category: 'Operations' | 'Sales' | 'Support' | 'Voice' | 'Messaging' | 'Platform';
+  category: 'Operations' | 'Sales' | 'Support' | 'Voice' | 'Messaging' | 'Platform' | 'Diagnostics';
   columns: RealSourceColumn[];
 }
 
@@ -284,6 +284,48 @@ export const REAL_SOURCE_SCHEMAS: Record<string, RealSourceSchema> = {
     columns: [
       { name: 'action', type: 'string', description: 'AuditLog action identifier.' },
       { name: 'count', type: 'number', description: 'Number of events with this action in the last 30 days.' },
+    ],
+  },
+  // ── Freshworks Health (connector diagnostics) ──────────────────────
+  // Wraps probeFreshworksHealth() — see
+  // src/lib/data/freshworks-health-data-provider.ts. Health is a
+  // current-state signal; KPI sources here always render an honest
+  // "no comparison available" pill (previous_value=null + reason set).
+  freshworks_health_ok_count: {
+    description: 'Number of Freshworks sources currently healthy (status="ok"). Honest absence pill — health probes are not history-tracked.',
+    category: 'Diagnostics',
+    columns: KPI_5_FIELD_SHAPE,
+  },
+  freshworks_health_suspicious_count: {
+    description: 'Freshworks sources with at least one integrity-smell flag raised (STATUS_ALL_UNKNOWN, ALL_NULL_TIMESTAMPS, SINGLE_BUCKET, etc.). Investigate before trusting downstream dashboards.',
+    category: 'Diagnostics',
+    columns: KPI_5_FIELD_SHAPE,
+  },
+  freshworks_health_error_count: {
+    description: 'Freshworks sources whose probe threw an error (vendor 4xx/5xx, network issue, parser failure).',
+    category: 'Diagnostics',
+    columns: KPI_5_FIELD_SHAPE,
+  },
+  freshworks_health_summary: {
+    description: 'Per-status counts across all registered Freshworks sources. Status vocabulary: ok / suspicious / empty / error / not_configured. All five buckets always present, even if zero, so the chart shape is stable.',
+    category: 'Diagnostics',
+    columns: [
+      { name: 'status', type: 'string', description: 'Probe-resolved status label.' },
+      { name: 'count', type: 'number', description: 'Number of registered Freshworks sources currently in this status.' },
+    ],
+  },
+  freshworks_health_per_source: {
+    description: 'One row per registered Freshworks source with its current probe state, latency, integrity flags, and any error message. Sample rows and field-shape diagnostics are intentionally not included here — the operator-microscope view at /admin/freshworks/health surfaces those.',
+    category: 'Diagnostics',
+    columns: [
+      { name: 'source', type: 'string', description: 'Registered Freshworks source name.' },
+      { name: 'product', type: 'string', description: 'Owning product brand (freshsales / freshdesk / freshcaller / freshchat).' },
+      { name: 'status', type: 'string', description: 'Resolved probe status (ok / suspicious / empty / error / not_configured).' },
+      { name: 'row_count', type: 'number', description: 'Rows returned by the probe call.' },
+      { name: 'latency_ms', type: 'number', description: 'End-to-end probe latency for this source in milliseconds.' },
+      { name: 'flags', type: 'string', description: 'Comma-separated integrity flags (ZERO_ROWS, STATUS_ALL_UNKNOWN, ALL_NULL_TIMESTAMPS, ALL_NULL_DURATIONS, SINGLE_BUCKET, NOT_CONFIGURED, ERROR).' },
+      { name: 'from_cache', type: 'boolean', description: 'Whether the probe served this row from the integration-client cache.' },
+      { name: 'error', type: 'string', description: 'Error message when status is "error"; null otherwise.' },
     ],
   },
   platform_recent_audit_events: {

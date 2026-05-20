@@ -33,6 +33,7 @@ import { JEFF_SUPPORT_OPS_DASHBOARD } from './dashboards/jeff-support-ops';
 import { JEFF_SALES_PIPELINE_DASHBOARD } from './dashboards/jeff-sales-pipeline';
 import { JEFF_PLATFORM_HEALTH_DASHBOARD } from './dashboards/jeff-platform-health';
 import { JEFF_TODAY_DASHBOARD } from './dashboards/jeff-today';
+import { JEFF_DATA_TRUST_DASHBOARD } from './dashboards/jeff-data-trust';
 
 const prisma = new PrismaClient();
 
@@ -58,6 +59,7 @@ const DASHBOARDS: readonly SeedDashboard[] = [
   JEFF_SALES_PIPELINE_DASHBOARD,
   JEFF_PLATFORM_HEALTH_DASHBOARD,
   JEFF_TODAY_DASHBOARD,
+  JEFF_DATA_TRUST_DASHBOARD,
 ];
 
 async function ensureUser() {
