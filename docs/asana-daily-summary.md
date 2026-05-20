@@ -5,17 +5,17 @@
 
 | Metric | Count |
 |--------|-------|
-| Total tasks | 200 |
-| Completed tasks | 147 |
-| Total subtasks | 549 |
-| Completed subtasks | 366 |
-| **Overall progress** | **513/749 (68%)** |
+| Total tasks | 203 |
+| Completed tasks | 149 |
+| Total subtasks | 565 |
+| Completed subtasks | 382 |
+| **Overall progress** | **531/768 (69%)** |
 
 ---
 
 # InsightHub — Asana Project Summary
 
-> Generated: 2026-05-19 13:20:10
+> Generated: 2026-05-19 15:51:02
 > Project GID: 1214122597260827
 > [View in Asana](https://app.asana.com/0/1214122597260827)
 
@@ -647,6 +647,24 @@
 
 ## 🚀 Deployment & DevOps
 
+- [x] **Demo readiness sprint - Freshworks live in builder + TLS A+ + env-isolation - 2026-05-19 PM**
+  - [x] Production deploy + smoke test verified ($30,540 live + audit row)
+  - [x] Demo (sec 2g) talking points corrected (aggregation field semantics)
+  - [x] WidgetDetailOverlay fetches live data (no more sample-data leak)
+  - [x] Turbopack build fix: client-safe freshworks-sources + serverExternalPackages
+  - [x] WidgetRenderer fetches live data via /api/data/query (useWidgetData hook)
+  - [x] Freshworks suite catalog wired into builder dropdown
+  - [x] Freshworks env vars isolated to .env.freshworks (G-36 partial)
+  - [x] TLS A+ closure (P-01 info-leak, P-02 TLS 1.0/1.1)
+- [x] **✅ Track B Phase 1 (CI-driven deploy) + memory hardening + CI-gate fixes — 2026-05-19**
+  - [x] First successful CI-driven deploy to production
+  - [x] Fix two stale e2e assertions surfaced by Track B CI gate
+  - [x] Split E2E into strict (functional) + non-blocking (a11y contrast) steps
+  - [x] Enrich public /api/health to match e2e contract
+  - [x] Fix upload-artifact@v4 hidden-files bug
+  - [x] Close HIGH-severity npm audit findings (axios CVE, Next.js)
+  - [x] Memory hardening systemd unit + V8 ceiling
+  - [x] Switch deploy to self-hosted GitHub Actions runner on EC2 (Track B Phase 1)
 - [ ] **🔒 Add automated security scanning to CI pipeline (SAST, deps, secrets)**
 - [ ] **ACTION NEEDED: Grant IAM Permissions for EBS Volume Encryption (CISO 6.1)**
 - [x] **🔒 Verify & Enable EBS Volume Encryption on EC2 (CISO §6.1)** (due 2026-04-19)
@@ -807,6 +825,7 @@
 
 ## 🎯 Jeff — Action Needed
 
+- [ ] **Retention cron install - DEFERRED (blocked on NEXT_PUBLIC_DEV_MODE=false + Google OAuth)**
 - [ ] **📱 ACTION: Real Device Testing (iPhone & iPad)**
 - [ ] **🗄️ DECIDE: Backup & Disaster Recovery Strategy**
 - [ ] **📈 INPUT: Provide Ballpark Business Numbers for Seed Data**
