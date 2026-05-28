@@ -143,7 +143,7 @@ jobs:
           npx prisma db push --accept-data-loss
           npm run db:seed
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: nextjs-build
           path: .next/
