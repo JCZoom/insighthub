@@ -111,7 +111,7 @@ jobs:
             echo "::warning::JS bundle exceeds 2MB budget (${TOTAL_MB}MB)"
           fi
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nextjs-build
           path: .next/
@@ -191,7 +191,7 @@ jobs:
         env:
           PORT: "3000"
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
