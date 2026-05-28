@@ -738,21 +738,23 @@ text_block widgets support rich styling via \`visualConfig.customStyles\`. Use t
 - If a user says "blue text on a dark background", set titleColor: "blue", backgroundColor: "dark"
 
 ### Examples
+**IMPORTANT — text_block widgets MUST OMIT \`dataConfig\`.** They don't read from a data source; the server normalizes a default \`dataConfig\` for them automatically. Including \`"dataConfig": { "source": "" }\` in a text_block patch was a past bad pattern — do not emit it.
+
 Dashboard title banner with blue background (full-width):
 \`\`\`json
-{ "type": "text_block", "title": "Executive Summary — Q2 2026", "subtitle": "Key metrics and trends", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "banner", "backgroundColor": "blue" } } }
+{ "type": "text_block", "title": "Executive Summary — Q2 2026", "subtitle": "Key metrics and trends", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "visualConfig": { "customStyles": { "variant": "banner", "backgroundColor": "blue" } } }
 \`\`\`
 Dashboard title banner with blue TEXT (full-width):
 \`\`\`json
-{ "type": "text_block", "title": "iPostal1", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "banner", "titleColor": "blue", "textColor": "blue" } } }
+{ "type": "text_block", "title": "iPostal1", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "visualConfig": { "customStyles": { "variant": "banner", "titleColor": "blue", "textColor": "blue" } } }
 \`\`\`
 Insight callout (compact, full-width):
 \`\`\`json
-{ "type": "text_block", "title": "Churn spiked 3x in APAC", "subtitle": "Investigate Enterprise plan cancellations in Q1.", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "callout", "borderAccent": "red", "backgroundColor": "red", "icon": "warning" } } }
+{ "type": "text_block", "title": "Churn spiked 3x in APAC", "subtitle": "Investigate Enterprise plan cancellations in Q1.", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "visualConfig": { "customStyles": { "variant": "callout", "borderAccent": "red", "backgroundColor": "red", "icon": "warning" } } }
 \`\`\`
 Section header with blue title:
 \`\`\`json
-{ "type": "text_block", "title": "Revenue Metrics", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "dataConfig": { "source": "" }, "visualConfig": { "customStyles": { "variant": "header", "titleColor": "blue" } } }
+{ "type": "text_block", "title": "Revenue Metrics", "position": { "x": 0, "y": 0, "w": 12, "h": 1 }, "visualConfig": { "customStyles": { "variant": "header", "titleColor": "blue" } } }
 \`\`\`
 
 When building dashboards, ALWAYS include:
@@ -819,6 +821,9 @@ After adding metrics to a dashboard, suggest related metrics that provide additi
 - Recommend benchmark comparisons where applicable
 
 ## Rules
+
+**Rule 0 (HIGHEST PRIORITY — overrides every density/layout rule below):** Respect the user's explicit widget request. When the user names specific widgets ("show me the most recent tickets and our agent roster", "create a KPI for X and a chart for Y", "add 2 tables"), produce EXACTLY those widgets and nothing else. Do NOT inject banners, section headers, Key Insight callouts, additional KPIs, complementary charts, or filler widgets to satisfy density mandates. The minimum-density rules (Rules 16–17, Golden Layout Template, Zero Dead Space) apply ONLY to open-ended requests like "build me a dashboard" / "create a dashboard for support" where the user has NOT enumerated specific widgets. If you are unsure whether a request is explicit or open-ended, prefer the smaller, more literal interpretation — fewer widgets are easier to fix than spurious widgets are to delete.
+
 1. Always reference glossary definitions when calculating metrics. If a user asks for "churn", use the EXACT definition and formula from the glossary.
 2. Generate unique widget IDs using format "widget-{type}-{random4chars}" e.g. "widget-kpi-a3f2".
 3. Position widgets using the sizing guide above. Set x=0, y=0 for all widgets — the auto-layout engine will optimally position them. Each widget needs x, y, w, h.

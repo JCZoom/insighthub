@@ -44,8 +44,8 @@ import {
   isFreshdeskConfigured,
   listTickets,
   listAgents,
+  searchTickets,
   ticketIsOpen,
-  ticketIsOverdue,
   FRESHDESK_STATUS,
   type FreshdeskTicket,
   isFreshcallerConfigured,
@@ -447,7 +447,22 @@ export class FreshworksDataProvider {
     return listTickets(userId, role, { limit: 100, include: 'requester' });
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // PoP helpers below — kept as private statics for the future MetricSnapshot
+  // reader integration (G-FW-PoP-1 phase 3). The current openTicketCount /
+  // overdueTicketCount methods compute authoritative values via the search
+  // index and surface a null PoP with an honest reason; they no longer call
+  // these helpers. The "was-open-at-cutoff" predicate (wasTicketOpenAt) and
+  // the windowed PoP fetch (fetchTicketsForPoP) encode design intent that the
+  // snapshot reader will reuse to bridge today's counts to historical ones.
+  // ESLint may flag these as unused — that's expected for the moment.
+  // ───────────────────────────────────────────────────────────────────────────
+
   /**
+   * @deprecated Used by the legacy windowed openTicketCount/overdueTicketCount.
+   *   Both call sites have moved to the search-index path. Kept for the
+   *   MetricSnapshot reader integration that will need cutoff-aware logic.
+   *
    * Honest dataset for open/overdue ticket PoP.
    *
    * Returns the dedup-merge of two API calls:
@@ -537,19 +552,33 @@ export class FreshworksDataProvider {
     return dueMs < cutoff.getTime();
   }
 
+  /**
+   * Tickets by status — AUTHORITATIVE distribution across the full
+   * Freshdesk population.
+   *
+   * Previously read from a single 100-row window of /api/v2/tickets,
+   * which produced a distribution skewed toward recently-updated
+   * tickets (typically over-representing Closed). This rewrite fires
+   * one /api/v2/search/tickets call per known status code in parallel
+   * and reads the authoritative `total` field per status. Result is
+   * the true distribution across the tenant.
+   *
+   * See docs/FRESHDESK_WINDOWING_FINDING_2026-05-28.md.
+   */
   private static async ticketsByStatus(
     userId: string,
     role: UserRole,
     start: number
   ): Promise<FreshworksProviderResult> {
-    const tickets = await this.fetchTickets(userId, role);
-    const counts = new Map<string, number>();
-    for (const t of tickets) {
-      const label = t.status != null ? (FRESHDESK_STATUS[t.status] ?? `Status ${t.status}`) : 'Unknown';
-      counts.set(label, (counts.get(label) ?? 0) + 1);
-    }
-    const rows = Array.from(counts.entries())
-      .map(([status, count]) => ({ status, count }))
+    const KNOWN_STATUSES = Object.keys(FRESHDESK_STATUS).map(Number);
+    const responses = await Promise.all(
+      KNOWN_STATUSES.map((s) => searchTickets(userId, role, { query: `status:${s}` }))
+    );
+    const rows = KNOWN_STATUSES.map((s, i) => ({
+      status: FRESHDESK_STATUS[s],
+      count: responses[i].total,
+    }))
+      .filter((r) => r.count > 0)
       .sort((a, b) => b.count - a.count);
     return this.finish(
       rows,
@@ -563,51 +592,42 @@ export class FreshworksDataProvider {
   }
 
   /**
-   * Open ticket count — current value with HONEST 7-day-ago PoP.
+   * Open ticket count — AUTHORITATIVE current value via search index.
    *
-   * Uses fetchTicketsForPoP() to get the merged dataset (recent activity +
-   * 7d window with stats). Computes:
-   *   - value          = currently-open tickets in the merged set
-   *   - previous_value = tickets that WERE open at cutoff = T-7d, derived
-   *                      from wasTicketOpenAt() (uses stats.resolved_at)
+   * Previously computed from a windowed 100-row /api/v2/tickets slice,
+   * which silently undercounted tenants with more open tickets than
+   * fit in the window. This rewrite uses /api/v2/search/tickets with
+   * a status:open compound query and reads the authoritative `total`
+   * field. See docs/FRESHDESK_WINDOWING_FINDING_2026-05-28.md.
    *
-   * If either underlying API call hit the 100-row cap, the historical
-   * count may be incomplete — we degrade to previous_value: null with a
-   * specific reason rather than show a partially-correct number.
+   * PoP comparison: deliberately null with a forward-looking reason.
+   * An honest period-over-period count requires either (a) paginating
+   * historical tickets with stats.resolved_at across the full
+   * population (cost: many API calls, may exceed rate limits on large
+   * tenants), or (b) the MetricSnapshot reader integration (the daily
+   * writer is already running per G-FW-PoP-1 phase 2; reader ships in
+   * a follow-up). Until then, surfacing a null PoP with an explicit
+   * reason is more honest than a windowed estimate.
+   *
+   * The OPEN_TICKET_QUERY mirrors the `ticketIsOpen()` predicate in
+   * src/lib/integrations/freshworks/freshdesk/client.ts (status ≠ 4
+   * and ≠ 5). Statuses 2, 3, 6, 7 are all "open" in our model.
    */
   private static async openTicketCount(
     userId: string,
     role: UserRole,
     start: number
   ): Promise<FreshworksProviderResult> {
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const { tickets, possiblyTruncated, cutoff } = await this.fetchTicketsForPoP(
-      userId,
-      role,
-      SEVEN_DAYS_MS
-    );
-    const currentlyOpen = tickets.filter((t) => ticketIsOpen(t)).length;
-    let openAtCutoff = 0;
-    let undecidable = 0;
-    for (const t of tickets) {
-      const verdict = this.wasTicketOpenAt(t, cutoff);
-      if (verdict === true) openAtCutoff += 1;
-      else if (verdict === null) undecidable += 1;
-    }
-    const popHonest = !possiblyTruncated && undecidable === 0;
-    const reason = possiblyTruncated
-      ? 'API window at 100-row cap on at least one underlying call — historical open count may be incomplete; paginate before trusting PoP.'
-      : undecidable > 0
-        ? `${undecidable} ticket(s) lacked stats.resolved_at — historical open count cannot be derived honestly without complete stats.`
-        : null;
-
+    const OPEN_TICKET_QUERY = 'status:2 OR status:3 OR status:6 OR status:7';
+    const { total } = await searchTickets(userId, role, { query: OPEN_TICKET_QUERY });
     return this.finish(
       [{
-        value: currentlyOpen,
+        value: total,
         label: 'Open tickets',
-        previous_value: popHonest ? openAtCutoff : null,
-        comparison_label: popHonest ? 'vs 7 days ago' : null,
-        comparison_unavailable_reason: reason,
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason:
+          'Current count is authoritative (search index); period-over-period requires daily snapshot reader (shipping in a follow-up patch).',
       }],
       [
         { name: 'value', type: 'number' },
@@ -622,48 +642,34 @@ export class FreshworksDataProvider {
   }
 
   /**
-   * Overdue ticket count — current value with HONEST 7-day-ago PoP.
+   * Overdue ticket count — AUTHORITATIVE current value via search index.
    *
-   * Same merged dataset as openTicketCount(). "Overdue at T-7d" requires
-   * the ticket was both OPEN at T-7d (wasTicketOpenAt) AND its due_by was
-   * already in the past at T-7d (wasTicketOverdueAt). When either
-   * predicate is undecidable for a row, we exclude it from the count and
-   * surface the underlying limitation through `comparison_unavailable_reason`.
+   * Same rewrite story as openTicketCount(). Composes the open-status
+   * filter with `due_by:<'YYYY-MM-DD'` (today in UTC) to find tickets
+   * that are still open AND past their SLA deadline.
+   *
+   * Important caveat for stakeholders reading this number: a value of
+   * 0 may either mean (a) no tickets are past SLA, or (b) the tenant
+   * does not maintain meaningful due_by values in Freshdesk. The data
+   * itself cannot distinguish these. See finding doc 2026-05-28 for
+   * evidence (Closed tickets with due_by 18 months in the future).
    */
   private static async overdueTicketCount(
     userId: string,
     role: UserRole,
     start: number
   ): Promise<FreshworksProviderResult> {
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    const { tickets, possiblyTruncated, cutoff } = await this.fetchTicketsForPoP(
-      userId,
-      role,
-      SEVEN_DAYS_MS
-    );
-    const now = new Date();
-    const currentlyOverdue = tickets.filter((t) => ticketIsOverdue(t, now)).length;
-    let overdueAtCutoff = 0;
-    let undecidable = 0;
-    for (const t of tickets) {
-      const verdict = this.wasTicketOverdueAt(t, cutoff);
-      if (verdict === true) overdueAtCutoff += 1;
-      else if (verdict === null) undecidable += 1;
-    }
-    const popHonest = !possiblyTruncated && undecidable === 0;
-    const reason = possiblyTruncated
-      ? 'API window at 100-row cap on at least one underlying call — historical overdue count may be incomplete; paginate before trusting PoP.'
-      : undecidable > 0
-        ? `${undecidable} ticket(s) lacked stats.resolved_at or a parseable due_by — historical overdue count cannot be derived honestly.`
-        : null;
-
+    const todayUtc = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const OVERDUE_QUERY = `(status:2 OR status:3 OR status:6 OR status:7) AND due_by:<'${todayUtc}'`;
+    const { total } = await searchTickets(userId, role, { query: OVERDUE_QUERY });
     return this.finish(
       [{
-        value: currentlyOverdue,
+        value: total,
         label: 'Overdue tickets',
-        previous_value: popHonest ? overdueAtCutoff : null,
-        comparison_label: popHonest ? 'vs 7 days ago' : null,
-        comparison_unavailable_reason: reason,
+        previous_value: null,
+        comparison_label: null,
+        comparison_unavailable_reason:
+          'Current count is authoritative (search index); period-over-period requires daily snapshot reader (shipping in a follow-up patch).',
       }],
       [
         { name: 'value', type: 'number' },

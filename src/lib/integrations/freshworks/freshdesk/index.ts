@@ -12,6 +12,7 @@ export {
 export {
   listTickets,
   listAgents,
+  searchTickets,
   describeFreshdeskClient,
   ticketIsOpen,
   ticketIsOverdue,
@@ -19,6 +20,8 @@ export {
   FRESHDESK_PRIORITY,
   type ListTicketsParams,
   type ListAgentsParams,
+  type SearchTicketsParams,
+  type SearchTicketsResult,
 } from './client';
 
 export {

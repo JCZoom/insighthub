@@ -127,6 +127,96 @@ export async function listTickets(
   return redactTickets(value, role);
 }
 
+// ── Search tickets (authoritative counts) ────────────────────────────────────
+
+export interface SearchTicketsParams {
+  /**
+   * Freshdesk search query language. Examples:
+   *   - "status:2"                              — single status
+   *   - "status:2 OR status:3"                  — multiple statuses
+   *   - "(status:2 OR status:3) AND priority:4" — boolean composition
+   *   - "due_by:<'2026-05-28'"                  — date comparison
+   * The wrapping double-quotes that Freshdesk's API requires are added
+   * by this function — pass the raw query body only.
+   * Docs: https://developers.freshdesk.com/api/#filter_tickets
+   */
+  query: string;
+}
+
+export interface SearchTicketsResult {
+  /**
+   * Authoritative total count of all matching tickets in the tenant.
+   * This is the true count even when `results` is capped at 30 per page
+   * (300 total) — that's what makes the search endpoint suitable for
+   * driving KPI cards and status distributions.
+   */
+  total: number;
+  /** Up to 30 sample ticket rows from the first page. May be empty when only the count is needed. */
+  results: FreshdeskTicket[];
+}
+
+/**
+ * Query the Freshdesk search index for tickets matching a filter.
+ *
+ * WHY THIS EXISTS: `listTickets()` is a paginated list of the most
+ * recently updated 100 tickets — it CANNOT give a true count of a
+ * population larger than 100. The search endpoint can, via its
+ * `total` field, and is the right primitive for KPI/distribution
+ * sources. See `docs/FRESHDESK_WINDOWING_FINDING_2026-05-28.md` for the
+ * full motivation.
+ *
+ * The search index is "near-real-time" per Freshdesk docs; counts may
+ * lag the source of truth by tens of seconds. For hourly+ dashboards
+ * this is well within tolerance.
+ */
+export async function searchTickets(
+  userId: string,
+  role: UserRole,
+  params: SearchTicketsParams
+): Promise<SearchTicketsResult> {
+  if (!isFreshdeskConfigured()) throw new FreshworksNotConfiguredError(PRODUCT);
+  const cfg = getFreshdeskConfig();
+  const filter: Record<string, unknown> = { search: params.query };
+  const key = buildCacheKey(PRODUCT, 'search-tickets', filter);
+
+  const { value, hit } = await getOrLoad<SearchTicketsResult>(
+    key,
+    cfg.cacheTtlSeconds,
+    async () => {
+      // Freshdesk requires the query body to be wrapped in literal
+      // double-quotes: ?query="status:2"
+      const qs = new URLSearchParams();
+      qs.set('query', `"${params.query}"`);
+      const data = await freshworksFetch<Partial<SearchTicketsResult>>({
+        product: PRODUCT,
+        baseUrl: cfg.baseUrl,
+        path: `/api/v2/search/tickets?${qs.toString()}`,
+        headers: buildFreshdeskAuthHeaders(cfg),
+        rateLimitPerMin: cfg.rateLimitPerMin,
+        ctx: { userId, resource: 'search-tickets' },
+      });
+      return {
+        total: typeof data?.total === 'number' ? data.total : 0,
+        results: Array.isArray(data?.results) ? data.results : [],
+      };
+    }
+  );
+
+  auditFreshworksRead({
+    userId,
+    product: PRODUCT,
+    resource: 'search-tickets',
+    count: value.total,
+    cacheHit: hit,
+    filter: params.query,
+  }).catch(() => undefined);
+
+  return {
+    total: value.total,
+    results: redactTickets(value.results, role),
+  };
+}
+
 // ── List agents ──────────────────────────────────────────────────────────────
 
 export interface ListAgentsParams {

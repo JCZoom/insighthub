@@ -19,6 +19,14 @@ const WidgetPositionSchema = z.object({
   h: z.number().int().min(1),
 });
 
+// Widget types that don't read from a data source. Kept in sync with
+// NON_DATA_WIDGET_TYPES in src/lib/ai/source-field-registry.ts. For
+// these types the AI builder commonly omits `dataConfig.source` (or
+// fills it with ""), which is semantically correct but used to trip
+// the schema validator. The refine() below permits an empty source
+// only for these widget kinds.
+const NON_DATA_WIDGET_TYPES = new Set(['text_block', 'divider', 'image']);
+
 const WidgetConfigSchema = z.object({
   id: z.string().min(1),
   type: z.string().min(1),
@@ -26,7 +34,9 @@ const WidgetConfigSchema = z.object({
   subtitle: z.string().max(500).optional(),
   position: WidgetPositionSchema,
   dataConfig: z.object({
-    source: z.string().min(1),
+    // NOTE: empty string is allowed at this layer; the refine() on the
+    // parent object enforces non-empty for data-bearing widget types.
+    source: z.string(),
     query: z.string().optional(),
     filters: z.array(z.record(z.string(), z.unknown())).optional(),
     aggregation: z.record(z.string(), z.unknown()).optional(),
@@ -36,7 +46,14 @@ const WidgetConfigSchema = z.object({
   }),
   visualConfig: z.record(z.string(), z.unknown()).optional(),
   glossaryTermIds: z.array(z.string()).optional(),
-}).passthrough();
+}).passthrough().refine(
+  (w) => NON_DATA_WIDGET_TYPES.has(w.type) || w.dataConfig.source.length >= 1,
+  {
+    message:
+      'Data widget must specify dataConfig.source (only text_block/divider/image may omit it)',
+    path: ['dataConfig', 'source'],
+  },
+);
 
 const DashboardSchemaValidator = z.object({
   layout: z.object({
