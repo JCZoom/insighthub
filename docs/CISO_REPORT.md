@@ -1,5 +1,19 @@
 # InsightHub — CISO Security Review
 
+> ## ⚠️ THIS DOCUMENT IS SUPERSEDED — read `docs/CISO_REPORT_2026-05-25.md` for current state
+>
+> This April 19, 2026 review is preserved unmodified for audit-trail purposes. **Two of its three "Critical" findings have been closed** since publication:
+>
+> - **#1 Dev-mode bypass running in production with warning-only enforcement** — closed via `assertEnv()` hard-throw on `NODE_ENV=production` + `DEV_MODE=true`. Lived incident retro: `docs/incidents/INC-20260519-001.md`.
+> - **EBS encryption verification at deploy** — closed 2026-05-25, wired into `deploy-ci.sh` pre-flight (G-12).
+>
+> Other items (Snowflake SQLi paths, audit-log immutable store, AWS Secrets Manager) remain in updated form in the superseder. Always cite the superseder, not this document, when referencing current CISO findings.
+>
+> **Superseded by:** `docs/CISO_REPORT_2026-05-25.md` (2026-05-25)
+> **Current gap state:** `docs/COMPLIANCE_GAPS.md`
+
+---
+
 **Application:** InsightHub — AI-Powered Dashboard Builder  
 **Production URL:** https://dashboards.jeffcoy.net  
 **Review Date:** April 19, 2026  

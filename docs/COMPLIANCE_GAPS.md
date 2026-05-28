@@ -1,9 +1,41 @@
 # InsightHub — USZoom Policy Compliance Gaps
 
 > **Generated:** 2026-04-24
+> **Last refreshed:** 2026-05-25 (pre-Wednesday-demo audit; see session header below)
 > **Source:** Mapping of `policies_USZoom_2026-04-24/*.pdf` against the current InsightHub codebase.
-> **Companion:** `docs/COMPLIANCE_MATRIX.md` has the full control-by-control evidence.
+> **Companion:** `docs/COMPLIANCE_MATRIX.md` has the full control-by-control evidence (control-level evidence as of 2026-04-24; for current state of any individual gap, this document is authoritative).
 > **Last production deploy:** 2026-05-19 ~17:25 ET (commit `8e024ba`) via **CI-driven self-hosted runner** (Track B Phase 1) — first deploy on the new auditable pipeline. Earlier same-day deploy `46d000f` shipped the Tier-1 closures; today's later deploy added memory hardening + the CI gate that produced this code path. Operator no longer holds an SSH key on the deploy box; deploys require a GitHub-environment approval and produce a workflow log row pinned to the `github.sha`.
+
+---
+
+## 2026-05-25 session update — demo-prep audit
+
+A pre-demo audit was conducted today (Wednesday demo on **2026-05-27**). Findings:
+
+### State of conformance
+
+- **Tier-1 (6 must-do gaps): all 6 closed in code; G-13 has outstanding infra provisioning.**
+- **Tier-2 (22 gaps): now 3 more closed/partial-closed today — G-12, G-15, G-20.**
+- **`docs/CISO_REPORT.md` (April 19) is stale.** Two of its three "Critical" findings have been closed since (dev-mode bypass, EBS verification). Superseded by `docs/CISO_REPORT_2026-05-25.md`.
+
+### Closures landing in this session (all in code, not yet deployed)
+
+- **G-12 EBS encryption verified at deploy** — `deploy-ci.sh` now runs `scripts/check-ebs-encryption.sh` as a pre-flight before triggering the CI workflow. Hard-fails on positively-detected unencrypted volumes (exit 2); soft-warns on AWS-CLI absence or AWS auth/perms gaps so legitimate operator scenarios aren't blocked. Bypass via documented exception only: `SKIP_EBS_CHECK=1`. Evidence: `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/deploy-ci.sh:128-175`.
+- **G-15 Patching SLA — Dependabot enabled** (partial closure, see G-15 entry). `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/.github/dependabot.yml` configures weekly npm + github-actions update PRs grouped patch+minor, with security updates always opened on detection. Patching SLA document still pending.
+- **G-20 Audit log structured IP / sanitization** — `AuditLog.ipAddress` + `AuditLog.userAgent` columns added (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/prisma/schema.prisma:213-226`). New helpers: `extractRequestContext(request)` for HTTP call sites, `sanitizeAuditMetadata()` recursive key-redactor (regex matches `password|token|secret|ssn|credit|cvv|api[_-]?key|authorization|bearer`). Both creators (`createAuditLog` + `createAuditLogStrict`) now share `buildAuditRow()` so they cannot drift apart. Evidence: `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:71-221`. Schema pushed locally; production deploy required to land. Existing call sites that pass plain metadata get sanitization for free; opt-in for IP/UA is the deliberate next-touch pattern.
+
+### Verified clean post-edit
+
+- `npx prisma db push --accept-data-loss` — schema synced.
+- `npx tsc --noEmit` — 0 errors.
+- `npx eslint src/lib/audit.ts` — 0 errors, 6 warnings (all pre-existing `any` types not introduced by today's edits).
+- `npm run test:unit` — 56/56 pass.
+
+### Demo-week TODO before 2026-05-27
+
+1. Deploy this branch via `./deploy-ci.sh` so G-12 / G-15 / G-20 closures are LIVE on prod (not just in code).
+2. Decide G-13 framing for the demo — see `docs/TODO_BACKUP_ISOLATION.md`. Either get AWS admin creds today + run `setup-backup-isolation.sh`, or rehearse the documented honest-answer talking points.
+3. Refresh / archive the stale April-19 `CISO_REPORT.md`. Superseder is `docs/CISO_REPORT_2026-05-25.md`.
 
 ## How this document is organized
 
@@ -217,9 +249,15 @@ Real findings that are fixable but not existential.
 - **Policy:** 3701 Encryption · ENC-04, ENC-05
 - **Audit risk:** MED
 - **Effort:** S
-- **Remediation:**
-  1. Wire `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/scripts/check-ebs-encryption.sh` into `deploy.sh` as step `[0/7]`. Fail deploy if unencrypted.
-  2. Same for the backup S3 bucket if one is added.
+- **Status (2026-05-25):** ✅ **Closed (EBS half).** Wired into `deploy-ci.sh` (the canonical deploy path; `deploy.sh` is now break-glass) as a pre-flight before workflow trigger. Hard-fails on positively-detected unencrypted volumes; soft-warns on AWS-CLI / auth gaps. Bypass via documented exception only: `SKIP_EBS_CHECK=1`. Evidence: `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/deploy-ci.sh:128-175`.
+- **Remaining (S3 half, tracked under G-13):** the `setup-backup-isolation.sh` script already configures S3 bucket-level encryption with `--bucket-encryption AES256` + KMS key during creation. Verification at deploy time depends on G-13 AWS bootstrap completing first.
+- **Manual verification:**
+  ```bash
+  # Run the underlying check directly:
+  ./scripts/check-ebs-encryption.sh
+  # Or trigger via deploy pre-flight:
+  ./deploy-ci.sh   # check fires before any workflow_dispatch
+  ```
 
 ### G-13 — Backups Not Isolated from Production + Not Enforced-Encrypted
 - **Policy:** 4133 Backup · BK-03, BK-04 · 4428 BCP · BCP-06
@@ -247,14 +285,15 @@ Real findings that are fixable but not existential.
 - **Policy:** 3715 Ops Sec · OS-20; 3702 HH-05; 3718 SE-08
 - **Audit risk:** MED
 - **Effort:** S
-- **Remediation:**
-  1. Enable GitHub Dependabot (`security_updates: true`) via `.github/dependabot.yml`.
-  2. Enable Ubuntu `unattended-upgrades` with security pocket enabled on EC2.
-  3. Document SLAs in `docs/VULNERABILITY_MANAGEMENT.md`:
+- **Status (2026-05-25):** 🟡 **Partial.** Dependabot configuration shipped at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/.github/dependabot.yml`: weekly cadence (Mondays 09:00 ET), patch+minor grouped per ecosystem, security updates always opened, npm + github-actions ecosystems covered, PR cap 5/3 to keep queue triageable. Closes the dependency-detection half of the gap. Still pending:
+  1. Enable Ubuntu `unattended-upgrades` with security pocket on EC2.
+  2. Author `docs/VULNERABILITY_MANAGEMENT.md` with the patching SLAs:
      - Critical / High: 30 days
      - Medium: 60 days
      - Low: 90 days
      - Informational: as needed
+  3. Repo Settings → Code security and analysis → enable Dependabot security updates + version updates (the YAML alone doesn't activate it without the repo-level toggle).
+- **Verification after enabling at the repo level:** the Dependabot tab on the GitHub repo will list the dependency graph it discovered; first PRs typically arrive within ~24h.
 
 ### G-16 — AWS Resources Not in Infrastructure-as-Code
 - **Policy:** 4427 CM-10; 4428 BCP-05
@@ -294,10 +333,15 @@ Real findings that are fixable but not existential.
 - **Policy:** 3715 Ops Sec · OS-12, OS-13
 - **Audit risk:** MED
 - **Effort:** S
-- **Remediation:**
-  1. Add `ipAddress String?` and `userAgent String?` columns to `AuditLog` in `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/prisma/schema.prisma`.
-  2. Populate from `request.headers.get('x-forwarded-for')` in all helpers (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts`).
-  3. Add a `sanitizeAuditMetadata()` utility that strips any key whose name matches `/password|token|secret|ssn|credit|cvv/i` before persisting.
+- **Status (2026-05-25):** ✅ **Closed in code; deploy required to land in prod.**
+- **Evidence:**
+  1. **Schema columns added:** `AuditLog.ipAddress String?` + `AuditLog.userAgent String?` at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/prisma/schema.prisma:213-226`. New `@@index([ipAddress])` for IP-based queries during incident response. Schema pushed locally via `npx prisma db push`.
+  2. **`sanitizeAuditMetadata()`** utility added at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:101-118` — recursive key-name redactor matching `/password|token|secret|ssn|credit|cvv|api[_-]?key|authorization|bearer/i`. Returns a new object (does not mutate). Walks arrays element-wise. Applied automatically to all metadata in the shared `buildAuditRow()` helper, so existing callers get sanitization for free.
+  3. **`extractRequestContext(request)`** helper added at `@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:134-159` — reads `x-forwarded-for` first hop (falls back to `x-real-ip`) + `user-agent`, clamps each to 256 chars. Accepts `Request | Headers | { get }` for flexibility across Next.js handler styles.
+  4. **`AuditLogData` interface extended** with optional `ipAddress` + `userAgent` (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:71-83`). Backwards-compatible — cron-job audit emitters that have no Request continue to work unchanged.
+  5. **Both creators share `buildAuditRow()`** (`@/Users/Jeffrey.Coy/CascadeProjects/InsightHub/src/lib/audit.ts:166-178`) so `createAuditLog` and `createAuditLogStrict` cannot drift apart on sanitization or column-mapping logic.
+- **Verified clean:** `npx prisma db push` (schema synced), `npx tsc --noEmit` (0 errors), `npm run test:unit` (56/56 pass).
+- **Migration target (tracked, not blocking):** existing audit emit sites do not yet pass `ipAddress`/`userAgent`. Migrate opportunistically when touching a file for other reasons, using `extractRequestContext(request)`. The columns are nullable, so no audit row is broken by missing context. Highest-value sites for first migration: `src/app/api/dashboards/[id]/share/route.ts`, `src/app/api/admin/users/route.ts`, `src/app/api/admin/permission-groups/route.ts`, `src/lib/auth/config.ts:signIn` callback (login attempts — already structured for the MFA rejection metadata).
 
 ### G-21 — No Cloud Alerting / Capacity Monitoring
 - **Policy:** 3702 HH-16; 3715 OS-03
