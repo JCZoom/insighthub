@@ -211,11 +211,19 @@ model AuditLog {
   resourceType String
   resourceId   String
   metadata     String?
+  // G-20 / Policy 3715 OS-12, OS-13 — request context for audit traceability.
+  // ipAddress is parsed from `x-forwarded-for` (first hop, behind nginx).
+  // userAgent is the raw UA string. Both are nullable because non-HTTP
+  // emit sites (cron jobs, retention purges, system snapshots) have no
+  // request to read from. Helper: extractRequestContext() in src/lib/audit.ts.
+  ipAddress    String?
+  userAgent    String?
   createdAt    DateTime @default(now())
 
   @@index([userId])
   @@index([resourceType, resourceId])
   @@index([createdAt])
+  @@index([ipAddress])
 }
 
 // Sample Data Tables for Demo (Phase 1)

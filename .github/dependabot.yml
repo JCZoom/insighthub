@@ -1,0 +1,62 @@
+# Dependabot — automated dependency security updates.
+#
+# Closes part of compliance gap G-15 (USZoom Policy 3715 OS-20, Policy 3702
+# HH-05, Policy 3718 SE-08 — patching SLA / known-vulnerability remediation).
+#
+# Strategy:
+#   - Weekly cadence (Monday 09:00 ET) — frequent enough to catch CVEs
+#     quickly, infrequent enough to avoid PR noise on a small team.
+#   - "security" updates always opened (no schedule-gating). Version-bump
+#     PRs are batched weekly.
+#   - Open-PR cap of 5 per ecosystem to keep the queue triageable.
+#   - Reviewer/assignee left to default (repo owner) so the GitHub
+#     notification fires.
+#
+# When this lands and Dependabot is allowed access (Settings →
+# Code security and analysis → Dependabot), the gap doc should flip
+# G-15 to "Closed" with this file path as evidence.
+
+version: 2
+updates:
+  # ── Application dependencies ────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "compliance:G-15"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    # Group patch + minor bumps into a single PR per ecosystem to reduce
+    # review burden. Major bumps stay separate so they get individual
+    # attention (breaking-change risk).
+    groups:
+      patch-and-minor:
+        update-types:
+          - "patch"
+          - "minor"
+
+  # ── GitHub Actions workflow dependencies ────────────────────
+  # Pins like actions/checkout@v4 should track the latest major safely.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+      - "compliance:G-15"
+    commit-message:
+      prefix: "ci"
+      include: "scope"

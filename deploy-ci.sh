@@ -125,6 +125,55 @@ if ! gh auth status -h github.com 2>&1 | grep -q "'repo'"; then
 fi
 ok "gh authenticated with required scopes"
 
+# ─── EBS encryption pre-flight (compliance gap G-12) ───────────────────────
+# Policy 3701 ENC-04/05 — data at rest must be encrypted on the production
+# host. We verify EBS volume encryption status before triggering each
+# deploy. The check is intentionally soft on operator-side AWS-CLI gaps
+# (warn) and hard on positively-detected unencrypted volumes (block).
+#
+#   SKIP_EBS_CHECK=1   bypass entirely (e.g. pre-AWS-creds bootstrap;
+#                      document the exception in the deploy notes).
+#   AWS CLI absent     warn-only (don't block solely because the
+#                      operator's laptop has no AWS profile yet).
+#   AWS perms missing  warn-only (same rationale).
+#   Volume(s) NOT      hard-fail. This is a real compliance hit.
+#     encrypted
+#
+# When this becomes routinely green, the gap doc should flip G-12 to
+# "Closed" with this block as evidence + a sample run output captured
+# under docs/evidence/.
+if [[ "${SKIP_EBS_CHECK:-0}" = "1" ]]; then
+  warn "EBS encryption pre-flight skipped (SKIP_EBS_CHECK=1) — document the reason in deploy notes"
+elif ! command -v aws >/dev/null 2>&1; then
+  warn "AWS CLI not installed locally — skipping EBS encryption check (G-12). Install with: brew install awscli"
+else
+  ebs_script="$(dirname "$0")/scripts/check-ebs-encryption.sh"
+  if [[ ! -x "$ebs_script" ]]; then
+    warn "scripts/check-ebs-encryption.sh missing or non-executable — skipping (G-12)"
+  else
+    # Run the check; capture exit + last line for the operator. Exit 2
+    # specifically signals "volume found but unencrypted"; other non-zero
+    # exits indicate AWS-side or tooling issues we treat as warnings.
+    ebs_out="$(mktemp)"
+    if "$ebs_script" >"$ebs_out" 2>&1; then
+      ok "EBS volumes encrypted at rest (G-12 / Policy 3701 ENC-04)"
+    else
+      ebs_exit=$?
+      if [[ "$ebs_exit" -eq 2 ]]; then
+        # Hard fail — this is the compliance hit we care about.
+        err "EBS volume(s) NOT encrypted — production data at rest unprotected"
+        cat "$ebs_out" >&2
+        rm -f "$ebs_out"
+        die "refusing to deploy with unencrypted EBS volumes (Policy 3701 ENC-04). To bypass under documented exception: SKIP_EBS_CHECK=1 ./deploy-ci.sh"
+      else
+        warn "EBS encryption check could not run (exit $ebs_exit — likely AWS auth or perms). Treating as advisory."
+        sed 's/^/    /' "$ebs_out" >&2 || true
+      fi
+    fi
+    rm -f "$ebs_out"
+  fi
+fi
+
 if [[ "$WATCH_ONLY" = false ]]; then
   # Only enforce git hygiene when we're triggering a NEW deploy. Watch-only
   # mode might be used post-hoc to monitor someone else's run.

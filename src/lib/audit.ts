@@ -74,6 +74,107 @@ export interface AuditLogData {
   resourceType: ResourceType;
   resourceId: string;
   metadata?: Record<string, any>;
+  // G-20 / Policy 3715 OS-12, OS-13 — request context.
+  // Both fields are optional. Pass them when the call site has access to a
+  // Request object (use `extractRequestContext(request)` below). Cron jobs,
+  // retention purges, and other non-HTTP emitters omit them.
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
+/**
+ * Sensitive-key matcher used by `sanitizeAuditMetadata`. Any object key
+ * whose name matches this regex (case-insensitive) is replaced with the
+ * literal string `[REDACTED]` before persistence. The match is on the
+ * KEY name, not the value — so `{ secretToken: 'abc' }` is redacted but
+ * `{ note: 'this is the secret token' }` is preserved. Compliance gap
+ * G-20 / Policy 3715 OS-13.
+ */
+const SENSITIVE_KEY_PATTERN = /password|token|secret|ssn|credit|cvv|api[_-]?key|authorization|bearer/i;
+
+/**
+ * Recursively walk a metadata object and redact any value whose KEY name
+ * matches `SENSITIVE_KEY_PATTERN`. Returns a new object — does not mutate.
+ * Arrays are walked element-wise (their indices aren't keys-with-names).
+ * Non-plain values pass through.
+ */
+export function sanitizeAuditMetadata<T = unknown>(input: T): T {
+  if (input === null || input === undefined) return input;
+  if (Array.isArray(input)) {
+    return input.map((v) => sanitizeAuditMetadata(v)) as unknown as T;
+  }
+  if (typeof input !== 'object') return input;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (SENSITIVE_KEY_PATTERN.test(k)) {
+      out[k] = '[REDACTED]';
+    } else if (v !== null && typeof v === 'object') {
+      out[k] = sanitizeAuditMetadata(v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out as T;
+}
+
+/**
+ * Pull request context (ipAddress + userAgent) from a Fetch-API `Request`,
+ * `Headers`, or anything with a `.get()` method that returns header values.
+ * Behind nginx, the real client IP is the FIRST hop in `x-forwarded-for`
+ * (subsequent hops are upstream proxies). Falls back to `x-real-ip`. Both
+ * fields are clamped to 256 chars to bound metadata storage.
+ *
+ * Usage in a Next.js route handler:
+ *   const ctx = extractRequestContext(request);
+ *   await createAuditLog({ ...auditFields, ...ctx });
+ *
+ * Returns `{ ipAddress: undefined, userAgent: undefined }` when nothing
+ * is parseable — leaves the columns null in the DB.
+ */
+export function extractRequestContext(
+  source: Request | Headers | { get: (name: string) => string | null } | null | undefined
+): { ipAddress?: string; userAgent?: string } {
+  if (!source) return {};
+  // Normalize to a callable getter regardless of input shape.
+  const headers: { get: (name: string) => string | null } =
+    source instanceof Request ? source.headers : (source as Headers);
+  if (typeof headers?.get !== 'function') return {};
+
+  const fwd = headers.get('x-forwarded-for');
+  const real = headers.get('x-real-ip');
+  const ua = headers.get('user-agent');
+
+  let ipAddress: string | undefined;
+  if (fwd && fwd.trim()) {
+    // First hop is the original client; trim spaces.
+    ipAddress = fwd.split(',')[0]?.trim() || undefined;
+  } else if (real && real.trim()) {
+    ipAddress = real.trim();
+  }
+
+  return {
+    ipAddress: ipAddress ? ipAddress.slice(0, 256) : undefined,
+    userAgent: ua ? ua.slice(0, 256) : undefined,
+  };
+}
+
+/**
+ * Build the Prisma `data` object for a single audit row, applying
+ * sanitization + JSON-encoding consistently. Internal helper shared by
+ * the best-effort and strict creators so they cannot drift apart.
+ */
+function buildAuditRow(input: AuditLogData) {
+  const { userId, action, resourceType, resourceId, metadata, ipAddress, userAgent } = input;
+  const cleaned = metadata ? sanitizeAuditMetadata(metadata) : null;
+  return {
+    userId,
+    action,
+    resourceType,
+    resourceId,
+    metadata: cleaned ? JSON.stringify(cleaned) : null,
+    ipAddress: ipAddress ?? null,
+    userAgent: userAgent ?? null,
+  };
 }
 
 /**
@@ -83,33 +184,25 @@ export interface AuditLogData {
  *
  * If audit-before-delete (G-08) semantics are required, use `auditedDelete()`
  * or `createAuditLogStrict()` instead.
+ *
+ * Metadata is automatically passed through `sanitizeAuditMetadata` (G-20 /
+ * Policy 3715 OS-13) so call sites do not need to remember to redact
+ * sensitive keys. Pass `ipAddress` + `userAgent` (or use
+ * `extractRequestContext(request)`) when you have a Request to read from.
  */
-export async function createAuditLog({
-  userId,
-  action,
-  resourceType,
-  resourceId,
-  metadata
-}: AuditLogData): Promise<void> {
+export async function createAuditLog(input: AuditLogData): Promise<void> {
   try {
-    await prisma.auditLog.create({
-      data: {
-        userId,
-        action,
-        resourceType,
-        resourceId,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-      },
-    });
+    await prisma.auditLog.create({ data: buildAuditRow(input) });
   } catch (error) {
     // Log audit failures but don't throw to avoid breaking the main operation
     console.error('Failed to create audit log:', {
       error,
-      userId,
-      action,
-      resourceType,
-      resourceId,
-      metadata
+      userId: input.userId,
+      action: input.action,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId,
+      // Don't log sanitized metadata back to stderr — it could still be
+      // verbose. Operators who need it can re-query Prisma directly.
     });
   }
 }
@@ -123,22 +216,8 @@ export async function createAuditLog({
  * If you find yourself catching the error and continuing anyway, you should
  * be using `createAuditLog` (best-effort) instead.
  */
-export async function createAuditLogStrict({
-  userId,
-  action,
-  resourceType,
-  resourceId,
-  metadata
-}: AuditLogData): Promise<void> {
-  await prisma.auditLog.create({
-    data: {
-      userId,
-      action,
-      resourceType,
-      resourceId,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-    },
-  });
+export async function createAuditLogStrict(input: AuditLogData): Promise<void> {
+  await prisma.auditLog.create({ data: buildAuditRow(input) });
 }
 
 /**

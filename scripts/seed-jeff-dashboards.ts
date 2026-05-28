@@ -37,9 +37,36 @@ import { JEFF_DATA_TRUST_DASHBOARD } from './dashboards/jeff-data-trust';
 
 const prisma = new PrismaClient();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPORARY: owner identity pinned to the DEV_MODE bypass user.
+//
+// Production currently runs with DEV_MODE=true (see docs/incidents/
+// INC-20260519-001.md and the retention-cron blocker note). Every request
+// authenticates as `dev-admin-user` (see src/lib/auth/config.ts DEV_USER),
+// NOT as the post-OAuth identity below. So seeding dashboards as
+// `jeff-prod-user` made them invisible to the logged-in session: the
+// `/api/dashboards` filter requires ownerId match, isPublic, or an
+// explicit share, and none matched.
+//
+// Quick-fix on 2026-05-21: pin the seed owner to `dev-admin-user` so the
+// seeded dashboards show up immediately on dashboards.jeffcoy.net.
+//
+// ⚠️  WHEN PRODUCTION MOVES OFF DEV_MODE (real Google OAuth on, see Asana
+//     task 1214949021810627), revert this block to:
+//
+//       id: 'jeff-prod-user',
+//       email: 'jeffreycoy@jeffcoy.net',
+//
+//     …and re-run the seed against prod. Existing dashboards will be
+//     re-owned by the post-OAuth identity via the upsert. The old
+//     `dev-admin-user`-owned rows should be reassigned manually with a
+//     `UPDATE Dashboard SET ownerId='jeff-prod-user' WHERE ownerId=
+//     'dev-admin-user'` one-liner before flipping DEV_MODE off, or you'll
+//     lose visibility to them under the new identity.
+// ─────────────────────────────────────────────────────────────────────────────
 const JEFF_USER = {
-  id: 'jeff-prod-user',
-  email: 'jeffreycoy@jeffcoy.net',
+  id: 'dev-admin-user',
+  email: 'jeff.coy@uszoom.com',
   name: 'Jeff Coy',
   role: 'ADMIN',
   department: 'Engineering',
